@@ -1,0 +1,38 @@
+{% extends "base_bare.html" %}
+{% load ui static %}
+{% block title %}{{ form.name }}{% endblock %}
+{% block head %}{% include "flows/_fill_theme.html" %}{% endblock %}
+{% block body_class %}{% if embed %}embedded{% endif %}{% endblock %}
+{% block body %}
+<div class="fill-page" {% with d=docs.0.design %}{% if d.page_background %}style="--fill-bg:{{ d.page_background }}"{% endif %}{% endwith %}>
+  {% if not embed %}<header class="fill-top"><div class="brand">{% if workspace.logo %}<img src="{{ workspace.logo.url }}" alt="">{% endif %}<span class="brand-name">{{ workspace.name }}</span></div></header>{% endif %}
+  {% if preview %}<div class="alert alert-info" style="max-width:760px;margin:12px auto 0">Preview — in-form bots work, but submitting is disabled{% if not form.is_live %} (the form is not published){% endif %}.</div>{% endif %}
+  {% if has_errors %}<div class="alert alert-error" style="max-width:760px;margin:12px auto 0">Please fix the highlighted fields.</div>{% endif %}
+  {% if payment_error %}<div class="alert alert-error" style="max-width:760px;margin:12px auto 0">{{ payment_error }}</div>{% endif %}
+  {% if pay_note %}<div class="alert alert-info" style="max-width:760px;margin:12px auto 0">💳 {{ pay_note }}</div>{% endif %}
+  <form method="post" enctype="multipart/form-data" id="fill-form" data-intake-form data-lookup-url="{{ lookup_url }}" {% if preview %}onsubmit="return false"{% endif %}>{% csrf_token %}
+  {% for d in docs %}
+    <div class="fill-wrap {% if d.design.width == 'wide' %}wide{% endif %}" {% if d.design.width == 'custom' and d.design.custom_width %}style="max-width:{{ d.design.custom_width }}px"{% endif %}>
+      <div class="fill-doc" data-doc style="{% if d.design.background %}background:{{ d.design.background }};{% endif %}{% if d.design.font %}font-family:'{{ d.design.font }}',Inter,sans-serif;{% endif %}{% if d.design.accent %}--fill-accent:{{ d.design.accent }};{% endif %}">
+        <div class="doc-head" style="{% if d.design.header_color %}background:{{ d.design.header_color }}{% endif %}">
+          {% if d.design.logo_url %}<img src="{{ d.design.logo_url }}" alt="" style="height:36px;margin-bottom:6px;display:block">{% elif d.design.use_workspace_logo and workspace.logo %}<img src="{{ workspace.logo.url }}" alt="" style="height:48px;margin:0 0 6px auto;display:block">{% endif %}
+          <b>{{ form.name }}</b>{% if form.description %}<div class="muted" style="font-size:13px;margin-top:2px">{{ form.description }}</div>{% endif %}
+        </div>
+        {% for page in d.pages %}
+        <div class="fill-pg" data-pg="{{ forloop.counter0 }}" {% if not forloop.first %}hidden{% endif %}>
+          <div class="ff-grid">{% for f in page %}{% include "flows/fields/field.html" %}{% endfor %}</div>
+          {% if d.pages|length > 1 %}<div class="pager"><button type="button" class="btn" data-prev {% if forloop.first %}disabled{% endif %}>‹ Back</button><small class="muted">Page {{ forloop.counter }} of {{ d.pages|length }}</small><button type="button" class="btn" data-next {% if forloop.last %}disabled{% endif %}>Next ›</button></div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+  <div class="fill-wrap" style="padding-top:0">
+    {% if consent_required %}<div class="consent"><label class="check"><input type="checkbox" name="consent" {% if request.POST.consent %}checked{% endif %}> <span>I agree to use electronic records and signatures and that my electronic signature is the legal equivalent of my handwritten signature.</span></label>{% if consent_error %}<div class="err-msg">{{ consent_error }}</div>{% endif %}</div>{% endif %}
+  </div>
+  <div class="fill-bar"><button class="btn btn-lg fill-btn" {% if preview %}disabled title="Preview — submitting is disabled"{% endif %}>{{ o.submit_label|default:"Submit" }}</button></div>
+  </form>
+</div>
+<script id="lookups-data" type="application/json">{{ lookups_json|safe }}</script>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/fill.js' %}?v={{ asset_v }}"></script><script src="{% static 'js/forms.js' %}?v={{ asset_v }}"></script>{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base_bare.html" %}
+{% load ui %}{% load static %}
+{% block title %}Document workflows, forms and e-signatures{% endblock %}
+{% block site_css %}{% include "partials/site_css.html" %}{% endblock %}
+{% block head %}<meta name="description" content="Paperlane runs forms, approvals and e-signatures as one workflow, with a record of every step. Self-hosted, with optional local AI.">{% endblock %}
+{% block body_class %}lx-body{% endblock %}
+{% block body %}
+<header class="lx-nav">
+  <div class="lx-wrap lx-nav-in">
+    <a class="lx-brand" href="/"><span class="lx-mark">{% logo_mark 28 %}</span>Paperlane</a>
+    <nav class="lx-links" aria-label="Main"><a href="#product">Product</a><a href="#ai">AI</a><a href="#security">Security</a><a href="#pricing">Pricing</a><a href="{% url 'core:help' %}">Help</a></nav>
+    <div class="lx-cta"><a class="lx-btn text" href="{% url 'accounts:login' %}">Log in</a><a class="lx-btn ink" href="{% url 'accounts:signup' %}">Start free</a></div>
+  </div>
+</header>
+
+<main>
+<section class="lx-hero">
+  <div class="lx-wrap">
+    <h1>Forms, approvals and signatures in one workflow.</h1>
+    <div class="lx-hero-row">
+      <p class="lx-lead">Build the form, route it to the right people and keep a record of every step. On your own servers.</p>
+      <div class="lx-actions"><a class="lx-btn ink lg" href="{% url 'accounts:signup' %}">Start free</a><a class="lx-btn line lg" href="#product">See the product</a></div>
+    </div>
+    <figure class="lx-frame">
+      <div class="lx-frame-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+      <img src="{% static 'img/landing/documents.webp' %}" width="1800" height="1125" fetchpriority="high"
+           alt="The Documents list in Paperlane: expense claims, campaigns and invoices, each with its status, current step and progress.">
+    </figure>
+  </div>
+</section>
+
+<section class="lx-sec lx-product" id="product">
+  <div class="lx-wrap lx-prod">
+    <div>
+      <h2 class="lx-h2 lx-reveal">Map the process the way it actually runs.</h2>
+      <p class="lx-p lx-reveal">Each step names who fills what, and every document follows the same path.</p>
+      <div class="lx-points">
+        <div class="lx-reveal" style="--i:0"><b>Forms that fill themselves</b><p>Look up a policy or customer as it is typed and fill the rest from a sheet, past documents or your API.</p></div>
+        <div class="lx-reveal" style="--i:1"><b>Branches and parallel lanes</b><p>Send work to Finance only above a limit, run reviews side by side, loop back for missing information.</p></div>
+        <div class="lx-reveal" style="--i:2"><b>Deadlines that escalate</b><p>Overdue work is reminded, reassigned or escalated automatically.</p></div>
+        <div class="lx-reveal" style="--i:3"><b>E-signatures with proof</b><p>A sealed certificate on the final PDF that anyone can check.</p></div>
+      </div>
+    </div>
+    <figure class="lx-frame lx-reveal">
+      <div class="lx-frame-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+      <img src="{% static 'img/landing/builder.webp' %}" width="1800" height="1182" loading="lazy"
+           alt="The workflow builder showing an employee onboarding process: a new employee step, then an HR manager step.">
+    </figure>
+  </div>
+</section>
+
+<section class="lx-sec" id="ai">
+  <div class="lx-wrap">
+    <h2 class="lx-h2 lx-reveal">AI that does the setup work.</h2>
+    <p class="lx-p lx-reveal">Describe a form or upload the paper version. Every change shows up for review before it is applied.</p>
+    <div class="lx-bento">
+      <article class="lx-cell shot lx-reveal">
+        <div><h3>Build a form from a description</h3><p>Or start from an existing PDF, Word file or photo. Edit with plain instructions, undo anything.</p></div>
+        <img src="{% static 'img/landing/ai-builder.webp' %}" width="838" height="1050" loading="lazy"
+             alt="The AI document builder panel in the form editor, with example prompts and a Design the document button.">
+      </article>
+      <article class="lx-cell lx-reveal" style="--i:1">
+        <h3>Ask what went wrong</h3>
+        <p>The assistant reads a stuck document, explains the cause and files a ticket when it is serious.</p>
+        <div class="lx-quote"><span>Purchase request #38</span>The <b>Send to ERP</b> bot could not reach your ERP. Three documents are affected.</div>
+      </article>
+      <article class="lx-cell tint lx-reveal" style="--i:2">
+        <h3>Runs on your hardware</h3>
+        <p>Point it at a local model with Ollama and nothing leaves your network. Sensitive fields are never sent to a model.</p>
+        <code class="lx-code">ollama · qwen3.5:9b</code>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="lx-sec" id="security">
+  <div class="lx-wrap lx-split">
+    <div>
+      <h2 class="lx-h2 lx-reveal">Controls you can explain to an auditor.</h2>
+      <p class="lx-p lx-reveal">Built for insurers, finance teams and anyone else who gets asked who changed what, and when.</p>
+    </div>
+    <dl class="lx-list">
+      <div class="lx-reveal" style="--i:0"><dt>Field history</dt><dd>Every value change, with who made it and whether it came from a person, a step or a bot.</dd></div>
+      <div class="lx-reveal" style="--i:1"><dt>Sensitive fields</dt><dd>Bank and ID numbers are masked for anyone not involved, in exports too.</dd></div>
+      <div class="lx-reveal" style="--i:2"><dt>Roles and single sign-on</dt><dd>Six roles, groups, two-step sign-in, and Entra ID, Google or Okta with a domain allowlist.</dd></div>
+      <div class="lx-reveal" style="--i:3"><dt>Tamper-evident documents</dt><dd>Completed documents are sealed with a fingerprint anyone can check.</dd></div>
+      <div class="lx-reveal" style="--i:4"><dt>Retention and legal hold</dt><dd>Delete finished work on a schedule, except what is on hold.</dd></div>
+      <div class="lx-reveal" style="--i:5"><dt>Self-hosted</dt><dd>Your servers and your database. PostgreSQL, Docker and backups included.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="lx-sec" id="templates">
+  <div class="lx-wrap">
+    <h2 class="lx-h2 lx-reveal">Start from a template.</h2>
+    <p class="lx-p lx-reveal">Publish one as it is, or change it to match your paperwork.</p>
+  </div>
+  <div class="lx-rail" role="list">
+    {% for key, t in form_templates.items %}
+    <a class="lx-tpl" role="listitem" href="{% url 'accounts:signup' %}"><small>{{ t.category }}</small><b>{{ t.name }}</b><p>{{ t.description }}</p></a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="lx-sec" id="pricing">
+  <div class="lx-wrap">
+    <h2 class="lx-h2 lx-reveal">Pricing</h2>
+    <p class="lx-p lx-reveal">Free for a small team. Pay per person when you run real processes.</p>
+    <div class="lx-plans lx-reveal">
+      <div class="lx-plan"><h3>Starter</h3><div class="lx-price">$0</div><p>For trying it with a small team</p>
+        <ul><li>3 published workflows</li><li>Start forms with lookups</li><li>E-signatures and audit trail</li><li>Up to 5 teammates</li></ul>
+        <a class="lx-btn line" href="{% url 'accounts:signup' %}">Start free</a></div>
+      <div class="lx-plan pick"><h3>Team<small>Most teams</small></h3><div class="lx-price">$15<small>per user / month</small></div><p>For departments running real processes</p>
+        <ul><li>Unlimited workflows and forms</li><li>Branches, deadlines and every bot</li><li>AI assistant, API and MCP</li><li>Groups, roles and two-step sign-in</li></ul>
+        <a class="lx-btn ink" href="{% url 'accounts:signup' %}">Start free</a></div>
+      <div class="lx-plan"><h3>Enterprise</h3><div class="lx-price">Custom</div><p>For regulated organisations</p>
+        <ul><li>Self-hosted or private cloud</li><li>Single sign-on and retention rules</li><li>Custom domains and branding</li><li>Import from a workflow export</li></ul>
+        <a class="lx-btn line" href="mailto:sales@paperlane.example?subject=Paperlane%20Enterprise">Contact sales</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="lx-sec" id="faq">
+  <div class="lx-wrap lx-split">
+    <div><h2 class="lx-h2">Questions</h2><p class="lx-p">More in the <a class="lx-inline" href="{% url 'core:help' %}">help center</a>.</p></div>
+    <div class="lx-faq">
+      <details><summary>Do the people filling in forms need an account?</summary><p>No. They open a secure link from their email, or your public form, and fill or sign right away. Only your team needs accounts.</p></details>
+      <details><summary>Does the AI send my documents to the cloud?</summary><p>Only if you choose a cloud model. With a local Ollama model every AI feature runs on your own machines. Signatures, files and fields marked sensitive are never sent to any model.</p></details>
+      <details><summary>Can I bring workflows from another system?</summary><p>Yes. Import a configuration export and the steps, documents, groups, bots and conditions are recreated for you to review before publishing.</p></details>
+      <details><summary>What happens when something fails?</summary><p>The document shows a banner. Ask the assistant what went wrong and it explains the cause and the fix. High and critical problems open a support ticket automatically.</p></details>
+      <details><summary>Can it connect to our other systems?</summary><p>Use custom connectors for any HTTP and JSON API, signed webhooks, the REST API, or the MCP endpoint with a personal token.</p></details>
+      <details><summary>Are the signatures legally binding?</summary><p>Paperlane records consent to sign electronically, who signed, when and from where, and seals a certificate onto the final PDF. Check the rules for your jurisdiction and document type.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="lx-close">
+  <div class="lx-wrap lx-close-in">
+    <div><h2 class="lx-h2">Try it with one of your own forms.</h2><p class="lx-p">Free to start, no card required.</p></div>
+    <a class="lx-btn ink lg" href="{% url 'accounts:signup' %}">Start free</a>
+  </div>
+</section>
+</main>
+
+<footer class="lx-foot">
+  <div class="lx-wrap lx-foot-in">
+    <a class="lx-brand" href="/"><span class="lx-mark">{% logo_mark 28 %}</span>Paperlane</a>
+    <nav aria-label="Footer"><a href="#product">Product</a><a href="#pricing">Pricing</a><a href="{% url 'core:help' %}">Help</a><a href="{% url 'core:page' 'release-notes' %}">Release notes</a><a href="{% url 'core:page' 'terms' %}">Terms</a><a href="{% url 'core:page' 'privacy' %}">Privacy</a></nav>
+    <small>&copy; {% now "Y" %} Paperlane</small>
+  </div>
+</footer>
+<script>
+(function () {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
+    document.querySelectorAll(".lx-reveal").forEach((el) => el.classList.add("in")); return;
+  }
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.12 });
+  document.querySelectorAll(".lx-reveal").forEach((el) => io.observe(el));
+})();
+</script>
+{% endblock %}

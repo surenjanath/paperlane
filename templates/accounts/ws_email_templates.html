@@ -1,0 +1,98 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Email templates{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<div class="row" style="gap:10px;align-items:flex-end;margin-bottom:14px">
+  <div class="grow"><h1 style="margin-bottom:4px">Email templates</h1>
+    <p class="muted">Every email {{ app_name }} sends for this workspace — edit the wording, switch emails off, and brand them.</p></div>
+  <button type="button" class="btn" onclick="document.getElementById('email-design').open=true;document.getElementById('email-design').scrollIntoView({behavior:'smooth'})">{% icon "palette" %} Email design</button>
+</div>
+
+<div class="et-layout">
+  <nav class="et-list" aria-label="Emails">
+    {% for group, items in grouped.items %}<div class="nav-label">{{ group }}</div>
+      {% for it in items %}<a class="et-item {% if it.key == key %}active{% endif %}" href="?key={{ it.key }}"><span class="grow">{{ it.label }}</span>
+        {% if it.off %}<span class="badge badge-gray">Off</span>{% elif it.custom %}<span class="et-dot" title="Customized"></span>{% endif %}</a>{% endfor %}{% endfor %}
+  </nav>
+
+  <form method="post" class="card card-pad et-editor" id="et-form" data-preview-url="{% url 'accounts:email_templates' %}?key={{ key }}">{% csrf_token %}<input type="hidden" name="key" value="{{ key }}">
+    <div class="row" style="gap:10px;align-items:flex-start">
+      <div class="grow"><h3>{{ label }}</h3><p class="muted small" style="margin-top:2px">{{ description }}</p></div>
+      {% if t.customized %}<span class="badge badge-purple">Customized</span>{% else %}<span class="badge badge-gray">Default</span>{% endif %}
+    </div>
+    <label class="switch-row"><input type="checkbox" name="enabled" {% if t.enabled %}checked{% endif %}> <span><b>Send this email</b><br><small class="muted">When off, it's skipped and noted in the Email log.</small></span></label>
+    <div class="field"><label for="et-subject">Subject</label><input id="et-subject" type="text" name="subject" value="{{ t.subject }}" maxlength="200" data-et></div>
+    <div class="field"><label for="et-body">Message</label><textarea id="et-body" name="body" rows="11" data-et>{{ t.body }}</textarea>
+      <div class="et-chips" aria-label="Insert a placeholder">{% for tok, lbl in placeholders %}<button type="button" class="chip" data-insert="{{ tok }}" title="{{ tok }}">{{ lbl }}</button>{% endfor %}<button type="button" class="chip" data-insert="{field:Field name}">Field value</button></div>
+      <div class="help">Click to insert at the cursor. The line with the link becomes a button in the HTML email.</div></div>
+    <div class="grid-2">
+      <div class="field"><label>Button label</label><input type="text" name="button_label" value="{{ t.button_label }}" maxlength="60" placeholder="{{ d.button_label }}" data-et></div>
+      <div class="field"><label>CC</label><input type="text" name="cc" value="{{ t.cc }}" placeholder="team@company.com"></div>
+    </div>
+    <div class="field"><label>BCC</label><input type="text" name="bcc" value="{{ t.bcc }}" placeholder="archive@company.com"><div class="help">Separate several addresses with commas.</div></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button class="btn" name="action" value="reset" {% if not t.customized %}disabled{% endif %} formnovalidate>Reset to default</button>
+      <button class="btn" name="action" value="test" formnovalidate>{% icon "send" %} Send me a test</button>
+      <span class="grow"></span><button class="btn btn-dark" name="action" value="save">Save template</button>
+    </div>
+  </form>
+
+  <div class="et-preview">
+    <div class="row" style="margin-bottom:6px"><b class="grow">Preview</b><small class="muted">with sample values</small></div>
+    <div class="et-subject"><small class="muted">Subject</small><br><b id="et-prev-subject">{{ preview_subject }}</b></div>
+    <iframe id="et-prev" title="Email preview" sandbox="allow-same-origin" srcdoc="{{ preview_html }}"></iframe>
+  </div>
+</div>
+
+<details class="card card-pad" id="email-design" style="margin-top:18px">
+  <summary style="cursor:pointer"><b>{% icon "palette" %} Email design</b> <small class="muted">— applies to every email from this workspace</small></summary>
+  <form method="post" style="margin-top:14px">{% csrf_token %}<input type="hidden" name="key" value="{{ key }}"><input type="hidden" name="action" value="design">
+    <div class="grid-2">
+      <div class="field"><label>Sender name</label><input type="text" name="from_name" value="{{ d.from_name }}" placeholder="{{ request.workspace.name }}" maxlength="80"></div>
+      <div class="field"><label>Reply-to address</label><input type="email" name="reply_to" value="{{ d.reply_to }}" placeholder="service@company.com"></div>
+    </div>
+    <div class="et-colors">
+      <label>Header <input type="color" name="header_color" value="{{ d.header_color }}"></label>
+      <label>Header text <input type="color" name="header_text" value="{{ d.header_text }}"></label>
+      <label>Button <input type="color" name="button_color" value="{{ d.button_color }}"></label>
+      <label>Button text <input type="color" name="button_text" value="{{ d.button_text }}"></label>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Default button label</label><input type="text" name="default_button" value="{{ d.button_label }}" maxlength="60"></div>
+      <div class="field"><label>Footer (address, phone, disclaimer)</label><textarea name="footer" rows="2" placeholder="Acme Insurance · 1 Main Street · 868-555-0100">{{ d.footer }}</textarea></div>
+    </div>
+    <label class="check"><input type="checkbox" name="html" {% if d.html %}checked{% endif %}> Send a designed (HTML) version — plain text is always included</label>
+    <label class="check"><input type="checkbox" name="show_logo" {% if d.show_logo %}checked{% endif %}> Show the workspace logo in the header</label>
+    <label class="check"><input type="checkbox" name="security_note" {% if d.security_note %}checked{% endif %}> Add the “secure link — don't forward” note</label>
+    <div style="margin-top:12px"><button class="btn btn-dark">Save design</button></div>
+  </form>
+</details>
+{% endblock %}
+{% block scripts %}<script>
+(function () {
+  const form = document.getElementById("et-form"), frame = document.getElementById("et-prev"), subj = document.getElementById("et-prev-subject");
+  let last = null, timer;
+  form.querySelectorAll("[data-et]").forEach((el) => el.addEventListener("focus", () => (last = el)));
+  form.querySelectorAll("[data-insert]").forEach((b) => b.addEventListener("click", () => {
+    const el = last || document.getElementById("et-body"), text = b.dataset.insert;
+    const s = el.selectionStart ?? el.value.length, e = el.selectionEnd ?? el.value.length;
+    el.value = el.value.slice(0, s) + text + el.value.slice(e);
+    el.focus(); el.setSelectionRange(s + text.length, s + text.length); refresh();
+  }));
+  const refresh = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const fd = new FormData(form); fd.set("action", "preview");
+      try {
+        const r = await fetch(form.dataset.previewUrl, { method: "POST", body: fd });
+        const j = await r.json(); frame.srcdoc = j.html; subj.textContent = j.subject;
+      } catch (e) { /* keep the last preview */ }
+    }, 350);
+  };
+  form.querySelectorAll("[data-et]").forEach((el) => el.addEventListener("input", refresh));
+  const fit = () => { try { frame.style.height = Math.max(380, frame.contentDocument.body.scrollHeight + 20) + "px"; } catch (e) {} };
+  frame.addEventListener("load", fit);
+})();
+</script>{% endblock %}

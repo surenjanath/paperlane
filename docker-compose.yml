@@ -1,0 +1,56 @@
+# Production stack: PostgreSQL, web (gunicorn), worker (jobs + nightly backup) and, with the "https" profile, Caddy
+# for automatic HTTPS. The one-step installer (deploy/install.sh) writes .env and starts everything; to do it by
+# hand, fill in .env (see .env.example) and run `docker compose --profile https up -d --build`.
+services:
+  db:
+    image: postgres:17-alpine  # same major version as the app image's pg_dump/pg_restore
+    environment:
+      POSTGRES_DB: paperlane
+      POSTGRES_USER: paperlane
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U paperlane"], interval: 10s, retries: 5}
+    restart: unless-stopped
+
+  web:
+    build: .
+    command: web
+    env_file: .env
+    environment: &app_env
+      PAPERLANE_DATABASE_URL: postgres://paperlane:${POSTGRES_PASSWORD}@db:5432/paperlane
+      PAPERLANE_BACKUP_DIR: /backups
+    # loopback only by default: Caddy (or your own proxy on this host) is the public entrance
+    ports: ["${PAPERLANE_BIND:-127.0.0.1}:${PAPERLANE_PORT:-8000}:8000"]
+    volumes: [media:/app/media, backups:/backups, static:/app/staticfiles]
+    depends_on: {db: {condition: service_healthy}}
+    healthcheck: {test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz/')"], interval: 30s, start_period: 60s, retries: 3}
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: worker
+    env_file: .env
+    environment:
+      <<: *app_env
+      PAPERLANE_BACKUP_AT: ${PAPERLANE_BACKUP_AT:-02:30}
+    volumes: [media:/app/media, backups:/backups]
+    depends_on: {web: {condition: service_healthy}}  # web runs the migrations before it reports healthy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.8-alpine
+    profiles: [https]
+    environment:
+      PAPERLANE_DOMAIN: ${PAPERLANE_DOMAIN:-localhost}
+      PAPERLANE_ACME_EMAIL: ${PAPERLANE_ACME_EMAIL:-webmaster@localhost}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - static:/srv/static:ro
+      - media:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: {web: {condition: service_healthy}}
+    restart: unless-stopped
+
+volumes: {pgdata: {}, media: {}, backups: {}, static: {}, caddy_data: {}, caddy_config: {}}

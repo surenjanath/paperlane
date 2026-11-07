@@ -1,0 +1,33 @@
+{% extends "base_bare.html" %}
+{% load ui static %}
+{% block body %}
+<div class="shell {% block shell_class %}{% endblock %}" {% if request.user.is_authenticated and request.workspace %}data-live-url="{% url 'core:live' %}" data-live-notes="{% url 'core:notifications' %}?panel=1"{% endif %}>
+  {% include "partials/rail.html" %}
+  {% block sidebar %}{% include "partials/sidebar.html" %}{% endblock %}
+  <main class="main">
+    {% include "partials/platform_banner.html" %}
+    {% if request.profile.out_of_office %}<div class="ooo-banner" role="status">🌴 You're out of office until <b>{{ request.profile.ooo_until|date:"M j" }}</b> — new steps go to {{ request.profile.ooo_delegate.get_full_name|default:request.profile.ooo_delegate.email }}. <a class="link" href="{% url 'accounts:out_of_office' %}">Change</a>
+      <form method="post" action="{% url 'accounts:out_of_office' %}">{% csrf_token %}<input type="hidden" name="action" value="off"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button>I'm back</button></form></div>{% endif %}
+    {% block main %}
+    <div class="page-head">
+      <button class="btn btn-ghost btn-icon mobile-only" data-toggle-sidebar aria-label="Menu">{% icon "menu" %}</button>
+      <div class="titles">
+        <h1>{% block heading %}{% endblock %}</h1>
+        <div class="sub" data-live-slot="sub">{% block subheading %}{% endblock %}</div>
+      </div>
+      <div class="page-actions">{% block actions %}{% endblock %}</div>
+    </div>
+    <div data-live-slot="tabs">{% block tabs %}{% endblock %}</div>
+    <div class="page-body" {% block live %}{% endblock %}>{% block content %}{% endblock %}</div>
+    {% endblock %}
+  </main>
+</div>
+<div class="panel-left" id="notif-panel"></div>
+{% if request.membership %}{% include "core/help/_chat.html" %}<script src="{% static 'js/help.js' %}?v={{ asset_v }}" defer></script>{% endif %}
+{% if request.user.is_authenticated and request.workspace %}<script src="{% static 'js/live.js' %}?v={{ asset_v }}" defer></script>{% endif %}
+<template id="search-template">
+  <div class="input-icon" style="position:relative">{% icon "search" %}<input id="palette-q" type="search" placeholder="Search in workflows, templates, documents, and contacts" autocomplete="off"></div>
+  <div class="results" id="palette-results"></div>
+  <div class="hint"><span><kbd>↵</kbd> to select</span><span><kbd>↑</kbd><kbd>↓</kbd> to navigate</span><span><kbd>esc</kbd> to dismiss</span></div>
+</template>
+{% endblock %}

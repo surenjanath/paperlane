@@ -1,0 +1,35 @@
+{% load ui %}<div class="chat-backdrop" data-chat-close hidden></div>
+<aside class="chat" id="hc-chat" data-url="{% url 'core:help_ask' %}" data-ai="{{ assistant_ai|yesno:'1,0' }}" aria-label="Help assistant" aria-hidden="true">
+  <header class="chat-head">
+    <span class="chat-avatar">{% icon "sparkle" 18 %}</span>
+    <div class="grow"><b>{{ app_name|default:"Paperlane" }} Assistant</b>
+      <small><span class="chat-dot {% if assistant_ai %}on{% endif %}"></span>{% if assistant_ai %}Answers from the help center{% else %}Finds help articles for you{% endif %}</small></div>
+    <button type="button" class="chat-icon" data-chat-new title="New chat" aria-label="New chat">{% icon "plus" 18 %}</button>
+    <button type="button" class="chat-icon" data-chat-close title="Close" aria-label="Close">×</button>
+  </header>
+  <div class="chat-log" data-chat-log aria-live="polite">
+    <div class="chat-welcome" data-chat-welcome>
+      <span class="chat-avatar lg">{% icon "sparkle" 24 %}</span>
+      <h3>Hi{% if request.user.first_name %} {{ request.user.first_name }}{% endif %}! How can I help?</h3>
+      <p>Ask anything about workflows, documents, forms, bots or AI. I answer from the help center and link the articles I used.</p>
+      <div class="chat-starters" data-doc-starters hidden>
+        <button type="button" data-chat-ask="What went wrong with this document?" data-chat-mode="diagnose">🩺 What went wrong with this document?</button>
+        <button type="button" data-chat-ask="Why is this document stuck?" data-chat-mode="diagnose">Why is it stuck or not moving?</button>
+        <button type="button" data-chat-ask="Report a problem with this document and open a support ticket." data-chat-mode="diagnose">🎫 Report a problem with this document</button>
+        <button type="button" data-chat-ask="Explain where this document is and what happens next.">Where is it and what happens next?</button>
+      </div>
+      <div class="chat-starters" data-general-starters>
+        <button type="button" data-chat-ask="How do I add an approval step with a reject branch?">How do I add an approval with a reject branch?</button>
+        <button type="button" data-chat-ask="How do I send a workflow to a group so one person picks it up?">Send a step to a group</button>
+        <button type="button" data-chat-ask="How can AI help me improve my workflow?">How can AI improve my workflow?</button>
+        <button type="button" data-chat-ask="A recipient didn't get the email. What should I do?">A recipient didn't get the email</button>
+        <button type="button" data-chat-ask="How many documents are waiting on someone right now, and which are overdue?">📊 What's waiting right now?</button>
+      </div>
+    </div>
+  </div>
+  <form class="chat-compose" data-chat-form>{% csrf_token %}
+    <textarea name="question" rows="1" placeholder="Ask a question…" aria-label="Your question" maxlength="1000" required></textarea>
+    <button class="chat-send" aria-label="Send" title="Send (Enter)">{% icon "send" 18 %}</button>
+  </form>
+  <p class="chat-foot">{% if assistant_ai %}AI can make mistakes — check the linked articles.{% else %}AI answers are off here, so you'll get the best-matching articles.{% endif %}</p>
+</aside>

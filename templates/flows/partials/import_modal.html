@@ -1,0 +1,9 @@
+<form method="post" action="{% url 'flows:workflow_import' %}" enctype="multipart/form-data">{% csrf_token %}
+  <div class="modal-head"><h2>Import workflow</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <p class="muted">Upload a <b>Paperlane workflow export</b> (<code>.paperlane.json</code>) or a <b>workflow blueprint</b> (<code>.blueprint.json</code>, also what AI assistants write).
+      Documents, steps, groups, bots, conditions and email templates are recreated.</p>
+    <input type="file" name="file" accept=".json,application/json" required>
+  </div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Import</button></div>
+</form>

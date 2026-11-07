@@ -1,0 +1,22 @@
+{% extends "superadmin/_base.html" %}
+{% block title %}System · Super admin{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:14px">System &amp; health</h1>
+<div class="sa-grid">
+  <div class="card card-pad">
+    <h3 style="margin-bottom:10px">Environment</h3>
+    <table class="table"><tbody>{% for k, v in env %}<tr><td class="muted" style="white-space:nowrap">{{ k }}</td><td style="word-break:break-all">{% if k == 'Database size' or k == 'Uploaded files' %}{{ v|filesizeformat }}{% elif v is True %}On{% elif v is False %}Off{% else %}{{ v }}{% endif %}</td></tr>{% endfor %}</tbody></table>
+    <form method="post" style="margin-top:12px" data-confirm="Clear the cache? Sign-in sessions are kept; settings and model lists reload.">{% csrf_token %}<input type="hidden" name="op" value="clear_cache"><button class="btn">Clear cache</button></form>
+  </div>
+  <div class="card card-pad">
+    <h3 style="margin-bottom:10px">Health</h3>
+    {% include "superadmin/_checks.html" %}
+  </div>
+</div>
+<div class="card card-pad" style="margin-top:16px">
+  <h3 style="margin-bottom:4px">Production readiness</h3>
+  <p class="muted small" style="margin-bottom:10px">Django's deployment checks (<code>manage.py check --deploy</code>). Fix these before putting {{ app_name }} on the internet.</p>
+  {% for d in deploy %}<div class="sa-check {% if d.level == 'error' %}bad{% else %}warn{% endif %}" style="margin-bottom:6px"><span class="dot"></span><div class="grow"><b><code>{{ d.id }}</code></b> {{ d.msg|truncatechars:260 }}{% if d.hint %}<br><small class="muted">{{ d.hint }}</small>{% endif %}</div></div>
+  {% empty %}<p class="muted">All deployment checks pass.</p>{% endfor %}
+</div>
+{% endblock %}

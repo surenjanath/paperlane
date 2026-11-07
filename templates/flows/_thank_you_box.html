@@ -1,0 +1,10 @@
+{% load i18n %}{% load ui %}<div class="ty-box">
+  <div class="ty-icon" data-ty="icon">{% if ty.icon == 'logo' %}{% if workspace.logo %}<img src="{{ workspace.logo.url }}" alt="" style="height:56px">{% else %}✅{% endif %}{% elif ty.icon != 'none' %}{{ ty.icon|default:"🎉" }}{% endif %}</div>
+  <h2 data-ty="title">{% if ty.title %}{{ ty.title }}{% else %}{% translate "Thank you!" %}{% endif %}</h2>
+  <p class="muted ty-body" data-ty="body">{{ ty.body }}</p>
+  {% if ty.show_reference and packet %}<p class="ty-ref" data-ty="ref">{% translate "Your reference:" %} <b>#{{ packet.pk }}</b></p>{% elif preview %}<p class="ty-ref" data-ty="ref" {% if not ty.show_reference %}hidden{% endif %}>Your reference: <b>#1042</b></p>{% endif %}
+  <div class="ty-steps" data-ty="steps" {% if not ty.steps_list %}hidden{% endif %}><b>{% translate "What happens next" %}</b><ol>{% for s in ty.steps_list %}<li>{{ s }}</li>{% endfor %}</ol></div>
+  <p class="muted small" data-ty="contact" {% if not ty.contact %}hidden{% endif %}>{{ ty.contact }}</p>
+  {% if ty.button_label and ty.button_url %}<a class="btn fill-btn" data-ty="button" href="{{ ty.button_url }}">{{ ty.button_label }}</a>{% elif preview %}<span class="btn fill-btn" data-ty="button" hidden></span>{% endif %}
+  {% if ty.redirect_url and ty.redirect_seconds and not preview %}<p class="muted small" id="ty-redirect" data-url="{{ ty.redirect_url }}" data-secs="{{ ty.redirect_seconds }}">{% translate "Taking you on in" %} <b>{{ ty.redirect_seconds }}</b> s… <a class="link" href="{{ ty.redirect_url }}">{% translate "Go now" %}</a></p>{% endif %}
+</div>

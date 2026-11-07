@@ -1,0 +1,4 @@
+<div class="table-wrap" style="border:0"><table class="table"><tbody>
+{% for e in events %}<tr><td style="white-space:nowrap"><small class="muted">{{ e.created_at|date:"M d, H:i" }}</small></td><td><code>{{ e.action }}</code></td><td>{{ e.target }}{% if e.details %}<br><small class="muted">{% for k, v in e.details.items %}{{ k }}: {{ v }}{% if not forloop.last %} · {% endif %}{% endfor %}</small>{% endif %}</td><td><small>{{ e.actor_label }}</small></td></tr>
+{% empty %}<tr><td class="muted">Nothing yet.</td></tr>{% endfor %}
+</tbody></table></div>

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Groups · Team{% endblock %}
+{% block sidebar %}{% endblock %}
+{% block shell_class %}no-sidebar{% endblock %}
+{% block heading %}Team{% endblock %}
+{% block subheading %}<span>Groups share workflow steps: one member takes the task from the group's queue.</span>{% endblock %}
+{% block actions %}{% if request.membership.can_manage %}<button class="btn btn-dark" data-drawer-url="{% url 'accounts:group_new' %}">{% icon "plus" 16 %} Create group</button>{% endif %}{% endblock %}
+{% block content %}
+{% include "accounts/_people_head.html" %}
+<form class="ppl-toolbar">
+  <div class="ppl-search">{% icon "search" 16 %}<input type="search" name="q" value="{{ q }}" placeholder="Search groups or members" aria-label="Search groups"></div>
+  <div class="ppl-seg" role="group" aria-label="Show">
+    <a href="?q={{ q|urlencode }}" class="{% if not show %}on{% endif %}">All</a>
+    <a href="?show=attention&q={{ q|urlencode }}" class="{% if show == 'attention' %}on{% endif %}">Needs members{% if attention %} <span class="ppl-dot">{{ attention }}</span>{% endif %}</a>
+    <a href="?show=unused&q={{ q|urlencode }}" class="{% if show == 'unused' %}on{% endif %}">Not used in workflows</a>
+  </div>
+</form>
+
+<div class="grp-list">
+{% for g in groups %}
+  <article class="grp-row {% if g.warn %}warn{% endif %}">
+    <button type="button" class="grp-main" {% if request.membership.can_manage %}data-drawer-url="{% url 'accounts:group_panel' g.pk %}"{% endif %}>
+      <span class="grp-ico">{{ g.name|initials }}</span>
+      <span class="grp-text"><b>{{ g.name }}</b><small>{{ g.description|default:"No description" }}</small></span>
+    </button>
+    <div class="grp-members" title="{% for m in g.member_list %}{{ m.user|display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+      {% if g.member_list %}<span class="avatar-stack">{% for m in g.member_list|slice:":4" %}<span class="avatar">{% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" alt="">{% else %}{{ m.user|initials }}{% endif %}</span>{% endfor %}{% if g.member_list|length > 4 %}<span class="avatar more">+{{ g.member_list|length|add:"-4" }}</span>{% endif %}</span>
+      <small>{{ g.member_list|length }} member{{ g.member_list|length|pluralize }}</small>
+      {% else %}<small class="muted">No members</small>{% endif %}
+    </div>
+    <div class="grp-use">
+      {% if g.steps %}<span title="{% for w, s, wid in g.steps %}{{ w }} › {{ s }}&#10;{% endfor %}">{% icon "workflow" 14 %} {{ g.steps|length }} step{{ g.steps|length|pluralize }}</span>{% else %}<span class="muted">Not used</span>{% endif %}
+      {% if g.queue %}<a class="ppl-work" href="{% url 'flows:workload' %}?queue={{ g.pk }}">{{ g.queue }} waiting</a>{% endif %}
+    </div>
+    {% if g.warn %}<span class="ppl-flag red" title="Steps assigned to this group can't be worked until it has an active member">⚠ Used in workflows but has no active members</span>{% endif %}
+    {% if request.membership.can_manage %}<div class="menu-wrap"><button class="btn btn-ghost btn-sm btn-icon" data-menu aria-label="More actions for {{ g.name }}" title="More actions">{% icon "dots" %}</button><div class="menu">
+      <button data-drawer-url="{% url 'accounts:group_panel' g.pk %}">{% icon "edit" %} Edit group</button>
+      <a href="{% url 'accounts:team' %}?group={{ g.pk }}">{% icon "team" %} Show members</a>
+      <div class="sep"></div>
+      <form method="post" data-confirm="Delete “{{ g.name }}”?{% if g.steps %} {{ g.steps|length }} workflow step{{ g.steps|length|pluralize }} use it and will need a new recipient.{% endif %}" data-danger data-confirm-ok="Delete">{% csrf_token %}<button class="danger" name="delete" value="{{ g.pk }}">{% icon "trash" %} Delete</button></form>
+    </div></div>{% endif %}
+  </article>
+{% empty %}
+  <div class="empty"><div class="ico">👥</div><h3>{% if q or show %}No groups match{% else %}No groups yet{% endif %}</h3><p>Groups let several teammates share a workflow step — like “Finance team” or “Front office”.</p>{% if request.membership.can_manage and not q %}<button class="btn btn-dark" data-drawer-url="{% url 'accounts:group_new' %}">{% icon "plus" 16 %} Create group</button>{% endif %}</div>
+{% endfor %}
+</div>
+{% endblock %}

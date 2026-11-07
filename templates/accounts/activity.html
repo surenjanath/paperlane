@@ -1,0 +1,9 @@
+{% extends "accounts/_settings_base.html" %}
+{% block title %}My activity{% endblock %}
+{% block nav %}{% include "accounts/_account_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:18px">My activity</h1>
+<div class="table-wrap"><table class="table"><thead><tr><th>When</th><th>Action</th><th>Details</th><th>Item</th></tr></thead><tbody>
+{% for e in events %}<tr><td style="white-space:nowrap">{{ e.created_at|date:"M d, Y H:i" }}</td><td><code>{{ e.action }}</code></td><td>{{ e.detail }}</td><td>{% if e.packet %}<a class="link" href="{{ e.packet.get_absolute_url }}">{{ e.packet.name }}</a>{% elif e.workflow %}<a class="link" href="{{ e.workflow.get_absolute_url }}">{{ e.workflow.name }}</a>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="4" class="muted">No activity yet.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

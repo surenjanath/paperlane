@@ -1,0 +1,187 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}AI &amp; models{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">AI &amp; models</h1>
+<p class="muted" style="margin-bottom:18px">One provider is active for the whole workspace: <b>Ollama</b>, <b>Anthropic</b>, <b>NVIDIA</b>, <b>OpenAI</b>, or a custom OpenAI-compatible address. Describe, the builder assistant, bots, Ask AI, search and help all use the model you pick here. A backup is used only when that provider cannot be reached. Only field values are sent — never signatures or uploaded files.</p>
+
+<div class="card card-pad" style="margin-bottom:16px" id="provider">
+  <h3 style="margin-bottom:4px">Provider</h3>
+  <p class="small" style="margin-bottom:12px"><a class="link" href="?refresh=1">Refresh models</a></p>
+  <form method="post" id="ai-choice">{% csrf_token %}<input type="hidden" name="form" value="settings">
+    <div class="field"><label>Provider</label>
+      <select name="provider" id="ai-provider" data-saved="{{ active_kind }}">
+        <option value="ollama" {% if active_kind == "ollama" %}selected{% endif %}>Ollama</option>
+        <option value="anthropic" {% if active_kind == "anthropic" %}selected{% endif %}>Anthropic</option>
+        <option value="nvidia" {% if active_kind == "nvidia" %}selected{% endif %}>NVIDIA</option>
+        <option value="openai" {% if active_kind == "openai" %}selected{% endif %}>OpenAI</option>
+        <option value="compat" {% if active_kind == "compat" %}selected{% endif %}>Custom (OpenAI-compatible)</option>
+      </select>
+    </div>
+    <div data-for="ollama">
+      <div class="field"><label>Ollama address <small class="muted">(blank = server default <code>OLLAMA_HOST</code>)</small></label>
+        <input type="url" name="ollama_host" value="{{ cfg.ollama_host|default:'' }}" placeholder="http://127.0.0.1:11434">
+        <div class="help">{% if ollama_ok %}<span class="badge badge-green">Connected</span>{% else %}<span class="badge badge-red">Not reachable</span>{% endif %} <code>{{ ollama_host }}</code></div>
+      </div>
+    </div>
+    <div data-for="compat">
+      <div class="field"><label>Name</label><input type="text" name="label" value="{{ custom_label }}" placeholder="Groq" maxlength="80"></div>
+      <div class="field"><label>Address</label><input type="url" name="base_url" value="{{ custom_url }}" placeholder="https://api.groq.com/openai/v1"></div>
+    </div>
+    <div data-for="anthropic nvidia openai compat">
+      <div class="field"><label>API key</label>
+        <input type="password" name="api_key" autocomplete="new-password" placeholder="{% if active_has_key %}Blank keeps the saved key{% else %}Required for Anthropic, NVIDIA, and OpenAI{% endif %}">
+        {% if active_has_key %}<div class="help">Key saved</div>{% else %}<div class="help">Optional for a custom server that does not check a key. A key saved earlier is kept when you switch back.</div>{% endif %}
+      </div>
+    </div>
+    <div class="field" data-provider-models><label>Model</label>
+      <select name="engine">
+        {% if active_models and not engine_chosen %}<option value="">Choose a model</option>{% endif %}
+        {% for e in active_models %}<option value="{{ e.id }}" {% if cfg.engine == e.id %}selected{% endif %}>{{ e.label }}</option>{% empty %}<option value="">No models found for this provider</option>{% endfor %}
+      </select>
+      {% if not active_models %}<div class="help">Save the provider, then refresh. For Ollama, install a model with <code>ollama pull qwen3.5:9b</code>.</div>{% endif %}
+    </div>
+    <p class="help" data-provider-pending hidden>Save to load this provider’s models.</p>
+
+    <h3 style="margin:18px 0 8px">Backup <small class="muted" style="font-weight:400">optional</small></h3>
+    <p class="muted small" style="margin-bottom:10px">Used only when the provider above cannot be reached. A reply that doesn’t make a valid change is not sent to the backup.</p>
+    <div class="field"><label>Backup provider</label>
+      <select name="backup_provider" id="ai-backup" data-saved="{{ backup_kind }}">
+        <option value="">No backup</option>
+        <option value="ollama" {% if backup_kind == "ollama" %}selected{% endif %}>Ollama</option>
+        <option value="anthropic" {% if backup_kind == "anthropic" %}selected{% endif %}>Anthropic</option>
+        <option value="nvidia" {% if backup_kind == "nvidia" %}selected{% endif %}>NVIDIA</option>
+        <option value="openai" {% if backup_kind == "openai" %}selected{% endif %}>OpenAI</option>
+        <option value="compat" {% if backup_kind == "compat" %}selected{% endif %}>Custom (OpenAI-compatible)</option>
+      </select>
+    </div>
+    <div data-for-backup="compat">
+      <div class="field"><label>Backup name</label><input type="text" name="backup_label" value="{{ backup_custom_label }}" placeholder="Groq" maxlength="80"></div>
+      <div class="field"><label>Backup address</label><input type="url" name="backup_base_url" value="{{ backup_custom_url }}" placeholder="https://api.groq.com/openai/v1"></div>
+    </div>
+    <div data-for-backup="anthropic nvidia openai compat">
+      <div class="field"><label>Backup API key</label>
+        <input type="password" name="backup_api_key" autocomplete="new-password" placeholder="{% if backup_has_key %}Blank keeps the saved key{% else %}Required for Anthropic, NVIDIA, and OpenAI{% endif %}">
+        {% if backup_has_key %}<div class="help">Key saved</div>{% endif %}
+      </div>
+    </div>
+    <div class="field" data-backup-models {% if not backup_kind %}hidden{% endif %}><label>Backup model</label>
+      <select name="backup_engine">
+        {% if backup_models and not backup_chosen %}<option value="">Choose a model</option>{% endif %}
+        {% for e in backup_models %}<option value="{{ e.id }}" {% if cfg.backup_engine == e.id %}selected{% endif %}>{{ e.label }}</option>{% empty %}<option value="">No models found</option>{% endfor %}
+      </select>
+    </div>
+    <p class="help" data-backup-pending hidden>Save to load this backup’s models.</p>
+
+    <label class="check"><input type="checkbox" name="ask_ai" {% if cfg.ask_ai|default_if_none:True != False %}checked{% endif %}> <span>Show <b>Ask AI</b> on document pages</span></label>
+    <label class="check"><input type="checkbox" name="fill_assist" {% if cfg.fill_assist|default_if_none:True != False %}checked{% endif %}> <span>Show <b>✦ Fill from text</b> to recipients (paste an email or letter, AI fills the form)</span></label>
+    <label class="check"><input type="checkbox" name="nl_search" {% if cfg.nl_search|default_if_none:True != False %}checked{% endif %}> <span>Allow <b>✦ AI search</b> on Documents (“declined claims this month”)</span></label>
+    <label class="check"><input type="checkbox" name="help_ai" {% if cfg.help_ai|default_if_none:True != False %}checked{% endif %}> <span>Answer questions in the <b>Help center</b> with AI</span></label>
+    <input type="hidden" name="ask_ai_present" value="1">
+    <label class="check"><input type="checkbox" name="watchdog" {% if cfg.watchdog %}checked{% endif %}> <span><b>Watchdog</b>: flag documents with amounts far outside the usual range, or the same person in several recent documents, and tell their owner</span></label>
+    <div class="field" style="margin-top:10px;max-width:640px"><label for="ai-embed">Search model <span class="muted">(for ✦ Ask your documents)</span></label>
+      <select id="ai-embed" name="embed_engine"><option value="">Automatic{% if embed_engines %} — {{ embed_engines.0.label }}{% else %} — none found, search by words{% endif %}</option>
+        {% for e in embed_engines %}<option value="{{ e.id }}" {% if cfg.embed_engine == e.id %}selected{% endif %}>{{ e.label }}</option>{% endfor %}
+        <option value="off" {% if cfg.embed_engine == 'off' %}selected{% endif %}>Off — search by words only</option></select>
+      <small class="muted" style="display:block;margin-top:4px">An embedding model finds documents by meaning, not just matching words. For Ollama: <code>ollama pull nomic-embed-text</code>.</small></div>
+    <div class="field" style="margin-top:10px;max-width:640px"><label for="ai-limit">Daily limit <span class="muted">(AI calls per day for this workspace; 0 = no limit)</span></label>
+      <input type="number" id="ai-limit" name="daily_limit" min="0" step="1" value="{{ cfg.daily_limit|default:0 }}" style="max-width:160px">
+      <small class="muted" style="display:block;margin-top:4px">Stops a bulk send or a busy bot from running up a provider bill. Today: {{ today_calls }} call{{ today_calls|pluralize }}.</small></div>
+    <label class="check"><input type="checkbox" name="disabled" {% if cfg.disabled %}checked{% endif %}> Turn AI off for this workspace</label>
+    <div style="margin-top:12px"><button class="btn btn-dark">Save</button></div>
+  </form>
+</div>
+<script>
+(function () {
+  const provider = document.getElementById("ai-provider");
+  const backup = document.getElementById("ai-backup");
+  const models = document.querySelector("[data-provider-models]");
+  const pending = document.querySelector("[data-provider-pending]");
+  const backupModels = document.querySelector("[data-backup-models]");
+  const backupPending = document.querySelector("[data-backup-pending]");
+  const show = (sel, kind) => document.querySelectorAll(sel).forEach((el) => {
+    el.hidden = kind ? !el.dataset[sel === "[data-for]" ? "for" : "forBackup"].split(" ").includes(kind) : true;
+  });
+  const sync = () => {
+    const kind = provider.value;
+    show("[data-for]", kind);
+    const changed = kind !== provider.dataset.saved;
+    if (models) { models.hidden = changed; models.querySelectorAll("select").forEach((s) => { s.disabled = changed; }); }
+    if (pending) pending.hidden = !changed;
+    const bk = backup.value;
+    show("[data-for-backup]", bk);
+    const bchanged = bk !== backup.dataset.saved;
+    if (backupModels) {
+      backupModels.hidden = !bk || bchanged;
+      backupModels.querySelectorAll("select").forEach((s) => { s.disabled = !bk || bchanged; });
+    }
+    if (backupPending) backupPending.hidden = !bk || !bchanged;
+  };
+  provider.addEventListener("change", sync);
+  backup.addEventListener("change", sync);
+  sync();
+})();
+</script>
+
+<div class="card card-pad">
+  <h3 style="margin-bottom:8px">Test a model</h3>
+  <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">{% csrf_token %}<input type="hidden" name="form" value="test">
+    <div class="field" style="flex:1;min-width:220px;margin:0"><select name="engine">{% for group, items in engine_groups %}<optgroup label="{{ group }}">{% for e in items %}<option value="{{ e.id }}" {% if cfg.engine == e.id %}selected{% endif %}>{{ e.label }}</option>{% endfor %}</optgroup>{% endfor %}</select></div>
+    <button class="btn" {% if not count %}disabled{% endif %}>{% icon "bolt" %} Send a test prompt</button>
+  </form>
+  <p class="muted small" style="margin-top:10px">Use the models in workflows: open a workflow’s <b>Bots</b> and add <b>AI: fill fields</b>, <b>AI: summarize the document</b>, <b>AI: choose an option</b>, <b>AI: review against rules</b> or <b>AI: translate fields</b> — or open a workflow’s builder and use <b>✦ AI assistant</b> to improve it.</p>
+</div>
+
+<div class="card card-pad" style="margin-top:16px" id="bench">
+  <h3 style="margin-bottom:4px">Model test bench</h3>
+  <p class="muted small" style="margin-bottom:10px">Run a model on six real Paperlane tasks with checkable answers — designing and editing a form, search filters, classification, a summary and a workflow edit — to see which model works best here. Takes about a minute on a local model.</p>
+  <form method="post" class="row" style="gap:8px;flex-wrap:wrap">{% csrf_token %}<input type="hidden" name="form" value="benchmark">
+    <select name="engine" style="flex:1;min-width:220px">{% for group, items in engine_groups %}<optgroup label="{{ group }}">{% for e in items %}<option value="{{ e.id }}" {% if cfg.engine == e.id %}selected{% endif %}>{{ e.label }}</option>{% endfor %}</optgroup>{% endfor %}</select>
+    <button class="btn" {% if not count or bench.status == 'running' %}disabled{% endif %}>{% icon "bolt" %} {% if bench.status == 'running' %}Running…{% else %}Run benchmark{% endif %}</button>
+  </form>
+  <div class="bench-live" data-bench="{% url 'flows:ai_benchmark_status' %}" data-running="{% if bench.status == 'running' %}1{% endif %}">
+    {% if bench.results %}<div class="bench-head"><b>{{ bench.engine }}</b>{% if bench.status == 'done' %} — <span class="bench-score">{{ bench.score }}%</span> ({{ bench.passed }}/{{ bench.total }}, avg {{ bench.avg_ms|duration }}){% else %} — running {{ bench.results|length }}/{{ bench.total }}…{% endif %}</div>
+    <ul class="bench-list">{% for r in bench.results %}<li><span class="{% if r.ok %}ok{% else %}bad{% endif %}">{% if r.ok %}✓{% else %}✕{% endif %}</span><b>{{ r.task }}</b><small>{{ r.ms|duration }} · {{ r.detail }}</small></li>{% endfor %}</ul>{% endif %}
+  </div>
+  {% if marks %}<h4 style="margin:12px 0 6px;font-size:13px">Scores so far</h4>
+  <table class="table"><thead><tr><th>Model</th><th>Score</th><th>Avg time</th><th>Tested</th></tr></thead><tbody>
+  {% for label, m in marks %}<tr><td>{{ label }}</td><td><b>{{ m.score }}%</b> <small class="muted">({{ m.passed }}/6)</small></td><td>{{ m.avg_ms|duration }}</td><td><small>{{ m.at|slice:":10" }}</small></td></tr>{% endfor %}
+  </tbody></table>{% endif %}
+</div>
+<script>
+(function () {
+  const box = document.querySelector("[data-bench]");
+  if (!box || !box.dataset.running) return;
+  const t = setInterval(async () => {
+    const j = await (await fetch(box.dataset.bench)).json();
+    if (j.status !== "running") { clearInterval(t); location.reload(); return; }
+    const done = (j.results || []).length;
+    let h = box.querySelector(".bench-head"); if (!h) { box.innerHTML = '<div class="bench-head"></div><ul class="bench-list"></ul>'; h = box.querySelector(".bench-head"); }
+    h.innerHTML = `<b>${j.engine}</b> — running ${done}/${j.total}…`;
+    box.querySelector(".bench-list").innerHTML = (j.results || []).map((r) => `<li><span class="${r.ok ? "ok" : "bad"}">${r.ok ? "✓" : "✕"}</span><b>${r.task}</b><small>${r.ms < 1000 ? r.ms + " ms" : (r.ms / 1000).toFixed(1) + " s"}</small></li>`).join("");
+  }, 2500);
+})();
+</script>
+
+<div class="card card-pad" style="margin-top:16px">
+  <h3 style="margin-bottom:4px">Usage — last {{ stats.days }} days</h3>
+  <div class="ai-stats">
+    <div><b>{{ stats.calls }}</b><small>calls</small></div>
+    <div><b>{% if stats.avg_ms %}{{ stats.avg_ms|duration }}{% else %}—{% endif %}</b><small>average time</small></div>
+    <div><b {% if stats.failed %}style="color:var(--red)"{% endif %}>{{ stats.failed }}</b><small>failed</small></div>
+    <div class="grow"><small>{% for k in stats.by_kind %}<span class="pk-pill">{{ k.label }} · {{ k.n }}</span> {% empty %}No AI calls yet.{% endfor %}</small></div>
+  </div>
+  {% for level, tip in health %}<div class="ai-health ai-health-{{ level }}">{% if level == 'ok' %}✓{% elif level == 'warning' %}!{% else %}i{% endif %}<span>{{ tip }}</span></div>{% endfor %}
+  {% if recent %}<div class="scroll-x"><table class="table" style="margin-top:10px"><thead><tr><th>When</th><th>Feature</th><th>Model</th><th>Document</th><th>Time</th><th>Result</th></tr></thead><tbody>
+  {% for u in recent %}<tr>
+    <td><button type="button" class="usage-open" data-drawer-url="{% url 'flows:ai_usage' u.pk %}"><small>{{ u.created_at|date:"M j, H:i" }}</small></button></td>
+    <td><button type="button" class="usage-open" data-drawer-url="{% url 'flows:ai_usage' u.pk %}">{{ u.feature }}</button></td>
+    <td><small>{{ u.engine }}</small></td>
+    <td>{% if u.packet %}<a class="link" href="{% url 'flows:packet_detail' u.packet_id %}">{{ u.packet.name|truncatechars:32 }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+    <td><small>{{ u.ms|duration }}</small></td>
+    <td><button type="button" class="usage-open" data-drawer-url="{% url 'flows:ai_usage' u.pk %}">{% if u.ok %}<span class="badge badge-green">OK</span>{% else %}<span class="badge badge-red">Failed</span>{% endif %}</button></td>
+  </tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+</div>
+{% endblock %}

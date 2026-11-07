@@ -1,0 +1,26 @@
+{% load ui %}<div class="drawer-head"><h2>{{ feature }}</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="drawer-body mp ai-usage">
+  <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+    {% if u.ok %}<span class="badge badge-green">OK</span>{% else %}<span class="badge badge-red">Failed</span>{% endif %}
+    <span class="muted small">{{ u.created_at|date:"M j, Y H:i" }}</span>
+  </div>
+  <div class="row" style="gap:6px;flex-wrap:wrap">
+    {% if u.packet %}<a class="btn btn-sm" href="{{ u.packet.get_absolute_url }}">{% icon "documents" 14 %} Open document</a>{% endif %}
+    {% if reply %}<button type="button" class="btn btn-sm" data-copy="#usage-reply">{% icon "copy" 14 %} Copy reply</button>{% endif %}
+  </div>
+  <div class="mp-stats">
+    <div><b>{{ u.ms|duration }}</b><small>time</small></div>
+    <div><b>{{ u.chars_in }}</b><small>characters in</small></div>
+    <div><b>{{ u.chars_out }}</b><small>characters out</small></div>
+  </div>
+  <dl class="mp-facts">
+    <dt>Feature</dt><dd>{{ feature }}</dd>
+    <dt>Model</dt><dd style="word-break:break-all">{{ u.engine|default:"—" }}</dd>
+    <dt>Who</dt><dd>{% if u.user %}{{ u.user|display_name }}{% else %}—{% endif %}</dd>
+    <dt>Document</dt><dd>{% if u.packet %}<a class="link" href="{{ u.packet.get_absolute_url }}">{{ u.packet.name }}</a>{% else %}—{% endif %}</dd>
+  </dl>
+  {% if u.error %}<h4 class="mp-h">Why it failed</h4><p class="mp-notes">{{ u.error }}</p>{% endif %}
+  {% if reply %}<h4 class="mp-h">Model reply</h4><pre id="usage-reply" class="usage-reply">{{ reply }}</pre>
+  {% elif u.ok %}<p class="muted small">This call finished. The log keeps the timing and size; the reply text is saved when a call fails after the model answers.</p>
+  {% else %}<p class="muted small">This call failed before a reply was saved.</p>{% endif %}
+</div>

@@ -1,0 +1,80 @@
+<div style="max-width:760px" id="ask-ai" data-url="{% url 'flows:ask_document' packet.pk %}">
+  <p class="muted" style="margin-bottom:10px">Ask a question about this document. The workspace model ({{ ai_label }}) reads only its field values — never signatures or files.</p>
+  <div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">
+    {% for q in ai_prompts %}<button type="button" class="chip" data-q="{{ q }}">{{ q }}</button>{% endfor %}
+  </div>
+  <div data-answers class="ai-chat"></div>
+  <form class="card card-pad" data-ask>{% csrf_token %}
+    <textarea name="question" rows="2" placeholder="What is the payout and how will it be paid? (Enter to send, Shift+Enter for a new line)" required></textarea>
+    <div class="row" style="margin-top:8px;gap:8px;align-items:center">
+      <label class="check small grow"><input type="checkbox" name="save" value="1"> Save answers as comments</label>
+      <button type="button" class="btn btn-sm btn-ghost" data-reset hidden>New conversation</button>
+      <button class="btn btn-dark">✦ Ask</button>
+    </div>
+  </form>
+</div>
+<script>
+(function () {
+  const esc = (t) => t.replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+  const inline = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const fmt = (text) => {
+    let html = "", list = false;
+    for (const raw of text.split(/\n/)) {
+      const m = raw.match(/^\s*(?:[*\-•]|\d+\.)\s+(.*)$/);
+      if (m) { if (!list) { html += '<ul style="margin:6px 0 6px 18px">'; list = true; } html += "<li>" + inline(m[1]) + "</li>"; continue; }
+      if (list) { html += "</ul>"; list = false; }
+      if (raw.trim()) html += '<p style="margin:6px 0">' + inline(raw) + "</p>";
+    }
+    return html + (list ? "</ul>" : "");
+  };
+  const box = document.getElementById("ask-ai"), form = box.querySelector("[data-ask]"), out = box.querySelector("[data-answers]");
+  const history = [];
+  const reset = box.querySelector("[data-reset]");
+  reset.addEventListener("click", () => { history.length = 0; out.innerHTML = ""; reset.hidden = true; form.question.focus(); });
+  box.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click", () => { form.question.value = b.dataset.q; form.requestSubmit(); }));
+  form.question.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector("button:not([data-reset])"), q = form.question.value.trim();
+    if (!q) return;
+    btn.disabled = true; btn.textContent = "Thinking…";
+    const card = document.createElement("div"); card.className = "ai-turn";
+    card.innerHTML = '<div class="ai-q"></div><div class="ai-a muted">…</div>';
+    card.querySelector(".ai-q").textContent = q; out.append(card);
+    const fd = new FormData(form); fd.append("history", JSON.stringify(history)); fd.append("stream", "1");
+    form.question.value = "";
+    const p = card.querySelector(".ai-a");
+    const fail = (msg) => { p.classList.add("muted"); p.style.color = "#b42318"; p.textContent = msg; };
+    try {
+      /* the answer arrives as lines of JSON: {"t": piece} … then {"done": true} or {"error": "…"} */
+      const r = await fetch(box.dataset.url, { method: "POST", body: fd, headers: { "X-Requested-With": "fetch" } });
+      if (!r.ok || !r.body) { const j = await r.json().catch(() => ({})); fail(j.error || "No answer."); }
+      else {
+        const reader = r.body.getReader(), dec = new TextDecoder();
+        let buf = "", answer = "", err = "", frame = 0;
+        const paint = () => { frame = 0; p.classList.remove("muted"); const caret = '<span class="ai-caret" aria-hidden="true"></span>', html = fmt(answer);
+          p.innerHTML = /<\/(li|p)>(<\/ul>)?$/.test(html) ? html.replace(/(<\/(?:li|p)>)((?:<\/ul>)?)$/, caret + "$1$2") : html + caret; card.scrollIntoView({ block: "nearest" }); };
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+            if (!line) continue;
+            let j; try { j = JSON.parse(line); } catch (_) { continue; }
+            if (j.t) { answer += j.t; if (!frame) frame = requestAnimationFrame(paint); }
+            if (j.error) err = j.error;
+          }
+        }
+        if (frame) cancelAnimationFrame(frame);
+        if (answer.trim()) { p.innerHTML = fmt(answer); history.push({ q, a: answer }); reset.hidden = false; }
+        if (err) { if (answer.trim()) p.insertAdjacentHTML("beforeend", `<p class="small" style="color:#b42318">${esc(err)}</p>`); else fail(err); }
+        else if (!answer.trim()) fail("No answer.");
+      }
+    } catch (e) { fail("The AI model could not be reached."); }
+    card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    btn.disabled = false; btn.textContent = "✦ Ask";
+  });
+})();
+</script>

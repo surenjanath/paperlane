@@ -1,0 +1,5 @@
+{% if page.has_other_pages %}<div class="row" style="gap:8px;justify-content:center;margin:12px 0">
+{% if page.has_previous %}<a class="btn btn-sm" href="?page={{ page.previous_page_number }}&q={{ q|urlencode }}&filter={{ flt }}">← Previous</a>{% endif %}
+<small class="muted">Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ page.paginator.count }} total</small>
+{% if page.has_next %}<a class="btn btn-sm" href="?page={{ page.next_page_number }}&q={{ q|urlencode }}&filter={{ flt }}">Next →</a>{% endif %}
+</div>{% endif %}

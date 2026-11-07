@@ -1,0 +1,300 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-16 05:11-0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
+"1 : 2;\n"
+#: templates/flows/_thank_you_box.html:3
+msgid "Thank you!"
+msgstr "¡Gracias!"
+
+#: templates/flows/_thank_you_box.html:5
+msgid "Your reference:"
+msgstr "Su referencia:"
+
+#: templates/flows/_thank_you_box.html:6
+msgid "What happens next"
+msgstr "Qué sigue"
+
+#: templates/flows/_thank_you_box.html:9
+msgid "Taking you on in"
+msgstr "Continuando en"
+
+#: templates/flows/_thank_you_box.html:9
+msgid "Go now"
+msgstr "Ir ahora"
+
+#: templates/flows/fields/field.html:18
+msgid "Not signed yet"
+msgstr "Aún sin firmar"
+
+#: templates/flows/fields/field.html:19
+msgid "No attachments added"
+msgstr "No se adjuntaron archivos"
+
+#: templates/flows/fields/field.html:38
+msgid "Select…"
+msgstr "Seleccione…"
+
+#: templates/flows/fields/field.html:46
+msgid "Type"
+msgstr "Escribir"
+
+#: templates/flows/fields/field.html:46
+msgid "Use saved"
+msgstr "Usar guardada"
+
+#: templates/flows/fields/field.html:46
+msgid "Clear"
+msgstr "Borrar"
+
+#: templates/flows/fields/field.html:57
+msgid "Add row"
+msgstr "Agregar fila"
+
+#: templates/flows/fields/field.html:59
+msgid "Add another"
+msgstr "Agregar otro"
+
+#: templates/flows/fill.html:11
+msgid "Language"
+msgstr "Idioma"
+
+#: templates/flows/fill.html:12
+msgid "Inbox"
+msgstr "Bandeja"
+
+#: templates/flows/fill.html:15
+msgid "Please fix the highlighted fields."
+msgstr "Corrija los campos resaltados."
+
+#: templates/flows/fill.html:31
+msgid "Open attached file"
+msgstr "Abrir archivo adjunto"
+
+#: templates/flows/fill.html:37
+msgid "Back"
+msgstr "Atrás"
+
+#: templates/flows/fill.html:37
+#, python-format
+msgid "Page %(n)s of %(total)s"
+msgstr "Página %(n)s de %(total)s"
+
+#: templates/flows/fill.html:37
+msgid "Next"
+msgstr "Siguiente"
+
+#: templates/flows/fill.html:46
+msgid ""
+"I agree to use electronic records and signatures and that my electronic "
+"signature is the legal equivalent of my handwritten signature."
+msgstr "Acepto utilizar registros y firmas electrónicas, y que mi firma electrónica es el equivalente legal de mi firma manuscrita."
+
+#: templates/flows/fill.html:51
+msgid "Paste an email, letter or notes and let AI fill this form"
+msgstr "Pegue un correo, una carta o notas y deje que la IA complete este formulario"
+
+#: templates/flows/fill.html:51 templates/flows/fill.html:66
+msgid "Fill from text"
+msgstr "Completar desde texto"
+
+#: templates/flows/fill.html:52 templates/flows/fill.html:64
+msgid "Decline"
+msgstr "Rechazar"
+
+#: templates/flows/fill.html:53
+msgid "Discard your saved draft?"
+msgstr "¿Descartar su borrador guardado?"
+
+#: templates/flows/fill.html:53
+msgid "Discard"
+msgstr "Descartar"
+
+#: templates/flows/fill.html:54
+msgid "Save as draft"
+msgstr "Guardar borrador"
+
+#: templates/flows/fill.html:55
+msgid "Complete"
+msgstr "Finalizar"
+
+#: templates/flows/fill.html:62
+msgid "Decline documents"
+msgstr "Rechazar documentos"
+
+#: templates/flows/fill.html:63
+msgid "The sender will be notified. Please tell them why."
+msgstr "Se notificará al remitente. Indíquele el motivo."
+
+#: templates/flows/fill.html:64 templates/flows/fill.html:69
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: templates/flows/fill.html:67
+msgid ""
+"Paste an email, letter or notes. AI fills the fields you can edit on this "
+"step — check them before you complete. Nothing is saved until you do."
+msgstr "Pegue un correo, una carta o notas. La IA completa los campos que puede editar en este paso; revíselos antes de finalizar. No se guarda nada hasta que lo haga."
+
+#: templates/flows/fill.html:68
+msgid "Paste text here…"
+msgstr "Pegue el texto aquí…"
+
+#: templates/flows/fill.html:69 templates/flows/fill.html:72
+msgid "Fill fields"
+msgstr "Completar campos"
+
+#: templates/flows/fill.html:72
+msgid "1 required field left · Next ↓"
+msgstr "Falta 1 campo obligatorio · Siguiente ↓"
+
+#: templates/flows/fill.html:72
+#, python-format
+msgid "%%(n)s required fields left · Next ↓"
+msgstr "Faltan %%(n)s campos obligatorios · Siguiente ↓"
+
+#: templates/flows/fill.html:72
+msgid "✓ All required fields filled"
+msgstr "✓ Todos los campos obligatorios completos"
+
+#: templates/flows/fill.html:72
+msgid "Reading…"
+msgstr "Leyendo…"
+
+#: templates/flows/fill.html:72
+msgid "AI filled 1 field — please check it."
+msgstr "La IA completó 1 campo; revíselo."
+
+#: templates/flows/fill.html:72
+#, python-format
+msgid "AI filled %%(n)s fields — please check them."
+msgstr "La IA completó %%(n)s campos; revíselos."
+
+#: templates/flows/fill.html:72
+msgid "AI found nothing to fill in that text."
+msgstr "La IA no encontró nada para completar en ese texto."
+
+#: templates/flows/fill.html:72
+msgid "The AI model could not be reached."
+msgstr "No se pudo contactar al modelo de IA."
+
+#: templates/flows/fill_closed.html:3
+msgid "Documents unavailable"
+msgstr "Documentos no disponibles"
+
+#: templates/flows/fill_closed.html:7
+msgid "This link is not active"
+msgstr "Este enlace no está activo"
+
+#: templates/flows/fill_closed.html:7
+#, python-format
+msgid "Ask %(org)s for a new link."
+msgstr "Solicite a %(org)s un nuevo enlace."
+
+#: templates/flows/fill_closed.html:8
+msgid "You already completed these documents"
+msgstr "Ya completó estos documentos"
+
+#: templates/flows/fill_closed.html:9
+msgid "Your access has expired"
+msgstr "Su acceso ha vencido"
+
+#: templates/flows/fill_closed.html:9
+msgid "Contact the sender to receive a new link."
+msgstr "Comuníquese con el remitente para recibir un nuevo enlace."
+
+#: templates/flows/fill_closed.html:10
+msgid "These documents were declined"
+msgstr "Estos documentos fueron rechazados"
+
+#: templates/flows/fill_closed.html:11
+msgid "This request was cancelled"
+msgstr "Esta solicitud fue cancelada"
+
+#: templates/flows/fill_closed.html:11
+msgid "The sender revoked access to these documents."
+msgstr "El remitente revocó el acceso a estos documentos."
+
+#: templates/flows/fill_closed.html:12
+msgid "These documents are completed"
+msgstr "Estos documentos están completos"
+
+#: templates/flows/fill_closed.html:13
+msgid "These documents are not available"
+msgstr "Estos documentos no están disponibles"
+
+#: templates/flows/fill_closed.html:14 templates/flows/fill_done.html:21
+msgid "Go to Inbox"
+msgstr "Ir a la bandeja"
+
+#: templates/flows/fill_done.html:14
+msgid "You declined the documents"
+msgstr "Rechazó los documentos"
+
+#: templates/flows/fill_done.html:14
+msgid "The sender has been notified."
+msgstr "Se notificó al remitente."
+
+#: templates/flows/fill_done.html:17
+#, python-format
+msgid "Continue to the next step: %(step)s"
+msgstr "Continuar con el siguiente paso: %(step)s"
+
+#: templates/flows/fill_done.html:18
+msgid "Open the next document waiting for you"
+msgstr "Abrir el siguiente documento pendiente"
+
+#: templates/flows/fill_done.html:20
+msgid "Keep track of your documents —"
+msgstr "Haga seguimiento de sus documentos:"
+
+#: templates/flows/fill_done.html:20
+msgid "create a free account"
+msgstr "cree una cuenta gratuita"
+
+#: templates/flows/fill_welcome.html:11 templates/flows/public_start.html:15
+msgid "Start"
+msgstr "Comenzar"
+
+#: templates/flows/public_start.html:10
+msgid "Fill out and submit the documents."
+msgstr "Complete y envíe los documentos."
+
+#: templates/flows/public_start.html:12
+msgid "Your name"
+msgstr "Su nombre"
+
+#: templates/flows/public_start.html:13
+msgid "Your email"
+msgstr "Su correo electrónico"
+
+#: templates/flows/public_start.html:13
+msgid "We will use it to send you updates about this document."
+msgstr "Lo usaremos para enviarle novedades sobre este documento."
+
+#: templates/flows/fill.html
+msgid "Previous document"
+msgstr "Documento anterior"
+
+#: templates/flows/fill.html
+msgid "Next document"
+msgstr "Documento siguiente"
+
+#: templates/flows/fill.html
+#, python-format
+msgid "%(name)s · %(n)s of %(total)s"
+msgstr "%(name)s · %(n)s de %(total)s"

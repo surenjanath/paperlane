@@ -1,0 +1,168 @@
+{% extends "core/pages/_doc_frame.html" %}
+{% load ui %}
+{% block title %}Release notes{% endblock %}
+{% block crumb %}Release notes{% endblock %}
+{% block doc %}
+<h1>Release notes</h1>
+<p class="hc-lead">What's new in {{ app_name|default:"Paperlane" }} — newest first.</p>
+<div class="rn-filter" role="group" aria-label="Filter changes">
+  <button type="button" class="on" data-rn="all">All</button><button type="button" data-rn="new">New</button><button type="button" data-rn="improved">Improved</button><button type="button" data-rn="fixed">Fixed</button>
+</div>
+<div class="rn-list" data-doc-body>
+
+<section class="rn-rel" id="v2-0">
+  <div class="rn-meta"><span class="rn-ver">2.0</span><time>Nov 6, 2026</time><span class="rn-latest">Latest</span></div>
+  <h2 id="r20">Paperlane: a new name and a new look</h2>
+  <ul class="rn-items">
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>The product is now <b>Paperlane</b>, with a new logo, a dark navigation rail, warm paper tones and the Plus Jakarta Sans typeface.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Settings and commands use the new name: <code>PAPERLANE_*</code> environment variables, <code>paperlane_tick</code> and <code>paperlane_mcp</code>.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Demo data uses dates a few weeks ahead of the day you seed it, so nothing starts out overdue.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-8">
+  <div class="rn-meta"><span class="rn-ver">1.8</span><time>Oct 25, 2026</time></div>
+  <h2 id="r18">Key dates, a client portal and an AI agent</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Word templates</b>: generate filled .docx files (and PDFs with LibreOffice) with placeholders and {if} blocks.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Verify the recipient</b> with a code by email, text message or an access code, and <b>one-tap decisions</b> straight from the invitation email.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Save to cloud drive</b>: Google Drive, OneDrive and SharePoint, in folders named from fields.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Insights: <b>where documents stop</b>, week-by-week deadline success and slowest step, and CSV export.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>✦ Ask your documents</b>: find documents by meaning (with an embedding model) or words, with an AI answer that cites them.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Watchdog</b> flags documents with unusual amounts or repeated people, and <b>✦ This week</b> summarises the team's week on Team workload and in the team report.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Bots can <b>run in the background</b> with automatic retries; uploads can live on <b>S3-compatible storage</b>; optional <b>Sentry</b> error reporting; tests run on PostgreSQL in CI.</div></li>
+    <li data-k="fixed"><span class="rn-k fixed">Fixed</span><div>On PostgreSQL, creating workflows failed (token columns too short), long imported field ids broke field history, and API calls could drop the database connection.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Key dates and reminders</b>: track renewals, expiries and reviews from finished documents, with emails before each date and a Key dates page.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Client portal</b>: recipients confirm their email and see everything waiting for them, plus PDFs of what they finished.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>AI agent bot</b>: describe what should happen in plain English; it sets only the fields you list and adds tags, comments or alerts only if you allow them.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>✦ Write with AI</b> for step invitation emails, in a friendly, formal or short tone.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div>MCP tools for AI assistants: <code>check_workflow</code>, <code>explain_workflow</code>, <code>workflow_activity</code> and <code>list_key_dates</code>.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-7">
+  <div class="rn-meta"><span class="rn-ver">1.7</span><time>Oct 25, 2026</time></div>
+  <h2 id="r17">Checks, undo everywhere, and steadier AI</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Checks</b> in the builder find jumps, branches and bots that point at deleted steps, rules and email tokens that read fields that no longer exist, branches that can never run and steps nobody is assigned to. Problem steps are marked on the diagram, and each item can be opened, shown on the canvas or handed to the AI to fix.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Undo and redo</b> for every builder change (↶ ↷, <kbd>⌘</kbd><kbd>Z</kbd>), including AI changes. The last 30 changes are kept.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Find a step</b> (<kbd>/</kbd>), <b>fit to screen</b> (<kbd>F</kbd>), <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + scroll zoom, and blueprint export from the builder menu.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Review before publishing</b>: what changes since the live version, warnings, documents still running on the old version, and a note for the audit trail.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Live activity on the diagram</b>: documents waiting and overdue at each step, and how long the step usually takes.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>✅ Approval</b> in the + menu adds an approver, an Approve / Reject field and an end-on-reject branch in one click. Branches can be <b>collapsed</b>.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div>AI assistant: <b>Refine proposal</b> for follow-ups, and <b>Explain this workflow</b> in plain English to copy and share.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Daily AI limit</b> per workspace in AI &amp; models.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Step templates</b>: save a step with its fields and bots and add it to any workflow. <b>Replace a recipient</b> swaps an email across a whole workflow. <b>Fix all with AI</b> in Checks.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Path</b> tab on every document: the workflow diagram with what was done (by whom, how long), where it waits now and what is still ahead.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Discard changes</b> from the publish review, and restoring an old version can now be undone.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Pages keep a readable width on large screens (dashboards and boards still use the full width); quieter tag rows on document cards; tidier checkbox labels.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div><b>Ask AI and help-centre answers appear as they are written</b> instead of after the whole reply, with every provider; if streaming isn't available the full answer still arrives.</div></li>
+    <li data-k="fixed"><span class="rn-k fixed">Fixed</span><div>Form values sent to AI are fenced off as data, so text in a field can't give the model new instructions. Version comparisons no longer mark every later step as moved when one step is inserted.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>AI assistant: the model in use is shown, a progress card with Cancel replaces the bare timer, suggested requests name your own steps and fields, the review starts from the problems Checks found, and a suggestion can be proposed in one click.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>AI & models shows times in seconds, feature names instead of codes, and advice from the last week's calls (timeouts without a backup, busy providers, broken replies, slow models).</div></li>
+    <li data-k="fixed"><span class="rn-k fixed">Fixed</span><div>AI replies with misplaced or missing brackets are rebuilt instead of failing; busy providers (429, 5xx) are retried; NVIDIA and custom endpoints ask for JSON replies. The fill, review and translate bots and fill-from-text now repair a bad reply instead of failing.</div></li>
+    <li data-k="fixed"><span class="rn-k fixed">Fixed</span><div>Restoring a version, undoing an AI change or duplicating a workflow no longer drops a step's contact recipient or a document's uploaded file, and an imported file can't link a group from another workspace.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-6">
+  <div class="rn-meta"><span class="rn-ver">1.6</span><time>Oct 16, 2026</time></div>
+  <h2 id="r16">Simulate before you publish, start from email, AI form builder</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Workflow simulator</b>: test documents run through every branch, jump and bot route, then are undone. It reports unreachable steps, groups with no members, jumps that do nothing and routes that loop.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Start from an email</b>: forward a message to a workflow's address; the AI fills the first step, attachments are saved and the sender gets a link to check and submit.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>AI builder</b> in the document and start-form editors: build from a description or an existing PDF, Word file or photo, edit by instruction, and review with one-click suggestions.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Sensitive fields</b> that are never sent to AI and are masked for people not involved, in exports too.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Field history</b> on every document, <b>saved views</b> on Documents, a <b>field library</b> of reusable sections, and <b>quick approvals</b> on your phone.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Model test bench</b> and an optional <b>fast model</b> for quick AI tasks.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>New landing and sign-in pages. On phones the icon rail becomes a bottom bar and the menu opens as a panel.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>AI answers in broken JSON are repaired automatically; AI fills tables into the right columns.</div></li>
+    <li data-k="fixed"><span class="rn-k fixed">Fixed</span><div>The menu button was hidden on small screens. Bots skipped by their conditions no longer reload the document, which speeds up large workflows.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-5">
+  <div class="rn-meta"><span class="rn-ver">1.5</span><time>Oct 16, 2026</time></div>
+  <h2 id="r15">Sealed documents, single sign-on and production-ready</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Tamper-evident seals</b> — every completed document gets a SHA-256 fingerprint and verify code on its certificate, a frozen PDF, and a public <b>/verify/</b> page (code or PDF upload). <b>Check integrity</b> on the Status tab.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Single sign-on</b> with Microsoft Entra ID, Google Workspace, Okta or any OpenID Connect provider, with a required domain allowlist.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Data retention</b> rules for finished documents, trash and the audit trail, with <b>legal hold</b>.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Email digests</b> and a <b>team report</b> (daily or weekly).</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Ask about all your documents</b> in the assistant — counts, lists and totals from your real data.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Payments on start forms</b> with Stripe Checkout; the workflow starts after payment.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Spanish</b> recipient pages with an English / Español switch, and <b>version comparison</b> for workflows.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Support tickets have response targets, email alerts to support for high/critical problems and assignment to staff. Help articles record “Was this helpful?” votes.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Production setup: PostgreSQL, shared cache, backups with rotation, <code>/healthz/</code>, Docker Compose with a separate worker.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-4">
+  <div class="rn-meta"><span class="rn-ver">1.4</span><time>Oct 16, 2026</time></div>
+  <h2 id="r14">Assistant everywhere, “What went wrong?” and support tickets</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div><b>“What went wrong?”</b> — the assistant diagnoses a document (failed bots and how many documents they affect, stuck or expired steps, missing recipients, unsent invitations, overdue work, failed webhooks) and explains the fix. A banner appears on documents with problems, and failed rows in Bots logs link straight to it.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Support tickets</b> — High and Critical problems file a ticket automatically, one per problem; it's updated as more documents are affected and reopened if the problem returns. Tickets page with notes and status, plus a platform-wide queue for super admins.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Help center</b> — 35+ articles across 10 topics, instant search and an AI chat that answers from the articles and links its sources. The assistant is available on every page (✦ in the rail) and knows which document you're looking at.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Demo accounts</b> on the login page in development — one click to sign in as any role.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div><b>Team, groups and contacts</b> — summary cards, role pills you can change in place, open work and last-active per person, side panels with details, groups that show where they're used and warn when a used group has no members, contacts with document history.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div><b>Audit trail</b> — categories, people and workflow filters, sensitive-action filter, daily activity chart, grouping of related events and a richer CSV export.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div><b>Landing and sign-in pages</b> redesigned; Release notes, Terms and Privacy rewritten.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-3">
+  <div class="rn-meta"><span class="rn-ver">1.3</span><time>Oct 16, 2026</time></div>
+  <h2 id="r13">AI that edits workflows, and more AI everywhere</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div><b>AI assistant in the builder</b> — review your workflow for suggestions or ask for a change; compare <b>Before / After</b> on the canvas, apply, or undo.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Fill from text</b> for recipients, <b>AI search</b> on Documents, an <b>AI summary</b> on every document and follow-up questions in Ask AI.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div>Bots <b>AI: review against rules</b> and <b>AI: translate fields</b>; an AI usage log in My workspace › AI &amp; models.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Documents lists can switch between <b>Cards</b> and <b>Compact</b> layouts; cards are more compact.</div></li>
+    <li data-k="fixed"><span class="rn-k fixed">Fixed</span><div>AI edits on small local models no longer repeat one change across steps or return the workflow unchanged.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-2">
+  <div class="rn-meta"><span class="rn-ver">1.2</span><time>Oct 16, 2026</time></div>
+  <h2 id="r12">Super admin console, work queues and branding</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Super admin console</b> — workspaces, users, broadcasts, platform settings, maintenance mode, background jobs, sign-in log and health checks.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Group work queues</b> (take, release, take over), <b>Team workload</b>, <b>duplicate checks</b> and <b>@mentions</b> in comments.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div>Bots for reference numbers, round-robin assignment, field transforms, starting another workflow, deadlines, Teams/Slack/Google Chat, comments and in-app notifications.</div></li>
+    <li data-k="improved"><span class="rn-k improved">Improved</span><div>Designed HTML emails, theme presets and a richer thank-you page.</div></li>
+    <li data-k="fixed"><span class="rn-k fixed">Fixed</span><div>Security review: POST-only test runs, group steps visible to their members, sanitised HTML fields, validated redirects.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-1">
+  <div class="rn-meta"><span class="rn-ver">1.1</span><time>Oct 15, 2026</time></div>
+  <h2 id="r11">Connectors, AI in workflows and MCP</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Custom connectors</b> for any HTTP/JSON API, <b>signed webhooks</b>, deadlines with escalation, out of office and workflow insights.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div><b>Describe it</b> — build a workflow from a plain-English description, with Ollama, OpenAI-compatible servers or Claude.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div>AI bots to fill fields, summarize and choose options; <b>Ask AI</b> on documents; an <b>MCP server</b> and REST API with personal tokens; two-step sign-in.</div></li>
+  </ul>
+</section>
+
+<section class="rn-rel" id="v1-0">
+  <div class="rn-meta"><span class="rn-ver">1.0</span><time>Oct 14, 2026</time></div>
+  <h2 id="r10">First release</h2>
+  <ul class="rn-items">
+    <li data-k="new"><span class="rn-k new">New</span><div>Workflow builder with steps, branch lanes, jumps, bot steps, autostart and versioned publishing.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div>Document editor with 21 elements and 12 widgets, pages, conditions, formulas and design options; start forms with in-form lookups.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div>Recipient experience with e-signatures, drafts, decline, consent and thank-you pages; documents with revisions, audit trail, bots log and PDF downloads.</div></li>
+    <li data-k="new"><span class="rn-k new">New</span><div>Team management with roles and groups, contacts, analytics widgets, usage log and email templates; workflow import.</div></li>
+  </ul>
+</section>
+</div>
+<script>
+document.querySelectorAll("[data-rn]").forEach((b) => b.addEventListener("click", () => {
+  const k = b.dataset.rn;
+  document.querySelectorAll("[data-rn]").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".rn-items li").forEach((li) => { li.hidden = k !== "all" && li.dataset.k !== k; });
+  document.querySelectorAll(".rn-rel").forEach((r) => { r.hidden = ![...r.querySelectorAll("li")].some((li) => !li.hidden); });
+}));
+</script>
+{% endblock %}
+{% block aside %}<div class="dc-meta"><small>Current version</small><b>1.8</b><small>Released Oct 25, 2026</small></div>{% endblock %}

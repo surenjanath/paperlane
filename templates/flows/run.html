@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Run {{ wf.name }}{% endblock %}
+{% block heading %}Run “{{ wf.name }}”{% endblock %}
+{% block subheading %}<a class="link" href="{{ wf.get_absolute_url }}">Back</a>{% endblock %}
+{% block content %}
+<form method="post" class="card card-pad" style="max-width:620px">{% csrf_token %}
+  {% if needs_publish %}<div class="alert alert-warning">{% icon "send" 16 %} <span><b>Send documents?</b> By sending a document, you'll apply all the changes you've already made and publish your {{ wf.get_kind_display|lower }}.</span></div>{% endif %}
+  <div class="field"><label>Document name</label><input type="text" name="name" value="{{ default_name }}"></div>
+  {% if first %}
+  <div class="field"><label>First step: {{ first.name }}</label>
+    <div class="muted" style="margin-bottom:6px">Configured recipient: <b>{{ first.recipient_label|default:"you (sender)" }}</b></div>
+    <details><summary class="link" style="font-size:12.5px">Send the first step to someone else</summary>
+      <div class="grid-2" style="margin-top:8px"><input type="email" name="first_email" placeholder="Email"><input type="text" name="first_name" placeholder="Name (optional)"></div>
+    </details>
+  </div>
+  {% endif %}
+  <div class="field"><label>Tags (optional)</label><input type="text" name="tags" placeholder="#Urgent"></div>
+  <div class="row" style="justify-content:flex-end"><a class="btn" href="{{ wf.get_absolute_url }}">No thanks</a><button class="btn btn-dark">Send documents</button></div>
+</form>
+{% endblock %}

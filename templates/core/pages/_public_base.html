@@ -1,0 +1,10 @@
+{% extends "base_bare.html" %}
+{% load ui %}{% block body %}
+<div class="public-page">
+  <header class="public-top"><a class="logo-mark" href="{% url 'accounts:login' %}">{% logo_mark 30 %}</a><b>Paperlane</b><span class="grow"></span><a class="btn btn-sm" href="{% url 'accounts:login' %}">Log in</a></header>
+  {% block main %}
+  <div class="page-head"><div class="titles"><h1>{% block heading %}{% endblock %}</h1><div class="sub">{% block subheading %}{% endblock %}</div></div></div>
+  <div class="page-body">{% block content %}{% endblock %}</div>
+  {% endblock %}
+</div>
+{% endblock %}

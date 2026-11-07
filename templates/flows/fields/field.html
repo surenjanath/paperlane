@@ -1,0 +1,66 @@
+{% load i18n %}{% load ui %}
+{% if not f.hidden or preview %}<div class="ff {% if f.error %}err{% endif %} {% if not f.editable %}locked{% endif %} {% if f.width == 'half' %}half{% endif %} {% if f.divider_before %}div-before{% endif %} {% if f.divider_after %}div-after{% endif %}" {% if f.option_keys %}data-option-keys="{{ f.option_keys|jsonify|force_escape }}"{% endif %} data-field="{{ f.id }}" data-name="{{ f.name|default:'' }}" data-label="{{ f.label|default:'' }}" data-type="{{ f.type }}"
+     {% if f.condition.rules %}data-cond="{{ f.condition|jsonify|force_escape }}"{% endif %}>
+{% if f.type == 'heading' %}
+  <div style="text-align:{{ f.align|default:'left' }}"><h2 style="font-size:22px;margin-bottom:2px">{{ f.label }}</h2>{% if f.text %}<div class="muted" style="white-space:pre-wrap">{{ f.text }}</div>{% endif %}</div>
+{% elif f.type == 'description' %}
+  <div style="white-space:pre-wrap">{{ f.text }}</div>
+{% elif f.type == 'divider' %}<hr>
+{% elif f.type == 'image' %}{% if f.url %}<img src="{{ f.url }}" alt="{{ f.label }}" style="max-width:100%;border-radius:6px">{% endif %}
+{% elif f.type == 'youtube' or f.type == 'vimeo' %}{% if f.embed %}<div class="embed"><iframe src="{{ f.embed }}" allowfullscreen title="{{ f.label }}"></iframe></div>{% endif %}
+{% elif f.type == 'html' %}<div>{{ f.html|clean_html }}</div>
+{% elif f.type == 'clickwrap' %}
+  {% if f.editable %}<label class="check"><input type="checkbox" name="{{ f.input }}" {% if f.value %}checked{% endif %}> <span>{{ f.text|default:f.label }}{% if f.required %} <span style="color:var(--red)">*</span>{% endif %}</span></label>
+  {% else %}<div>{% if f.value %}☑{% else %}☐{% endif %} {{ f.text|default:f.label }}</div>{% endif %}
+{% else %}
+  <label class="lbl">{{ f.label }}{% if f.required and f.editable %} <span class="req">*</span>{% endif %}</label>
+  {% if not f.editable %}
+    {% if f.type == 'signature' or f.type == 'initials' %}{% if f.value %}<img src="{{ f.value }}" alt="signature" style="max-height:70px">{% else %}<div class="ro muted">{% translate "Not signed yet" %}</div>{% endif %}
+    {% elif f.type == 'attachment' %}{% for x in f.files %}<a class="link" style="display:block" href="{% if x.url %}{{ x.url }}{% else %}{% url 'flows:download_file' x.file_id %}?t={{ run.token }}{% endif %}">📎 {{ x.name }}</a>{% empty %}<div class="ro muted">{% translate "No attachments added" %}</div>{% endfor %}
+    {% elif f.display %}<div class="ro">{{ f.display }}</div>
+    {% elif f.parts %}<div class="ro">{% for p in f.parts %}{% if p.value %}{{ p.label }}: {{ p.value }}<br>{% endif %}{% empty %}—{% endfor %}</div>
+    {% elif f.matrix %}<div class="ro">{% for m in f.matrix %}{{ m.row }}: {{ m.value|default:"—" }}<br>{% endfor %}</div>
+    {% elif f.table %}<table class="table">{% for row in f.table %}{% if forloop.first %}<tr>{% for c in f.columns %}<th>{{ c }}</th>{% endfor %}</tr>{% endif %}<tr>{% for cell in row %}<td>{{ cell.value }}</td>{% endfor %}</tr>{% endfor %}</table>
+    {% elif f.type == 'checkbox' and f.options %}{% for o in f.options %}<label class="check" style="opacity:.7"><input type="checkbox" disabled {% if o in f.checked %}checked{% endif %}> {{ o }}</label>{% endfor %}
+    {% elif f.type == 'radio' %}{% for o in f.options %}<label class="check" style="opacity:.7"><input type="radio" disabled {% if f.value == o %}checked{% endif %}> {{ o }}</label>{% endfor %}
+    {% elif f.type == 'checkbox' %}<div class="ro">{{ f.checked|join:", "|default:"—" }}</div>
+    {% elif f.type == 'group' %}<div class="ro">{% for s in f.group %}{{ s.label }}: {{ s.value }}<br>{% endfor %}</div>
+    {% elif f.type == 'repeatable' %}<div class="ro">{% for row in f.repeat %}{% for s in row %}{% if s.value %}{{ s.label }}: {{ s.value }}; {% endif %}{% endfor %}<br>{% endfor %}</div>
+    {% else %}<div class="ro">{{ f.value|default:"—" }}</div>{% endif %}
+  {% else %}
+    {% if f.type == 'textarea' %}<textarea name="{{ f.input }}" rows="4" placeholder="{{ f.placeholder|default:'' }}" {% if f.max_length %}maxlength="{{ f.max_length }}"{% endif %}>{{ f.value }}</textarea>
+    {% elif f.type == 'email' %}<input type="email" name="{{ f.input }}" value="{{ f.value }}" placeholder="{{ f.placeholder|default:'' }}">
+    {% elif f.type == 'date' %}<input type="date" name="{{ f.input }}" value="{{ f.value }}" title="{{ f.date_format|default:'' }}">{% if f.date_format %}<div class="help">Format: {{ f.date_format }}</div>{% endif %}
+    {% elif f.type == 'number' %}<input type="number" step="any" name="{{ f.input }}" value="{{ f.value }}" placeholder="{{ f.placeholder|default:'' }}" {% if f.min %}min="{{ f.min }}"{% endif %} {% if f.max %}max="{{ f.max }}"{% endif %} data-num>
+    {% elif f.type == 'currency' %}<div class="input-icon"><span style="position:absolute;left:10px;top:7px;color:var(--muted)">$</span><input type="text" inputmode="decimal" name="{{ f.input }}" value="{{ f.value }}" placeholder="0.00" style="padding-left:22px" data-num></div>
+    {% elif f.type == 'phone' %}<input type="tel" name="{{ f.input }}" value="{{ f.value }}" placeholder="{{ f.placeholder|default:'+1 (868) 000-0000' }}">
+    {% elif f.type == 'formula' %}<input type="text" name="{{ f.input }}" value="{{ f.value }}" readonly data-formula="{{ f.formula }}" style="background:var(--bg-soft)">
+    {% elif f.type == 'dropdown' %}<select name="{{ f.input }}"><option value="">{{ f.placeholder|default:_("Select…") }}</option>{% for o in f.options %}<option {% if f.value == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+    {% elif f.type == 'radio' %}{% for o in f.options %}<label class="check"><input type="radio" name="{{ f.input }}" value="{{ o }}" {% if f.value == o %}checked{% endif %}> {{ o }}</label>{% endfor %}
+    {% elif f.type == 'checkbox' %}{% if f.options %}{% for o in f.options %}<label class="check"><input type="checkbox" name="{{ f.input }}" value="{{ o }}" {% if o in f.checked %}checked{% endif %}> {{ o }}</label>{% endfor %}{% else %}<label class="check"><input type="checkbox" name="{{ f.input }}" {% if f.value %}checked{% endif %}> Yes</label>{% endif %}
+    {% elif f.type == 'image_choice' %}<div class="img-choice">{% for c in f.choices %}<input type="radio" id="{{ f.input }}-{{ forloop.counter }}" name="{{ f.input }}" value="{{ c.option }}" {% if f.value == c.option %}checked{% endif %}><label for="{{ f.input }}-{{ forloop.counter }}">{% if c.image %}<img src="{{ c.image }}" alt="">{% endif %}{{ c.option }}</label>{% endfor %}</div>
+    {% elif f.type == 'rating' %}<div class="rating">{% for v in f.stars %}<input type="radio" id="{{ f.input }}-{{ v }}" name="{{ f.input }}" value="{{ v }}" {% if f.value|to_str == v|to_str %}checked{% endif %}><label for="{{ f.input }}-{{ v }}" title="{{ v }}">★</label>{% endfor %}</div>
+    {% elif f.type == 'signature' or f.type == 'initials' %}
+      <div class="sig-box {% if f.type == 'initials' %}small{% endif %}" data-sig="{{ f.type }}">
+        <canvas></canvas><input type="hidden" name="{{ f.input }}" value="{{ f.value }}">
+        <div class="sig-actions"><button type="button" class="btn btn-sm" data-sig-type>{% translate "Type" %}</button>{% if autofill_signature and profile %}<button type="button" class="btn btn-sm" data-sig-default="{% if f.type == 'initials' %}{{ profile.initials }}{% else %}{{ profile.signature }}{% endif %}">{% translate "Use saved" %}</button>{% endif %}<button type="button" class="btn btn-sm" data-sig-clear>{% translate "Clear" %}</button></div>
+      </div>
+    {% elif f.type == 'attachment' %}
+      <div class="dropzone">
+        <input type="hidden" name="{{ f.input }}__keep_present" value="1">
+        {% for x in f.files %}<label class="check"><input type="checkbox" name="{{ f.input }}__keep" value="{{ x.file_id }}" checked> <span><a class="link" href="{% if x.url %}{{ x.url }}{% else %}{% url 'flows:download_file' x.file_id %}?t={{ run.token }}{% endif %}">📎 {{ x.name }}</a></span></label>{% endfor %}
+        <div class="muted" style="font-size:12px;margin:6px 0">Drag and drop files here, or choose files. You can upload up to {{ f.max_files|default:5 }} attachment{{ f.max_files|default:5|pluralize }}. The maximum file size is {{ f.max_mb|default:50 }} MB.</div>
+        <input type="file" name="{{ f.input }}" {% if f.max_files != 1 %}multiple{% endif %}>
+      </div>
+    {% elif f.parts %}<div class="grid-2">{% for p in f.parts %}<div><small class="muted">{{ p.label }}</small><input type="{% if p.key == 'email' %}email{% elif p.key == 'date_of_birth' %}date{% elif p.key == 'phone' %}tel{% else %}text{% endif %}" name="{{ p.input }}" value="{{ p.value }}"></div>{% endfor %}</div>
+    {% elif f.matrix %}<div class="scroll-x"><table class="table matrix"><tr><th></th>{% for c in f.columns %}<th>{{ c }}</th>{% endfor %}</tr>{% for m in f.matrix %}<tr><td>{{ m.row }}</td>{% for c in f.columns %}<td><input type="radio" name="{{ m.input }}" value="{{ c }}" {% if m.value == c %}checked{% endif %}></td>{% endfor %}</tr>{% endfor %}</table></div>
+    {% elif f.table %}<div class="scroll-x"><table class="table grid-table" data-grow><tr>{% for c in f.columns %}<th>{{ c }}</th>{% endfor %}</tr>{% for row in f.table %}<tr>{% for cell in row %}<td><input type="text" name="{{ cell.input }}" value="{{ cell.value }}"></td>{% endfor %}</tr>{% endfor %}</table></div><button type="button" class="btn btn-sm" data-add-row style="margin-top:6px">+ {% translate "Add row" %}</button>
+    {% elif f.group %}<div class="grid-2">{% for s in f.group %}<div><small class="muted">{{ s.label }}</small><input type="{% if s.type == 'currency' %}text{% else %}{{ s.type }}{% endif %}" name="{{ s.input }}" value="{{ s.value }}"></div>{% endfor %}</div>
+    {% elif f.repeat %}<div data-repeat>{% for row in f.repeat %}<div class="card" style="padding:10px;margin-bottom:8px" data-repeat-row><div class="grid-2">{% for s in row %}<div><small class="muted">{{ s.label }}</small><input type="{% if s.type == 'currency' %}text{% else %}{{ s.type }}{% endif %}" name="{{ s.input }}" value="{{ s.value }}"></div>{% endfor %}</div></div>{% endfor %}</div><button type="button" class="btn btn-sm" data-add-repeat>+ {% translate "Add another" %}</button>
+    {% else %}<input type="text" name="{{ f.input }}" value="{{ f.value }}" placeholder="{{ f.placeholder|default:'' }}" {% if f.max_length %}maxlength="{{ f.max_length }}"{% endif %}>{% endif %}
+  {% endif %}
+  {% if f.help %}<div class="help">{{ f.help }}</div>{% endif %}
+  {% if f.error %}<div class="err-msg">{{ f.error }}</div>{% endif %}
+{% endif %}
+</div>
+{% endif %}

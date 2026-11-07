@@ -1,0 +1,11 @@
+{% for d in documents %}
+<div class="card" style="margin-bottom:14px;max-width:820px">
+  <div class="card-head"><h3>{{ d.name }}</h3></div>
+  <div class="card-body"><dl class="kv">
+  {% for f in d.fields %}
+    {% if f.heading %}{% if f.type == 'heading' %}<dt style="grid-column:1/-1;color:var(--text);font-weight:600;font-size:14px">{{ f.label }}</dt>{% endif %}
+    {% else %}<dt>{{ f.label }}</dt><dd>{% if f.image %}<img src="{{ f.image }}" alt="signature" style="max-height:60px">{% else %}{{ f.text|default:"—"|linebreaksbr }}{% endif %}</dd>{% endif %}
+  {% endfor %}
+  </dl></div>
+</div>
+{% endfor %}

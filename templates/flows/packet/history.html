@@ -1,0 +1,14 @@
+{% if history_fields %}
+<form class="row" style="gap:8px;margin-bottom:12px"><input type="hidden" name="tab" value="history">
+  <select name="field" data-autosubmit style="width:auto"><option value="">All fields</option>{% for fid, lb in history_fields %}<option value="{{ fid }}" {% if request.GET.field == fid %}selected{% endif %}>{{ lb }}</option>{% endfor %}</select>
+  <span class="muted small">{{ changes|length }} change{{ changes|length|pluralize }}{% if changes|length == 300 %} (latest 300){% endif %}</span></form>
+{% endif %}
+{% if changes %}
+<div class="fh-list">{% for c in changes %}<div class="fh-row">
+  <time title="{{ c.created_at|date:'M j, Y H:i:s' }}">{{ c.created_at|date:"M j, H:i" }}</time>
+  <div class="fh-main"><b>{{ c.label }}</b>
+    <div class="fh-val">{% if c.old %}<del>{{ c.old|truncatechars:160 }}</del> → {% endif %}{% if c.new %}<ins>{{ c.new|truncatechars:160 }}</ins>{% else %}<span class="muted">cleared</span>{% endif %}</div></div>
+  <div class="fh-who"><span>{{ c.actor_label|default:"System" }}</span>{% if c.source %}<small>{{ c.source }}</small>{% endif %}</div>
+</div>{% endfor %}</div>
+{% elif request.GET.field %}<p class="muted">No changes for this field.</p>
+{% else %}<p class="muted">No field changes yet.</p>{% endif %}

@@ -1,0 +1,35 @@
+{% extends "base_bare.html" %}
+{% load ui %}
+{% block title %}Add bot · {{ wf.name }}{% endblock %}
+{% block body %}
+<div class="shell no-sidebar">
+{% include "partials/rail.html" %}
+<main class="main">
+  <div class="builder-top"><a class="btn btn-ghost btn-sm" href="{% url 'flows:bots' wf.pk %}">{% icon "back" %} Back</a><div class="t"><h1>Add bot to your workflow</h1><small class="muted">{{ wf.name }}</small></div></div>
+  <div style="display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 60px)">
+    <nav style="border-right:1px solid var(--line);padding:12px;overflow-y:auto;max-height:calc(100vh - 60px)">
+      <div class="nav-label">Categories</div>
+      <a class="nav-item {% if cat == 'All bots' %}active{% endif %}" href="?cat=All+bots&trigger={{ trigger }}&step={{ step }}">All bots</a>
+      <a class="nav-item {% if cat == 'Popular' %}active{% endif %}" href="?cat=Popular&trigger={{ trigger }}&step={{ step }}">★ Popular</a>
+      <a class="nav-item {% if cat == 'Free' %}active{% endif %}" href="?cat=Free&trigger={{ trigger }}&step={{ step }}">Free</a>
+      {% for group, cats in tree %}
+        <div class="nav-label" style="margin-top:10px">{{ group }}</div>
+        {% for c in cats %}<a class="nav-item {% if cat == c %}active{% endif %}" style="padding-left:18px" href="?cat={{ c|urlencode }}&trigger={{ trigger }}&step={{ step }}">{{ c }}</a>{% endfor %}
+      {% endfor %}
+    </nav>
+    <div class="page-body">
+      <form class="input-icon" style="max-width:360px;margin-bottom:14px">{% icon "search" %}<input type="search" name="q" value="{{ q }}" placeholder="Search bots"><input type="hidden" name="trigger" value="{{ trigger }}"><input type="hidden" name="step" value="{{ step }}"></form>
+      <div class="wf-grid">
+      {% for key, meta in items %}
+        <div class="wf-card">
+          <div class="row" style="gap:8px"><span class="avatar" style="background:var(--accent-soft)">{% icon "bot" 15 %}</span><b class="grow" style="font-size:13.5px">{{ meta.name }}</b></div>
+          <div class="meta" style="margin-top:4px">{{ meta.desc }}</div>
+          <div class="foot"><span class="grow">{% if meta.free %}<span class="badge badge-green">FREE</span>{% endif %}{% if meta.integration %}<span class="badge badge-gray">Integration</span>{% endif %}</span>
+            <a class="btn btn-sm btn-dark" href="{% url 'flows:bot_new' wf.pk %}?type={{ key }}&trigger={{ trigger }}&step={{ step }}">Install bot</a></div>
+        </div>
+      {% empty %}<p class="muted">No bots match.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</main></div>
+{% endblock %}

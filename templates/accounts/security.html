@@ -1,0 +1,72 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Security{% endblock %}
+{% block nav %}{% include "accounts/_account_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:18px">Security</h1>
+
+<div class="card card-pad sec-card" style="margin-bottom:16px">
+  <div class="sec-head">
+    <div><h3>Two-factor sign-in</h3>
+      <p class="muted">After your password, ask for a code from an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy…).</p></div>
+    {% if profile.two_factor_on %}<span class="badge badge-green">On</span>{% else %}<span class="badge badge-gray">Off</span>{% endif %}
+  </div>
+
+  {% if new_codes %}
+  <div class="sec-codes" role="region" aria-label="Recovery codes">
+    <b>Save your recovery codes</b>
+    <p class="muted">Each code signs you in once if you lose your phone. They won't be shown again.</p>
+    <ol id="rc-list">{% for c in new_codes %}<li><code>{{ c }}</code></li>{% endfor %}</ol>
+    <div class="row"><textarea id="rc-text" hidden>{{ new_codes|join:"
+" }}</textarea><button type="button" class="btn btn-sm" data-copy="#rc-text" data-copy-toast="Recovery codes copied">{% icon "copy" %} Copy codes</button>
+      <a class="btn btn-sm" download="paperlane-recovery-codes.txt" href="data:text/plain;charset=utf-8,{{ new_codes|join:'%0A' }}">{% icon "download" %} Download</a></div>
+  </div>
+  {% endif %}
+
+  {% if profile.two_factor_on %}
+    <p style="margin:12px 0 4px">Turned on {{ profile.totp_enabled_at|date:"M j, Y" }} · <b>{{ recovery_left }}</b> recovery code{{ recovery_left|pluralize }} left{% if recovery_left < 3 %} <span class="badge badge-amber">Generate new ones</span>{% endif %}</p>
+    <div class="sec-actions">
+      <form method="post" action="{% url 'accounts:security_action' '2fa-codes' %}" class="row">{% csrf_token %}
+        <input type="password" name="password" placeholder="Your password" required autocomplete="current-password" aria-label="Password" style="max-width:220px">
+        <button class="btn">New recovery codes</button></form>
+      <form method="post" action="{% url 'accounts:security_action' '2fa-disable' %}" class="row" data-confirm="Turn off two-factor sign-in? Your account will be protected by your password only." data-danger data-confirm-ok="Turn off">{% csrf_token %}
+        <input type="password" name="password" placeholder="Your password" required autocomplete="current-password" aria-label="Password" style="max-width:220px">
+        <button class="btn btn-danger">Turn off</button></form>
+    </div>
+  {% elif setup_secret %}
+    <div class="sec-setup">
+      <div class="sec-qr" aria-label="QR code for your authenticator app">{{ setup_qr|safe }}</div>
+      <div class="grow">
+        <ol class="sec-steps">
+          <li>Scan the QR code with your authenticator app.</li>
+          <li>Can't scan? Enter this key: <code class="sec-key" id="totp-key">{{ setup_secret }}</code> <button type="button" class="btn btn-ghost btn-sm" data-copy="#totp-key" data-copy-toast="Key copied">Copy</button></li>
+          <li>Enter the 6-digit code the app shows.</li>
+        </ol>
+        <form method="post" action="{% url 'accounts:security_action' '2fa-confirm' %}" class="row">{% csrf_token %}
+          <input name="code" class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123 456" required aria-label="6-digit code" style="max-width:150px">
+          <button class="btn btn-dark">Turn on</button></form>
+        <form method="post" action="{% url 'accounts:security_action' '2fa-cancel' %}" style="margin-top:8px">{% csrf_token %}<button class="link" style="background:none;border:0;cursor:pointer;font:inherit;padding:0">Cancel</button></form>
+      </div>
+    </div>
+  {% else %}
+    <form method="post" action="{% url 'accounts:security_action' '2fa-start' %}" style="margin-top:12px">{% csrf_token %}<button class="btn btn-dark">{% icon "lock" %} Set up two-factor sign-in</button></form>
+  {% endif %}
+</div>
+
+<div class="card card-pad">
+  <div class="sec-head">
+    <div><h3>Where you're signed in</h3><p class="muted">Sign out of browsers you don't recognise or no longer use.</p></div>
+    {% if sessions|length > 1 %}<form method="post" action="{% url 'accounts:security_action' 'sign-out-others' %}" data-confirm="Sign out of every other session?" data-confirm-ok="Sign out">{% csrf_token %}<button class="btn btn-sm">Sign out everywhere else</button></form>{% endif %}
+  </div>
+  <table class="table sec-sessions" style="margin-top:8px">
+    <thead><tr><th>Device</th><th>IP address</th><th>Signed in</th><th></th></tr></thead>
+    <tbody>
+    {% for s in sessions %}
+      <tr><td><b>{{ s.label }}</b>{% if s.current %} <span class="badge badge-green">This browser</span>{% endif %}</td>
+        <td>{{ s.ip }}</td><td>{% if s.since %}{{ s.since|date:"M j, Y H:i" }}{% else %}—{% endif %}</td>
+        <td style="text-align:right">{% if not s.current %}<form method="post" action="{% url 'accounts:security_action' 'sign-out-session' %}">{% csrf_token %}<input type="hidden" name="key" value="{{ s.key }}"><button class="btn btn-ghost btn-sm">Sign out</button></form>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">No active sessions.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

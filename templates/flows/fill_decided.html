@@ -1,0 +1,8 @@
+{% extends "base_bare.html" %}
+{% block title %}Done · {{ packet.name }}{% endblock %}
+{% block body %}
+<div class="portal-wrap"><div class="portal-card" style="text-align:center">
+  <div style="font-size:40px">✅</div><h1>Thanks — recorded: {{ choice }}</h1>
+  <p class="muted">“{{ packet.name }}” moves on to the next step. You can close this page.</p>
+</div></div>
+{% endblock %}

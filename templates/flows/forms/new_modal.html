@@ -1,0 +1,19 @@
+{% load ui %}
+<form method="post" action="{% url 'flows:form_new' %}">{% csrf_token %}
+<div class="modal-head"><h2>New form</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="modal-body">
+  <div class="tpl-grid">
+    <label class="tpl-card"><input type="radio" name="template" value="" checked><span><b>Blank form</b><small>Start from an empty form and add any fields.</small></span></label>
+    {% for key, t in templates.items %}
+    <label class="tpl-card"><input type="radio" name="template" value="{{ key }}"><span><b>{{ t.name }}</b><small>{{ t.description }}</small>
+      <em>{{ t.category }}{% if t.lookups %} · in-form bot{% endif %}</em></span></label>
+    {% endfor %}
+  </div>
+  <div class="grid-2" style="margin-top:14px">
+    <div class="field"><label>Name (optional)</label><input type="text" name="name" placeholder="Uses the template name"></div>
+    <div class="field"><label>Starts workflow</label><select name="workflow"><option value="">Choose later</option>
+      {% for w in workflows %}<option value="{{ w.pk }}" {% if preselect == w.pk|stringformat:'s' %}selected{% endif %}>{{ w.name }}</option>{% endfor %}</select></div>
+  </div>
+</div>
+<div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Create form</button></div>
+</form>

@@ -1,0 +1,27 @@
+{% load ui %}<div class="drawer-head"><h2>Contact</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="drawer-body mp">
+  <div class="mp-top">
+    <span class="avatar xl ct-av">{{ c.name|initials }}</span>
+    <div><h3>{{ c.name }}</h3>{% if c.company %}<div class="small muted">{{ c.company }}</div>{% endif %}</div>
+  </div>
+  <div class="row" style="gap:6px;flex-wrap:wrap">
+    <a class="btn btn-sm" href="mailto:{{ c.email }}">{% icon "mail" 14 %} Email</a>
+    {% if c.phone %}<a class="btn btn-sm" href="tel:{{ c.phone }}">Call</a>{% endif %}
+    <button type="button" class="btn btn-sm" data-copy="{{ c.email }}">{% icon "copy" 14 %} Copy email</button>
+    {% if request.membership.can_create %}<button type="button" class="btn btn-sm" data-modal-url="{% url 'accounts:contact_edit' c.pk %}">{% icon "edit" 14 %} Edit</button>{% endif %}
+  </div>
+  <div class="mp-stats">
+    <div><b>{{ doc_count }}</b><small>documents</small></div>
+    <div><b>{{ open_count }}</b><small>waiting on them</small></div>
+    <div><b>{{ c.created_at|date:"M Y" }}</b><small>added</small></div>
+  </div>
+  <dl class="mp-facts">
+    <dt>Email</dt><dd><a class="link" href="mailto:{{ c.email }}">{{ c.email }}</a></dd>
+    <dt>Phone</dt><dd>{{ c.phone|default:"—" }}</dd>
+    <dt>Company</dt><dd>{{ c.company|default:"—" }}</dd>
+  </dl>
+  {% if c.notes %}<h4 class="mp-h">Notes</h4><p class="mp-notes">{{ c.notes }}</p>{% endif %}
+  <h4 class="mp-h">Recent documents</h4>
+  {% for r in runs %}<a class="mp-run" href="{{ r.packet.get_absolute_url }}"><span><b>{{ r.packet.name|truncatechars:48 }}</b><small>{{ r.packet.workflow.name|truncatechars:40 }} · {{ r.step_name }} · {{ r.created_at|date:"M j" }}</small></span><span class="tk-status st-{% if r.is_open %}open{% elif r.status == 'completed' %}resolved{% else %}closed{% endif %}">{{ r.get_status_display }}</span></a>
+  {% empty %}<p class="muted small">Nothing has been sent to {{ c.name }} yet. Choose them as a step's recipient (<i>Contact</i>) in the builder.</p>{% endfor %}
+</div>

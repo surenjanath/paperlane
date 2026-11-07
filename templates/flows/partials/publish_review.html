@@ -1,0 +1,25 @@
+{% load ui %}<form method="post" action="{% url 'flows:publish' wf.pk %}">{% csrf_token %}
+<div class="modal-head"><h2>{% if live %}Publish version {{ next_version }}{% else %}Publish “{{ wf.name }}”{% endif %}</h2><button type="button" class="modal-close" data-close aria-label="Close">×</button></div>
+<div class="modal-body pr-body">
+  {% if errors %}
+    <div class="alert alert-error" role="alert"><b>Fix these before publishing</b>{% for f in errors %}<div>• {{ f.message }}</div>{% endfor %}</div>
+  {% endif %}
+  {% if live %}
+    <h4 class="pr-h">What changes {% if changes %}<small class="muted">({{ changes|length }}{% if more %}+{{ more }}{% endif %})</small>{% endif %}</h4>
+    {% if changes %}<ul class="ai-diff pr-diff">{% for d in changes %}<li class="d-{{ d.op }}"><span class="d-op">{{ d.op }}</span> <span><span class="muted">{{ d.what }}</span> {{ d.name }}{% if d.props %} <small class="muted">— {{ d.props|join:", " }}</small>{% endif %}</span></li>{% endfor %}
+      {% if more %}<li class="muted">…and {{ more }} more</li>{% endif %}</ul>
+    {% else %}<p class="muted">Nothing changed since version {{ wf.version }}. Publishing keeps the current version.</p>{% endif %}
+  {% else %}
+    <p class="muted">This is the first version. Once published, people can start it from its link, start form, autostart or Documents.</p>
+  {% endif %}
+  {% if warnings %}
+    <h4 class="pr-h">Warnings <small class="muted">({{ warnings|length }})</small></h4>
+    <div class="pr-warn">{% for f in warnings|slice:":6" %}<div>• {{ f.message }}</div>{% endfor %}{% if warnings|length > 6 %}<div class="muted">…and {{ warnings|length|add:"-6" }} more in Checks</div>{% endif %}</div>
+  {% endif %}
+  {% if live and in_progress %}<p class="pr-note">{% icon "documents" 14 %} {{ in_progress }} document{{ in_progress|pluralize }} in progress keep{{ in_progress|pluralize:"s," }} running on version {{ wf.version }}; new documents use the new version.</p>{% endif %}
+  {% if not errors %}<div class="field" style="margin-top:12px"><label for="pub-note">Note for the audit trail <span class="muted">(optional)</span></label>
+    <input type="text" id="pub-note" name="note" maxlength="300" placeholder="e.g. Added a Finance approval over 10,000"></div>{% endif %}
+</div>
+<div class="modal-foot">{% if live and changes %}<button type="submit" class="btn btn-ghost pr-discard" formaction="{% url 'flows:discard_draft' wf.pk %}" formnovalidate data-confirm="Throw away these changes and go back to version {{ wf.version }}? You can undo this with ↶." data-confirm-ok="Discard" data-danger>Discard changes</button><span class="grow"></span>{% endif %}<button type="button" class="btn" data-close>Cancel</button>
+  <button class="btn btn-dark" {% if errors %}disabled{% endif %}>{% if warnings and not errors %}Publish anyway{% else %}Publish{% endif %}</button></div>
+</form>

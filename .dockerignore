@@ -1,0 +1,17 @@
+.venv
+venv
+.git
+__pycache__
+*.pyc
+db.sqlite3*
+media
+backups
+staticfiles
+.env
+.env.*
+.mcp.json
+.DS_Store
+walkthrough
+.claude
+.mcp.json
+imports

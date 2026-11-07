@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Notifications{% endblock %}
+{% block heading %}Notifications{% endblock %}
+{% block actions %}<form method="post" action="{% url 'core:notifications_read' %}">{% csrf_token %}<button class="btn">Mark all as read</button></form>{% endblock %}
+{% block content %}
+<div class="card" style="max-width:760px">
+{% for n in items %}
+<a class="notif" style="padding:12px 16px" href="{% url 'core:notification_open' n.pk %}"><span class="avatar">{% icon "bell" 14 %}</span><div class="body"><b>{{ n.title }}</b>{% if n.body %}<div class="muted">{{ n.body }}</div>{% endif %}<div class="when">{{ n.created_at|date:"d.m.Y g:i A" }}</div></div>{% if not n.read %}<span class="unread-dot"></span>{% endif %}</a>
+{% empty %}<div class="empty"><div class="ico">🔔</div><h3>No notifications yet</h3></div>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% load ui %}<div class="modal-head"><h2>Step templates</h2><button type="button" class="modal-close" data-close aria-label="Close">×</button></div>
+<div class="modal-body">
+  <p class="muted small">Save a step with <b>⋯ › Save as template</b>. Its settings, the fields it fills and its bots can then be added to any workflow from the <b>+</b> menu.</p>
+  {% for t in templates %}
+  <div class="tpl-row"><div class="grow"><b>{{ t.name }}</b><div class="muted small">{{ t.summary }} · used {{ t.uses }} time{{ t.uses|pluralize }}</div></div>
+    <form method="post" action="{% url 'flows:step_templates' wf.pk %}" data-confirm="Delete the template “{{ t.name }}”? Workflows that used it keep their steps." data-danger data-confirm-ok="Delete">{% csrf_token %}<button class="btn btn-sm" name="delete" value="{{ t.pk }}">{% icon "trash" 14 %}</button></form></div>
+  {% empty %}<p class="muted">No step templates yet.</p>{% endfor %}
+</div>
+<div class="modal-foot"><button type="button" class="btn" data-close>Close</button></div>

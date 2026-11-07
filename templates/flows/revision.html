@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Revision {{ revision.number }}{% endblock %}
+{% block heading %}Revision {{ revision.number }} · {{ packet.name }}{% endblock %}
+{% block subheading %}<span>{{ revision.step_name }} · {{ revision.author_label }} · {{ revision.created_at|date:"M d, Y H:i" }}</span><a class="link" href="{{ packet.get_absolute_url }}?tab=revisions">All revisions</a>{% endblock %}
+{% block actions %}<a class="btn" href="{% url 'flows:packet_download' packet.pk %}?revision={{ revision.number }}">Download PDF</a>{% endblock %}
+{% block content %}{% include "flows/partials/rendered_docs.html" with documents=documents %}{% endblock %}

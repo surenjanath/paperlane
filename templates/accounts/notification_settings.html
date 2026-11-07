@@ -1,0 +1,23 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Notification settings{% endblock %}
+{% block nav %}{% include "accounts/_account_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:18px">Notification settings</h1>
+<form method="post" class="card card-pad" style="margin-bottom:16px">{% csrf_token %}
+  <h3 style="margin-bottom:4px">Email digests</h3>
+  <p class="muted small" style="margin-bottom:10px">A summary email instead of checking the app. Sent after 7:00 — weekly ones on Mondays — and only when there's something to report.</p>
+  <div class="setting-row"><div class="grow"><div class="title">My digest</div><div class="muted small">What's waiting for me, what's overdue or due today, and documents I sent that completed or were declined.</div></div>
+    <select name="digest" style="width:auto">{% for v, l in "off|Off,daily|Daily,weekly|Weekly"|split_pairs %}<option value="{{ v }}" {% if digest == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  {% if is_manager %}<div class="setting-row"><div class="grow"><div class="title">Team report</div><div class="muted small">Started, completed and overdue work by person and queue, plus open high and critical tickets.</div></div>
+    <select name="team_report" style="width:auto">{% for v, l in "off|Off,daily|Daily,weekly|Weekly"|split_pairs %}<option value="{{ v }}" {% if team_report == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>{% endif %}
+  <h3 style="margin:18px 0 4px">In-app notifications</h3>
+  {% for key, label, on in items %}<div class="setting-row"><div class="grow"><div class="title">{{ label }}</div></div><label class="switch"><input type="checkbox" name="{{ key }}" {% if on %}checked{% endif %}><span></span></label></div>{% endfor %}
+  <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn btn-dark">Save</button></div>
+</form>
+<form method="post" class="row" style="gap:8px">{% csrf_token %}<input type="hidden" name="form" value="preview">
+  <span class="muted small grow">Want to see one first?</span>
+  <button class="btn btn-sm" name="preview" value="digest">Send me a digest preview</button>
+  {% if is_manager %}<button class="btn btn-sm" name="preview" value="team_report">Send me a team report preview</button>{% endif %}
+</form>
+{% endblock %}

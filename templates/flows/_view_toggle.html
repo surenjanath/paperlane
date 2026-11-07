@@ -1,0 +1,4 @@
+{% load ui %}<div class="view-toggle" role="group" aria-label="Layout">
+  <button type="button" class="{% if list_view != 'compact' %}on{% endif %}" data-set-view="cards" title="Cards" aria-label="Cards layout" aria-pressed="{% if list_view != 'compact' %}true{% else %}false{% endif %}">{% icon "view_cards" 18 %}</button>
+  <button type="button" class="{% if list_view == 'compact' %}on{% endif %}" data-set-view="compact" title="Compact list" aria-label="Compact list layout" aria-pressed="{% if list_view == 'compact' %}true{% else %}false{% endif %}">{% icon "view_rows" 18 %}</button>
+</div>

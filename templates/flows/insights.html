@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block shell_class %}is-wide{% endblock %}
+{% load ui %}
+{% block title %}Insights · {{ wf.name }}{% endblock %}
+{% block heading %}Insights{% endblock %}
+{% block subheading %}<a class="link" href="{{ wf.get_absolute_url }}">{{ wf.name }}</a><span class="sep"></span><span>Where documents wait, and who holds them</span>{% endblock %}
+{% block actions %}
+<div class="pk-chips" style="margin:0">{% for k, l in "30|30 days,90|90 days,365|Year,all|All time"|split_pairs %}<a class="pk-chip {% if days == k %}on{% endif %}" href="?days={{ k }}">{{ l }}</a>{% endfor %}</div>
+{% endblock %}
+{% block content %}
+{% if not total %}
+<div class="card card-pad empty-state"><h3>No documents in this period</h3><p class="muted">Run the workflow, or choose a longer period.</p></div>
+{% else %}
+<div class="in-kpis">
+  <div class="card in-kpi"><small>Documents</small><b>{{ total }}</b><span class="muted">{{ counts.in_progress }} in progress · {{ counts.completed }} completed</span></div>
+  <div class="card in-kpi"><small>Completion rate</small><b>{% if completion_rate is None %}—{% else %}{{ completion_rate }}%{% endif %}</b><span class="muted">{{ counts.declined }} declined · {{ counts.cancelled }} cancelled</span></div>
+  <div class="card in-kpi"><small>Time to complete (median)</small><b>{{ cycle_median }}</b><span class="muted">average {{ cycle_avg }}</span></div>
+  <div class="card in-kpi {% if overdue_now %}in-warn{% endif %}"><small>Open steps now</small><b>{{ open_now }}</b><span class="{% if overdue_now %}text-red{% else %}muted{% endif %}">{{ overdue_now }} overdue</span></div>
+</div>
+
+{% if slowest or busiest.open %}
+<div class="in-callouts">
+  {% if slowest %}<div class="alert alert-warning">🐢 <b>{{ slowest.name }}</b> is the slowest step — half of its documents take longer than <b>{{ slowest.median }}</b>.</div>{% endif %}
+  {% if busiest.open %}<div class="alert alert-info">📥 <b>{{ busiest.name }}</b> holds the most open work: <b>{{ busiest.open }}</b> document{{ busiest.open|pluralize }} waiting, the oldest for {{ busiest.oldest_open }}.</div>{% endif %}
+</div>
+{% endif %}
+
+<div class="card" style="margin-bottom:16px">
+  <div class="card-pad" style="padding-bottom:4px"><h3>Steps</h3><p class="muted small">Time is from when a step was sent until it was completed.</p></div>
+  <div class="table-wrap" style="border:0"><table class="table in-table">
+    <thead><tr><th>Step</th><th>Time to complete (median)</th><th class="num">Average</th><th>Waiting now</th><th class="num">Overdue</th><th class="num">On time</th><th class="num">Completed</th><th class="num">Declined</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr {% if slowest and r.key == slowest.key %}class="in-slow"{% endif %}>
+        <td><b>{{ r.name }}</b>{% if r.removed %} <span class="badge badge-gray">removed</span>{% endif %}{% if r.sla %}<br><small class="muted">⏱ {{ r.sla }}</small>{% endif %}</td>
+        <td><div class="in-bar"><span style="width:{{ r.bar }}%"></span></div><small>{{ r.median }}</small></td>
+        <td class="num">{{ r.avg }}</td>
+        <td>{% if r.open %}<div class="in-bar in-bar-blue"><span style="width:{{ r.open_bar }}%"></span></div><small>{{ r.open }} · oldest {{ r.oldest_open }}</small>{% else %}<small class="muted">—</small>{% endif %}</td>
+        <td class="num">{% if r.overdue %}<b class="text-red">{{ r.overdue }}</b>{% else %}0{% endif %}</td>
+        <td class="num">{% if r.on_time is not None %}{{ r.on_time }}%{% else %}<small class="muted">no SLA</small>{% endif %}</td>
+        <td class="num">{{ r.completed }}</td><td class="num">{{ r.declined }}</td>
+      </tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+<div class="card card-pad" style="margin-bottom:16px">
+  <div class="row" style="align-items:center"><h3 class="grow">Where documents stop</h3><a class="btn btn-sm" href="?days={{ days }}&format=csv">{% icon "download" 14 %} Export CSV</a></div>
+  <p class="muted small">How many documents reached each step, and where the ones that didn't finish are now.</p>
+  <div class="fn-list">
+  {% for f in funnel %}<div class="fn-row"><span class="fn-name">{{ f.name }}</span>
+    <span class="fn-bar"><i style="width:{{ f.pct }}%"></i></span><b class="fn-pct">{{ f.pct }}%</b>
+    <span class="fn-stop">{% if f.waiting %}<span class="badge badge-blue">{{ f.waiting }} waiting</span>{% endif %}{% if f.declined %}<span class="badge badge-red">{{ f.declined }} declined</span>{% endif %}{% if f.cancelled %}<span class="badge badge-gray">{{ f.cancelled }} cancelled</span>{% endif %}</span></div>
+  {% endfor %}
+  </div>
+</div>
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3>Week by week</h3>
+  <div class="table-wrap" style="border:0"><table class="table"><thead><tr><th>Week of</th><th class="num">Started</th><th class="num">Completed</th><th class="num">On time</th><th>Slowest step</th></tr></thead><tbody>
+  {% for w in weeks reversed %}{% if w.started or w.finished or w.slowest %}<tr><td>{{ w.label }}</td><td class="num">{{ w.started }}</td><td class="num">{{ w.finished }}</td>
+    <td class="num">{% if w.on_time is not None %}<span class="{% if w.on_time < 80 %}bad{% endif %}">{{ w.on_time }}%</span>{% else %}—{% endif %}</td><td>{{ w.slowest|default:"—" }}</td></tr>{% endif %}{% endfor %}
+  </tbody></table></div>
+  <p class="muted small">On time: steps finished before their deadline (only steps with a deadline count).</p>
+</div>
+<div class="grid-2" style="align-items:start;gap:16px">
+  <div class="card card-pad">
+    <h3>Started vs completed per week</h3>
+    <div class="in-weeks" role="img" aria-label="Documents started and completed per week, last 12 weeks">
+      {% for w in weeks %}<div class="in-week" title="Week of {{ w.label }}: {{ w.started }} started, {{ w.finished }} completed"><div class="in-cols"><span class="s" style="height:{{ w.s_h }}%"></span><span class="f" style="height:{{ w.f_h }}%"></span></div><small>{{ w.label }}</small></div>{% endfor %}
+    </div>
+    <p class="small muted"><span class="in-key s"></span> started <span class="in-key f"></span> completed</p>
+  </div>
+  <div class="card card-pad">
+    <h3>Who holds open work</h3>
+    {% for name, n in holders %}<div class="in-holder"><span class="avatar" style="width:26px;height:26px;font-size:10px">{{ name|initials }}</span><span class="grow">{{ name }}</span><b>{{ n }}</b></div>{% empty %}<p class="muted">Nothing is waiting.</p>{% endfor %}
+    <p class="muted small" style="margin-top:8px">Groups count as one holder. Reassign or remind from each document's status tab, or set a deadline with escalation on the step.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base_bare.html" %}
+{% load ui %}
+{% block title %}Your documents · {{ workspace.name }}{% endblock %}
+{% block body %}
+<div class="portal-wrap wide">
+  <header class="portal-head">
+    {% if workspace.logo %}<img class="portal-logo" src="{{ workspace.logo.url }}" alt="{{ workspace.name }}">{% endif %}
+    <div><h1>Your documents with {{ workspace.name }}</h1><p class="muted small">Signed in as {{ email }} · this link works for 24 hours</p></div>
+  </header>
+  <section class="portal-sec">
+    <h2>Waiting for you {% if todo %}<span class="pill-count">{{ todo|length }}</span>{% endif %}</h2>
+    {% for r in todo %}
+    <a class="portal-item todo" href="{% url 'flows:fill' r.token %}">
+      <div class="grow"><b>{{ r.packet.name }}</b><div class="muted small">{{ r.step_name }} · sent {{ r.created_at|date:"M j, Y" }}{% if r.due_at %} · due {{ r.due_at|date:"M j" }}{% endif %}</div></div>
+      <span class="btn btn-sm btn-dark">Open</span>
+    </a>
+    {% empty %}<p class="muted">Nothing is waiting for you right now.</p>{% endfor %}
+  </section>
+  <section class="portal-sec">
+    <h2>Finished</h2>
+    {% for r in done %}
+    <div class="portal-item">
+      <div class="grow"><b>{{ r.packet.name }}</b><div class="muted small">You completed “{{ r.step_name }}” on {{ r.completed_at|date:"M j, Y" }} · {{ r.packet.get_status_display }}</div></div>
+      {% if r.packet.status == 'completed' %}<a class="btn btn-sm" href="{% url 'flows:portal_pdf' workspace.slug token r.packet_id %}">{% icon "download" 14 %} PDF</a>{% endif %}
+    </div>
+    {% empty %}<p class="muted">Documents you finish will appear here.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,1 @@
+{% if messages %}<div class="toast-wrap">{% for m in messages %}<div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>{% endfor %}</div>{% endif %}

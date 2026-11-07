@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Audit trail{% endblock %}
+{% block sidebar %}{% endblock %}
+{% block shell_class %}no-sidebar{% endblock %}
+{% block heading %}Audit trail{% endblock %}
+{% block subheading %}<span>Everything that happened in {{ request.workspace.name }} — who did it, when, and from where.</span>{% endblock %}
+{% block actions %}<a class="btn" href="?{{ qs }}&amp;format=csv">{% icon "download" 16 %} Export CSV</a>{% endblock %}
+{% block content %}
+<form class="au-filters" method="get" id="au-form">
+  <div class="ppl-seg" role="group" aria-label="Period">
+    {% for key, label, d in presets %}<button type="submit" name="range" value="{{ key }}" class="{% if preset == key %}on{% endif %}">{{ label }}</button>{% endfor %}
+  </div>
+  <label class="date-range au-dates {% if not preset %}on{% endif %}">{% icon "calendar" 16 %}<input type="date" name="from" value="{{ start|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" data-au-date><span>–</span><input type="date" name="to" value="{{ end|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" data-au-date></label>
+  <div class="ppl-search">{% icon "search" 16 %}<input type="search" name="q" value="{{ q }}" placeholder="Search people, actions, documents, IP" aria-label="Search audit trail"></div>
+  <select name="person" data-autosubmit aria-label="Person"><option value="">Everyone</option>{% for p in people %}<option {% if person == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select>
+  <select name="workflow" data-autosubmit aria-label="Workflow"><option value="">All workflows</option>{% for w in workflows %}<option value="{{ w.pk }}" {% if wf_id == w.pk|to_str %}selected{% endif %}>{{ w.name|truncatechars:40 }}</option>{% endfor %}</select>
+  {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}{% if sensitive %}<input type="hidden" name="sensitive" value="1">{% endif %}
+  {% if not group_on %}<input type="hidden" name="group" value="0">{% endif %}
+  {% if preset %}<input type="hidden" name="range" value="{{ preset }}" data-au-range>{% endif %}
+  {% if q or person or wf_id or cat or sensitive %}<a class="link small" href="?range={{ preset|default:'7' }}">Clear filters</a>{% endif %}
+</form>
+
+<div class="au-top">
+  <div class="au-stats">
+    <div><b>{{ stats.total }}</b><small>events</small></div>
+    <div><b>{{ stats.people }}</b><small>people</small></div>
+    <div><b>{{ stats.documents }}</b><small>documents</small></div>
+    <a href="?{{ qs }}&amp;sensitive={% if sensitive %}0{% else %}1{% endif %}" class="{% if sensitive %}on{% endif %} {% if stats.sensitive %}warn{% endif %}" title="Deletions, removals, role changes, blocks, revoked access and exports"><b>{{ stats.sensitive }}</b><small>sensitive {% if sensitive %}· showing only{% endif %}</small></a>
+  </div>
+  {% if chart %}<div class="au-chart" aria-label="Events per day">
+    {% for c in chart %}<a href="?range=&amp;from={{ c.d|date:'Y-m-d' }}&amp;to={{ c.d|date:'Y-m-d' }}{% if cat %}&amp;cat={{ cat }}{% endif %}" title="{{ c.d|date:'D M j' }}: {{ c.n }} event{{ c.n|pluralize }}"><span style="height:{{ c.h }}%"></span></a>{% endfor %}
+    <div class="au-chart-x"><span>{{ start|date:"M j" }}</span><span>{{ end|date:"M j" }}</span></div>
+  </div>{% endif %}
+</div>
+
+<nav class="au-cats" aria-label="Categories">
+  <a href="?{{ qs }}&amp;cat=" class="{% if not cat %}on{% endif %}">All</a>
+  {% for key, label, icon, n in categories %}<a href="?{{ qs }}&amp;cat={{ key }}" class="au-c-{{ key }} {% if cat == key %}on{% endif %} {% if not n %}zero{% endif %}">{% icon icon 14 %} {{ label }} <span>{{ n }}</span></a>{% endfor %}
+  <span class="grow"></span>
+  <a class="small link" href="?{{ qs }}&amp;group={% if group_on %}0{% else %}1{% endif %}" title="Combine runs of events by the same person on the same document">{% if group_on %}Show every event{% else %}Group related events{% endif %}</a>
+</nav>
+
+<div class="au-list">
+  {% for day, rows in days.items %}
+  <div class="au-day"><b>{% if day == today %}Today{% elif day == yesterday %}Yesterday{% else %}{{ day|date:"l, M j" }}{% endif %}</b><span>{{ day|date:"M j, Y" }}</span></div>
+  {% for row in rows %}{% with e=row.events.0 %}
+  <div class="au-row {% if e.sensitive %}sensitive{% endif %}">
+    <time class="au-time" datetime="{{ e.created_at|date:'c' }}" title="{{ e.created_at|date:'M j, Y H:i:s' }}">{{ e.created_at|date:"g:i a" }}</time>
+    <span class="au-ico au-c-{{ e.cat }}" title="{{ cat_info|get:e.cat|first }}">{% with ci=cat_info|get:e.cat %}{% icon ci.1 16 %}{% endwith %}</span>
+    <div class="au-body">
+      <div class="au-line">
+        <span class="au-actor">{% if e.actor %}<span class="avatar sm">{% if e.actor.profile.avatar %}<img src="{{ e.actor.profile.avatar.url }}" alt="">{% else %}{{ e.actor|initials }}{% endif %}</span>{% endif %}<b>{{ e.actor_label|default:"System" }}</b></span>
+        <span class="au-tag au-c-{{ e.cat }}">{{ e.label }}</span>
+        {% if e.sensitive %}<span class="au-tag sens" title="Sensitive action">⚠ Sensitive</span>{% endif %}
+        <span class="au-detail">{{ e.detail|default:e.action }}</span>
+      </div>
+      <div class="au-meta">
+        {% if e.packet %}<a class="au-target" href="{{ e.packet.get_absolute_url }}" title="{{ e.packet.name }}">{% icon "documents" 12 %} #{{ e.packet_id }} {{ e.packet.name|truncatechars:60 }}</a>{% elif e.workflow %}<a class="au-target" href="{{ e.workflow.get_absolute_url }}" title="{{ e.workflow.name }}">{% icon "workflow" 12 %} {{ e.workflow.name|truncatechars:60 }}</a>{% endif %}
+        {% if e.ip %}<span title="IP address">{{ e.ip }}</span>{% endif %}
+        <code title="Event type">{{ e.action }}</code>
+      </div>
+      {% if row.events|length > 1 %}<details class="au-more"><summary>+ {{ row.events|length|add:"-1" }} more on this document</summary>
+        <ul>{% for x in row.events|slice:"1:" %}<li><time>{{ x.created_at|date:"g:i a" }}</time><span class="au-tag au-c-{{ x.cat }}">{{ x.label }}</span><span>{{ x.detail|default:x.action }}</span></li>{% endfor %}</ul>
+      </details>{% endif %}
+    </div>
+  </div>
+  {% endwith %}{% endfor %}
+  {% empty %}
+  <div class="empty"><div class="ico">🗒</div><h3>No activity {% if q %}matching “{{ q }}” {% endif %}in this period</h3><p>Try a wider period or clear the filters.</p></div>
+  {% endfor %}
+</div>
+{% if page.has_other_pages %}<nav class="row" style="justify-content:center;margin:16px 0" aria-label="Pages">
+  {% if page.has_previous %}<a class="btn btn-sm" href="?{{ qs }}&amp;page={{ page.previous_page_number }}">‹ Newer</a>{% endif %}
+  <span class="muted small">{{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }} events</span>
+  {% if page.has_next %}<a class="btn btn-sm" href="?{{ qs }}&amp;page={{ page.next_page_number }}">Older ›</a>{% endif %}
+</nav>{% endif %}
+<script>
+document.querySelectorAll("[data-au-date]").forEach((i) => i.addEventListener("change", () => {
+  const f = document.getElementById("au-form"), r = f.querySelector("[data-au-range]");
+  if (r) r.remove();
+  f.requestSubmit();
+}));
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+-r requirements.txt
+gunicorn==23.0.0
+psycopg[binary]==3.2.10
+django-storages[s3]==1.14.6
+sentry-sdk==2.35.0

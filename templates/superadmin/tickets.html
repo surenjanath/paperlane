@@ -1,0 +1,41 @@
+{% extends "superadmin/_base.html" %}
+{% load ui %}
+{% block title %}Support tickets · Super admin{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">Support tickets</h1>
+<p class="muted" style="margin-bottom:14px">Every workspace's tickets, most urgent first. The assistant files high and critical problems automatically and updates the open ticket when more documents hit the same problem. Notes you add here are marked <b>Support</b> and notify the reporter.</p>
+<div class="tk-sev">
+  {% for key, label in severities reversed %}<a class="tk-sevcard sev-{{ key }} {% if severity == key %}on{% endif %}" href="?status={{ status }}{% if severity != key %}&severity={{ key }}{% endif %}"><span class="dx-badge sev-{{ key }}">{{ label }}</span><b>{{ counts|get:key }}</b><small>open</small></a>{% endfor %}
+</div>
+{% if overdue %}<div class="alert alert-error" style="margin-top:10px">{{ overdue }} ticket{{ overdue|pluralize }} past {% if overdue == 1 %}its{% else %}their{% endif %} response target.</div>{% endif %}
+<form class="row" style="gap:8px;margin:12px 0"><label class="check small"><input type="checkbox" name="mine" value="1" {% if request.GET.mine %}checked{% endif %}> Assigned to me</label>
+  <input type="search" name="q" value="{{ q }}" placeholder="Search title, workspace or summary" style="flex:1;max-width:360px">
+  <select name="status"><option value="active" {% if status == 'active' %}selected{% endif %}>Open</option>{% for k, l in statuses %}<option value="{{ k }}" {% if status == k %}selected{% endif %}>{{ l }}</option>{% endfor %}<option value="" {% if not status %}selected{% endif %}>All</option></select>
+  <input type="hidden" name="severity" value="{{ severity }}"><button class="btn btn-sm">Filter</button>
+</form>
+<div class="tk-list">
+{% for t in rows %}
+<details class="tk-sa">
+  <summary class="tk-row">
+    <span class="dx-badge sev-{{ t.severity }}">{{ t.get_severity_display }}</span>
+    <div class="tk-main"><b>{{ t.title }}</b><small>{{ t.ref }} · {{ t.workspace.name }} · {% if t.source == 'auto' %}✦ automatic{% else %}{{ t.created_by.email|default:"—" }}{% endif %} · {{ t.created_at|timesince|upto:"," }} ago{% if t.affected_count > 1 %} · <span class="tk-aff">{{ t.affected_count }} documents</span>{% endif %}</small></div>
+    {% if t.assignee %}<span class="avatar sm" title="Assigned to {{ t.assignee.email }}">{{ t.assignee|initials }}</span>{% endif %}
+    {% if t.response_overdue %}<span class="tk-due late" title="Respond by {{ t.due_at|date:'M j H:i' }}">Response overdue</span>{% elif t.is_active and not t.first_response_at and t.due_at %}<span class="tk-due" title="Respond by {{ t.due_at|date:'M j H:i' }}">Respond in {{ t.due_at|timeuntil|upto:"," }}</span>{% endif %}
+    <span class="tk-status st-{{ t.status }}">{{ t.get_status_display }}</span>
+  </summary>
+  <div class="tk-sa-body">
+    <p><b>Impact:</b> {{ t.impact|default:"—" }}{% if t.packet %} · document #{{ t.packet_id }} {{ t.packet.name }}{% endif %}</p>
+    {% if t.summary %}<div class="tk-summary">{{ t.summary|linebreaksbr }}</div>{% endif %}
+    {% if t.findings %}<ul class="dx-list">{% for f in t.findings %}<li class="dx-f sev-{{ f.severity }}"><div><span class="dx-badge sev-{{ f.severity }}">{{ f.severity|title }}</span> <b>{{ f.title }}</b></div><p>{{ f.detail }}</p><p class="dx-fix"><b>Fix:</b> {{ f.fix }}</p></li>{% endfor %}</ul>{% endif %}
+    {% for n in t.notes %}<div class="tk-note {% if n.staff %}staff{% endif %}"><b>{{ n.by }}</b> <small class="muted">{{ n.at|iso_dt|date:"M j, H:i" }}</small><p>{{ n.text }}</p></div>{% endfor %}
+    <form method="post" class="tk-sa-form">{% csrf_token %}<input type="hidden" name="ticket" value="{{ t.pk }}">
+      <textarea name="note" rows="2" placeholder="Reply to the workspace (optional)"></textarea>
+      <div class="row" style="gap:8px"><select name="assignee" aria-label="Assign to"><option value="">Unassigned</option>{% for u in staff %}<option value="{{ u.pk }}" {% if t.assignee_id == u.pk %}selected{% endif %}>{{ u.get_full_name|default:u.email }}</option>{% endfor %}</select><select name="status">{% for k, l in statuses %}<option value="{{ k }}" {% if t.status == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select><button class="btn btn-sm btn-dark">Save</button></div>
+    </form>
+  </div>
+</details>
+{% empty %}<div class="empty"><div class="ico">🎫</div><h3>No tickets</h3><p>Nothing matches these filters.</p></div>{% endfor %}
+</div>
+{% if help_rows %}<h3 style="margin:22px 0 8px">Help articles people found unhelpful</h3>
+<div class="tk-list">{% for r in help_rows %}<a class="tk-row" href="{{ r.url }}"><div class="tk-main"><b>{{ r.title }}</b><small>{{ r.article }}</small></div><span class="tk-due">👍 {{ r.yes }}</span><span class="tk-due late">👎 {{ r.no }}</span></a>{% endfor %}</div>{% endif %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "paperlane": {
+      "type": "stdio",
+      "command": "/absolute/path/to/project/.venv/bin/python",
+      "args": ["/absolute/path/to/project/manage.py", "paperlane_mcp", "--workspace", "<workspace-slug>", "--user", "<username>"],
+      "env": {}
+    }
+  }
+}

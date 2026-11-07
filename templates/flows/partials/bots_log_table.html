@@ -1,0 +1,5 @@
+{% load ui %}
+<div class="table-wrap"><table class="table"><thead><tr><th>When</th><th>Bot</th><th>Trigger</th><th>Status</th><th>Message</th>{% if show_packet %}<th>Document</th>{% endif %}</tr></thead><tbody>
+{% for l in logs %}<tr><td style="white-space:nowrap">{{ l.created_at|date:"M d, Y H:i:s" }}</td><td>{{ l.bot_name }}</td><td class="muted">{{ l.trigger }}</td><td>{% badge l.status %}</td><td>{{ l.message }}{% if l.status == 'failed' and l.packet_id %} <a class="link dx-link" href="/documents/{{ l.packet_id }}/?diagnose=1" title="Ask the assistant what went wrong">✦ What went wrong?</a>{% endif %}</td>{% if show_packet %}<td>{% if l.packet %}<a class="link" href="{{ l.packet.get_absolute_url }}">{{ l.packet.name }}</a>{% endif %}</td>{% endif %}</tr>
+{% empty %}<tr><td colspan="6" class="muted">No bot runs yet.</td></tr>{% endfor %}
+</tbody></table></div>

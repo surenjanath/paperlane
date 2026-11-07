@@ -1,0 +1,27 @@
+{% extends "superadmin/_base.html" %}
+{% load ui humanize %}
+{% block title %}Workspaces · Super admin{% endblock %}
+{% block content %}
+<div class="row" style="margin-bottom:12px;gap:8px"><h1 class="grow">Workspaces</h1><a class="btn" href="{% url 'superadmin:export' 'workspaces' %}">{% icon "download" %} CSV</a><button class="btn btn-dark" type="button" onclick="document.getElementById('new-ws').open=true;document.getElementById('new-ws').scrollIntoView({behavior:'smooth'})">{% icon "plus" %} New workspace</button></div>
+<form class="sa-filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search name, ID or email" style="max-width:260px">
+  <a class="{% if not flt %}on{% endif %}" href="?q={{ q|urlencode }}">All</a>
+  <a class="{% if flt == 'suspended' %}on{% endif %}" href="?filter=suspended&q={{ q|urlencode }}">Suspended</a>
+  <a class="{% if flt == 'expired' %}on{% endif %}" href="?filter=expired&q={{ q|urlencode }}">Plan expired</a>
+</form>
+<div class="card" style="margin-bottom:16px"><div class="table-wrap" style="border:0"><table class="table">
+  <thead><tr><th>Workspace</th><th>Plan</th><th class="num">Members</th><th class="num">Workflows</th><th class="num">Documents</th><th>Last document</th><th></th></tr></thead>
+  <tbody>{% for w in page %}
+  <tr>
+    <td><a class="link" href="{% url 'superadmin:workspace' w.pk %}"><b>{{ w.name }}</b></a>{% if w.suspended_at %} <span class="badge badge-red">Suspended</span>{% endif %}<br><small class="muted">{{ w.slug }}{% if w.email %} · {{ w.email }}{% endif %}</small></td>
+    <td><small>{{ w.plan }}<br><span class="{% if w.plan_expires and w.plan_expires < today %}bad{% else %}muted{% endif %}">{% if w.plan_expires %}until {{ w.plan_expires|date:"M j, Y" }}{% else %}no expiry{% endif %}</span></small></td>
+    <td class="num">{{ w.members }}</td><td class="num">{{ w.flows }}</td><td class="num">{{ w.docs|intcomma }}</td>
+    <td><small class="muted">{% if w.last_doc %}{{ w.last_doc|timesince }} ago{% else %}—{% endif %}</small></td>
+    <td style="text-align:right"><a class="btn btn-sm" href="{% url 'superadmin:workspace' w.pk %}">Manage</a></td>
+  </tr>{% empty %}<tr><td colspan="7" class="muted">No workspaces match.</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "superadmin/_pager.html" %}
+<details class="card card-pad" id="new-ws" {% if form.errors %}open{% endif %}>
+  <summary style="cursor:pointer"><b>{% icon "plus" %} Create a workspace</b></summary>
+  <form method="post" style="margin-top:12px">{% csrf_token %}{% include "accounts/_form_fields.html" %}<button class="btn btn-dark">Create workspace</button></form>
+</details>
+{% endblock %}

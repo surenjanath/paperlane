@@ -1,0 +1,56 @@
+{% extends "core/pages/_doc_frame.html" %}
+{% load ui %}
+{% block title %}Privacy Notice{% endblock %}
+{% block crumb %}Privacy Notice{% endblock %}
+{% block doc %}
+<h1>Privacy Notice</h1>
+<p class="hc-lead">What {{ app_name|default:"Paperlane" }} stores, why, where it goes, and your choices. Last updated {{ updated }}.</p>
+<div class="dc-note">{% icon "help" 16 %}<span><b>Template.</b> This notice describes how the software handles data. The organisation running this installation is responsible for it — add your organisation's name, legal basis and contact details, and have it reviewed.</span></div>
+<div class="hc-body" data-doc-body>
+<div class="dc-summary"><b>In short</b><ul><li>Everything is stored in this installation's own database and file storage — not shared with us or sold.</li><li>Data leaves only through things your organisation configures: email, connectors, webhooks, integrations and (optionally) an external AI model.</li><li>AI features never receive signatures or uploaded files — only field values.</li></ul></div>
+
+<h2 id="p1">1. What we collect</h2>
+<table class="dc-table"><thead><tr><th>Data</th><th>Examples</th><th>Why</th></tr></thead><tbody>
+<tr><td>Account</td><td>Name, email, password (stored hashed), phone, avatar, position, language, two-step sign-in settings</td><td>Sign you in and show who did what</td></tr>
+<tr><td>Workspace</td><td>Workspace name, logo, settings, teammates, roles, groups, contacts</td><td>Run your organisation's workspace</td></tr>
+<tr><td>Documents</td><td>Form field values, signatures and initials, uploaded files, comments, revisions</td><td>Fill, route, sign and store documents</td></tr>
+<tr><td>Activity</td><td>Audit events with time and IP address, bot results, emails sent, sign-ins with IP and browser</td><td>Security, accountability and troubleshooting</td></tr>
+<tr><td>Support</td><td>Support tickets, diagnoses and notes</td><td>Fix problems you or the assistant report</td></tr>
+<tr><td>AI usage</td><td>Which AI feature ran, model, time taken, success or error (not the content)</td><td>Show usage and spot failures</td></tr>
+</tbody></table>
+
+<h2 id="p2">2. How it's used</h2>
+<ul><li>To provide the service: run workflows, send invitations and reminders, generate PDFs and certificates.</li><li>To keep it secure: detect suspicious sign-ins, enforce roles, keep an audit trail.</li><li>To support you: diagnose failed documents and handle support tickets.</li></ul>
+<p>Data is not sold or used for advertising.</p>
+
+<h2 id="p3">3. AI features</h2>
+<p>AI features are optional; owners can switch them off in My workspace › AI &amp; models. The model is chosen by the operator:</p>
+<ul><li><b>Local model (Ollama)</b> — processing stays on infrastructure the operator controls.</li><li><b>External provider</b> (an OpenAI-compatible server or Claude) — the request is sent to that provider under its terms.</li></ul>
+<p>Only what the feature needs is sent: field values, document and step names, or help articles. <b>Signatures and uploaded files are never sent</b>, and only metadata about each AI call is logged.</p>
+
+<h2 id="p4">4. When data leaves this installation</h2>
+<ul><li><b>Email</b> — invitations, reminders and notifications go through the email service the operator configured.</li><li><b>Connectors, webhooks and connected accounts</b> — data you map is sent to the endpoints your workspace sets up.</li><li><b>API and MCP</b> — clients with your personal token can read or change data as your role allows.</li><li><b>Legal requests</b> — if required by law.</li></ul>
+
+<h2 id="p5">5. Cookies and local storage</h2>
+<table class="dc-table"><thead><tr><th>Name</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>sessionid</code></td><td>Keeps you signed in (ends when the browser closes unless “Keep me signed in” is ticked)</td></tr>
+<tr><td><code>csrftoken</code></td><td>Protects forms against cross-site request forgery</td></tr>
+<tr><td><code>dl_view</code></td><td>Remembers your Cards / Compact layout choice</td></tr>
+<tr><td>Session storage</td><td>Keeps the assistant conversation and builder scroll position while the tab is open</td></tr>
+</tbody></table>
+<p>No advertising or third-party tracking cookies are used.</p>
+
+<h2 id="p6">6. How long it's kept</h2>
+<p>Documents and audit events are kept until your workspace deletes them. Items moved to Trash can be restored until Trash is emptied. Sign-in and AI usage logs may be pruned periodically. When a workspace is closed, its data is deleted after any agreed export period.</p>
+
+<h2 id="p7">7. Security</h2>
+<ul><li>Passwords and API tokens are stored hashed; two-step sign-in with recovery codes is available.</li><li>Role-based access, step-level field permissions and a full audit trail.</li><li>Signed webhooks, sign-in throttling, and optional blocking of private network addresses for outgoing requests.</li></ul>
+
+<h2 id="p8">8. Your rights</h2>
+<p>Depending on where you live, you may have the right to access, correct, export or delete your personal data, or to object to some processing. You can update your profile in My account. For anything else, contact your workspace owner or the operator.</p>
+
+<h2 id="p9">9. Contact</h2>
+<p>{% if platform.support_email %}Privacy questions: <a href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a>.{% else %}Privacy questions: contact the administrator of this installation.{% endif %}</p>
+</div>
+{% endblock %}
+{% block aside %}<div class="dc-meta"><small>Last updated</small><b>{{ updated }}</b><a class="link small" href="{% url 'core:page' 'terms' %}">Read the Terms of Service →</a></div>{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base_bare.html" %}
+{% load ui %}
+{% block title %}The process is in use{% endblock %}
+{% block body %}
+<div class="center-screen">
+  <div class="brand" style="font-weight:800;font-size:20px;margin-bottom:30px">{{ app_name }}</div>
+  <div class="art">🧑‍💻</div>
+  <h2>The process is in use</h2>
+  <p class="muted">At the moment, <b>{{ holder.get_full_name|default:holder.email }}</b> is configuring this process. Check back again later or send a request to configure the process.</p>
+  <div class="row" style="justify-content:center">
+    <a class="btn" href="{{ wf.get_absolute_url }}">Go to documents</a>
+    <form method="post" action="{% url 'flows:request_access' wf.pk %}">{% csrf_token %}<button class="btn btn-dark">Send request</button></form>
+  </div>
+  <form method="get" data-confirm="{{ holder.get_full_name|default:holder.email }} may lose unsaved changes. Take over editing?" data-confirm-ok="Configure now"><input type="hidden" name="takeover" value="1"><button class="link" style="background:none;border:0;margin-top:8px">Configure now</button></form>
+</div>
+{% endblock %}

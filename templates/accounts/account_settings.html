@@ -1,0 +1,26 @@
+{% extends "accounts/_settings_base.html" %}
+{% block title %}Account settings{% endblock %}
+{% block nav %}{% include "accounts/_account_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:18px">Account settings</h1>
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:10px">Email address</h3>
+  <form method="post" class="row">{% csrf_token %}<input type="hidden" name="form" value="email"><input type="email" name="email" value="{{ request.user.email }}" style="max-width:340px" required><button class="btn">Update email</button></form>
+</div>
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:10px">Change password</h3>
+  <form method="post" style="max-width:380px">{% csrf_token %}<input type="hidden" name="form" value="password">
+    {% for f in pw_form %}<div class="field"><label>{{ f.label }}</label>{{ f }}{{ f.errors }}</div>{% endfor %}
+    <button class="btn btn-dark">Change password</button></form>
+</div>
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:10px">Language</h3>
+  <form method="post" class="row">{% csrf_token %}<input type="hidden" name="form" value="language"><select name="language" style="max-width:240px"><option value="en" selected>English</option></select><button class="btn">Save</button></form>
+  <small class="muted">Paperlane is currently available in English.</small>
+</div>
+<div class="card card-pad" style="border-color:#f1c4c4">
+  <h3 style="margin-bottom:6px;color:var(--red)">Delete account</h3>
+  <p class="muted">Your documents stay in the workspaces you belong to. This can't be undone.</p>
+  <form method="post" class="row" data-confirm="Delete your Paperlane account permanently?" data-danger data-confirm-ok="Delete account">{% csrf_token %}<input type="hidden" name="form" value="delete"><input type="password" name="confirm_password" placeholder="Confirm with your password" style="max-width:260px" required><button class="btn btn-danger">Delete account</button></form>
+</div>
+{% endblock %}

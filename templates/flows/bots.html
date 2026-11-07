@@ -1,0 +1,66 @@
+{% extends "base_bare.html" %}
+{% load ui %}
+{% block title %}All bots · {{ wf.name }}{% endblock %}
+{% block body %}
+<div class="shell no-sidebar">
+{% include "partials/rail.html" %}
+<main class="main">
+  <div class="builder-top"><a class="btn btn-ghost btn-sm" href="{% url 'flows:builder' wf.pk %}">{% icon "back" %} Back</a><div class="t"><h1>Automation</h1><small class="muted">{{ wf.name }}</small></div><a class="btn btn-dark" href="{% url 'flows:bot_catalog' wf.pk %}">{% icon "plus" %} Add bot</a></div>
+  <div class="page-body" style="max-width:1100px;margin:0 auto;width:100%">
+    <div class="row bt-top">
+      <div class="bt-stats"><span><b>{{ total }}</b> bots</span><span><b>{{ enabled }}</b> on</span>{% if failing %}<a class="bad" href="#" data-bt-filter="failing"><b>{{ failing }}</b> with failures (30 d)</a>{% endif %}</div>
+      <span class="grow"></span>
+      <input type="search" class="bt-search" placeholder="Search bots" aria-label="Search bots" data-bt-search>
+      <div class="sa-filters" style="margin:0"><a class="on" href="#" data-bt-filter="all">All</a><a href="#" data-bt-filter="on">On</a><a href="#" data-bt-filter="off">Off</a><a href="#" data-bt-filter="cond">Conditional</a></div>
+    </div>
+    {% for key, label, bots in groups %}
+    <section class="bt-group" data-bt-group>
+      <h3 class="bt-h">{{ label }} <small class="muted">{{ bots|length }}</small></h3>
+      <div class="dl-list">
+      {% for b in bots %}
+      <div class="bt-row {% if not b.enabled %}is-off{% endif %}" data-bt data-on="{{ b.enabled|yesno:'1,0' }}" data-cond="{% if b.condition.rules %}1{% else %}0{% endif %}" data-failing="{% if b.stats.failed %}1{% else %}0{% endif %}" data-text="{{ b.name|lower }} {{ b.meta.name|lower }} {{ b.step_name|lower }}">
+        <form method="post" action="{% url 'flows:bot_action' wf.pk b.pk 'toggle' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="toggle {% if b.enabled %}on{% endif %}" role="switch" aria-checked="{{ b.enabled|yesno:'true,false' }}" aria-label="{{ b.enabled|yesno:'Turn off,Turn on' }} {{ b.name }}" title="{{ b.enabled|yesno:'On — click to turn off,Off — click to turn on' }}"><span></span></button></form>
+        <a class="bt-main" href="{% url 'flows:bot_edit' wf.pk b.pk %}">
+          <b>{{ b.name }}</b>
+          <small>{{ b.meta.name }} · {{ b.step_name }}{% if b.condition.rules %} · <span class="dl-pill amber">If…</span>{% endif %}{% if b.config.delay_minutes or b.delay_minutes %} · ⏱ delayed{% endif %}</small>
+        </a>
+        <div class="bt-run">{% if b.stats %}
+          <span class="bt-dot {% if b.last_log.status == 'failed' %}bad{% elif b.last_log.status == 'skipped' %}skip{% endif %}" title="{{ b.last_log.message }}"></span>
+          <small>{{ b.stats.runs }} run{{ b.stats.runs|pluralize }}{% if b.stats.failed %} · <b class="bad">{{ b.stats.failed }} failed</b>{% endif %}<br><span class="muted">last {{ b.stats.last|timesince|upto:"," }} ago</span></small>
+          {% else %}<small class="muted">No runs in 30 days</small>{% endif %}</div>
+        <div class="row" style="gap:4px;justify-content:flex-end">
+          <a class="btn btn-sm" href="{% url 'flows:bot_edit' wf.pk b.pk %}">Edit</a>
+          <form method="post" action="{% url 'flows:bot_action' wf.pk b.pk 'delete' %}" data-confirm="Delete the bot “{{ b.name }}”?" data-danger data-confirm-ok="Delete">{% csrf_token %}<button class="btn btn-sm btn-icon" aria-label="Delete {{ b.name }}" title="Delete">{% icon "trash" %}</button></form>
+        </div>
+      </div>
+      {% endfor %}
+      </div>
+    </section>
+    {% empty %}
+    <div class="empty"><div class="ico">🤖</div><h3>No automation yet</h3><p>Bots fill fields, number documents, assign work, send emails and chat messages, call your systems and more.</p><a class="btn btn-dark" href="{% url 'flows:bot_catalog' wf.pk %}">{% icon "plus" %} Add your first bot</a></div>
+    {% endfor %}
+    <p class="muted small" style="margin-top:14px">Every run is listed in the <a class="link" href="{% url 'flows:workflow_bots_log' wf.pk %}">bots log</a>.</p>
+  </div>
+</main></div>
+{% endblock %}
+{% block scripts %}<script>
+(function () {
+  let mode = "all";
+  const q = document.querySelector("[data-bt-search]");
+  const apply = () => {
+    const t = (q.value || "").trim().toLowerCase();
+    document.querySelectorAll("[data-bt]").forEach((r) => {
+      const okMode = mode === "all" || (mode === "on" && r.dataset.on === "1") || (mode === "off" && r.dataset.on === "0")
+        || (mode === "cond" && r.dataset.cond === "1") || (mode === "failing" && r.dataset.failing === "1");
+      r.hidden = !(okMode && (!t || r.dataset.text.includes(t)));
+    });
+    document.querySelectorAll("[data-bt-group]").forEach((g) => { g.hidden = !g.querySelector("[data-bt]:not([hidden])"); });
+  };
+  q.addEventListener("input", apply);
+  document.querySelectorAll("[data-bt-filter]").forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault(); mode = a.dataset.btFilter;
+    document.querySelectorAll(".sa-filters [data-bt-filter]").forEach((x) => x.classList.toggle("on", x === a)); apply();
+  }));
+})();
+</script>{% endblock %}

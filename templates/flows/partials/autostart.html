@@ -1,0 +1,45 @@
+{% load ui %}
+<div class="drawer-head"><h2>Add autostart</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="as-tabs">
+  <button type="button" class="{% if tab == 'link' %}on{% endif %}" data-drawer-url="{% url 'flows:autostart' wf.pk %}?tab=link">{% icon "link" %} Shareable link ({% if wf.link_enabled %}On{% else %}Off{% endif %})</button>
+  <button type="button" class="{% if tab != 'link' %}on{% endif %}" data-drawer-url="{% url 'flows:autostart' wf.pk %}">{% icon "bolt" %} Autostart{% if rows %} ({{ rows|length }}){% endif %}</button>
+</div>
+<div class="drawer-body">
+{% if tab == 'link' %}
+  <p class="muted">Anyone with the link can start this workflow and fill out the first step.</p>
+  <form method="post" action="{% url 'flows:workflow_action' wf.pk 'link' %}" class="row" style="margin:10px 0">{% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'flows:builder' wf.pk %}">
+    <input type="hidden" name="enabled" value="{% if wf.link_enabled %}0{% else %}1{% endif %}">
+    <button class="btn {% if not wf.link_enabled %}btn-dark{% endif %}">{% if wf.link_enabled %}Turn link off{% else %}Turn link on{% endif %}</button>
+  </form>
+  {% if wf.link_enabled %}<div class="copy-row"><input id="as-link" type="text" readonly value="{{ link_url }}"><button type="button" class="btn" data-copy="#as-link">Copy</button></div>{% endif %}
+  {% if not wf.is_published %}<p class="help">The link works once the workflow is published.</p>{% endif %}
+{% else %}
+  {% if rows and not request.GET.choose %}
+    {% for r in rows %}
+    <div class="as-item {% if not r.enabled %}off{% endif %}">
+      <div class="grow"><b>{{ r.label }}</b>{% if not r.enabled %} <span class="badge badge-gray">Paused</span>{% endif %}<div class="muted" style="font-size:12px">{{ r.summary }}{% if r.count %} · ran {{ r.count }}×{% endif %}</div></div>
+      <button type="button" class="btn btn-ghost btn-sm btn-icon" data-drawer-url="{% url 'flows:autostart' wf.pk %}?item={{ r.id }}" title="Settings">{% icon "gear" %}</button>
+      <form method="post" action="{% url 'flows:autostart' wf.pk %}" style="display:inline">{% csrf_token %}<input type="hidden" name="item" value="{{ r.id }}">
+        <button class="btn btn-ghost btn-sm" name="action" value="toggle">{% if r.enabled %}Pause{% else %}Resume{% endif %}</button>
+        <button class="btn btn-ghost btn-sm btn-icon" name="action" value="delete" title="Remove" data-confirm="Remove this autostart?" data-danger data-confirm-ok="Remove">{% icon "trash" %}</button></form>
+    </div>
+    {% endfor %}
+    <button type="button" class="btn btn-block" style="margin-top:10px" data-drawer-url="{% url 'flows:autostart' wf.pk %}?choose=1">{% icon "plus" %} Add autostart</button>
+  {% else %}
+    <p class="muted" style="margin-bottom:12px">Choose how to start your workflow.</p>
+    <div class="as-grid">
+      <button type="button" class="as-card" data-modal-url="{% url 'flows:form_new' %}?workflow={{ wf.pk }}"><span class="ico">📝</span><b>Start form</b><small>Collect requests with a custom form (with in-form bots); submitting starts this workflow.</small></button>
+      <button type="button" class="as-card" data-drawer-url="{% url 'flows:autostart' wf.pk %}?add=schedule"><span class="ico">🗓</span><b>Scheduled start</b><small>Start sending documents on schedule.</small></button>
+      <button type="button" class="as-card" data-drawer-url="{% url 'flows:autostart' wf.pk %}?add=workflow"><span class="ico">↪</span><b>From another workflow</b><small>Start sending documents pre-filled with data from another workflow.</small></button>
+      <button type="button" class="as-card" data-drawer-url="{% url 'flows:autostart' wf.pk %}?add=sheet"><span class="ico">📄</span><b>Scheduled start from Excel file</b><small>Start sending documents pre-filled from an uploaded XLSX or CSV file on schedule.</small></button>
+      <button type="button" class="as-card" data-drawer-url="{% url 'flows:autostart' wf.pk %}?add=webhook"><span class="ico">⚡</span><b>From external event</b><small>Start sending documents pre-filled with data from an external service.</small></button>
+      <button type="button" class="as-card" data-drawer-url="{% url 'flows:autostart' wf.pk %}?add=email"><span class="ico">✉</span><b>From an email</b><small>Forward an email to the workflow's address; AI fills the first step from it.</small></button>
+      {% for name in integrations %}
+      <button type="button" class="as-card" data-drawer-url="{% url 'flows:autostart' wf.pk %}?add=webhook&amp;source={{ name|urlencode }}"><span class="ico">🔗</span><b>{{ name }}</b><small>Starts through the workflow's webhook from your connected automation.</small></button>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+</div>
+<div class="drawer-foot"><button type="button" class="btn" data-close>Close</button></div>

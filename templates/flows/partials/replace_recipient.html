@@ -1,0 +1,12 @@
+{% load ui %}<form method="post" action="{% url 'flows:replace_recipient' wf.pk %}">{% csrf_token %}
+<div class="modal-head"><h2>Replace a recipient</h2><button type="button" class="modal-close" data-close aria-label="Close">×</button></div>
+<div class="modal-body">
+  <p class="muted small">Swap an email address everywhere in this workflow: step recipients, notification lists, deadline escalations and bot emails. Documents already running keep the old address. You can undo this with ↶.</p>
+  {% if emails %}
+  <div class="field"><label for="rr-old">Replace</label>
+    <select id="rr-old" name="old" required>{% for e, n in emails %}<option value="{{ e }}">{{ e }} ({{ n }})</option>{% endfor %}</select></div>
+  <div class="field"><label for="rr-new">With</label><input type="email" id="rr-new" name="new" required placeholder="new.person@company.com"></div>
+  {% else %}<p class="muted">No email addresses are written into this workflow's steps or bots.</p>{% endif %}
+</div>
+<div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button>{% if emails %}<button class="btn btn-dark">Replace</button>{% endif %}</div>
+</form>

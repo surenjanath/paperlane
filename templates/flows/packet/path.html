@@ -1,0 +1,18 @@
+{% load ui %}
+<div class="path-head">
+  <div class="path-legend">
+    <span class="lg lg-done">Done{% if path_counts.done %} · {{ path_counts.done }}{% endif %}</span>
+    <span class="lg lg-current">Now{% if path_counts.current %} · {{ path_counts.current }}{% endif %}</span>
+    <span class="lg lg-skipped">Skipped</span>
+    <span class="lg lg-upcoming">Ahead</span>
+    <span class="lg lg-declined">Declined</span>
+  </div>
+  {% if path_old_version %}<span class="muted small">The diagram shows the workflow as it is now; steps added since this document started are dashed.</span>{% endif %}
+</div>
+<div class="builder-canvas path-canvas" id="path-canvas"><div class="zoomer">{% include "flows/partials/builder_flow.html" with readonly=True %}</div></div>
+<script>
+(function () {
+  const c = document.getElementById("path-canvas"), now = c.querySelector(".path-current") || c.querySelector(".path-declined");
+  if (now) setTimeout(() => now.scrollIntoView({ block: "center", inline: "center" }), 50);
+})();
+</script>

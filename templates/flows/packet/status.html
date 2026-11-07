@@ -1,0 +1,88 @@
+{% load ui %}
+{% for w in watchdog %}<div class="wd-banner" role="status"><span class="wd-badge">👁 Watchdog</span><div class="grow">{{ w.message }}</div>
+  {% if can_manage %}<form method="post" action="{% url 'flows:packet_action' packet.pk 'watchdog_dismiss' %}">{% csrf_token %}<input type="hidden" name="finding" value="{{ w.id }}"><button class="btn btn-sm">Looks fine</button></form>{% endif %}</div>{% endfor %}
+{% if health %}<div class="dx-banner sev-{{ health.severity }}" role="status">
+  <span class="dx-badge sev-{{ health.severity }}">⚠ {{ health.severity_label }}</span>
+  <div class="grow"><b>{{ health.title }}</b>{% if health.findings|length > 1 %} <span class="muted">+ {{ health.findings|length|add:"-1" }} more</span>{% endif %}<div class="small muted">{{ health.impact }}</div></div>
+  <button type="button" class="btn btn-sm btn-dark" data-chat-ask="What went wrong with this document?" data-chat-mode="diagnose">✦ What went wrong?</button>
+</div>{% endif %}
+{% if seal %}<div class="seal-bar {% if seal_check and not seal_check.intact %}bad{% endif %}">
+  <span class="seal-ico">🔒</span>
+  <div class="grow"><b>Sealed</b> · verify code <code>{{ seal.code }}</code>{% if seal.number > 1 %} · seal {{ seal.number }}{% endif %}
+    <div class="small muted">{% if seal_check %}{% if seal_check.intact %}✓ Integrity checked just now — the record matches the seal.{% else %}⚠ The stored record no longer matches the seal: data changed after {{ seal.sealed_at|date:"M j, Y H:i" }}.{% endif %}{% else %}Sealed {{ seal.sealed_at|date:"M j, Y H:i" }} — fingerprint {{ seal.content_hash|slice:":16" }}…{% endif %}</div></div>
+  <a class="btn btn-sm" href="?tab=status&amp;check=1">Check integrity</a>
+  <a class="btn btn-sm" href="{{ seal.get_verify_url }}" target="_blank" rel="noopener">Public verify page ↗</a>
+</div>{% endif %}
+{% if ask_ai %}{% with sm=packet.flags.ai_summary %}
+<div class="ai-summary card card-pad" id="ai-summary" data-url="{% url 'flows:ai_summary' packet.pk %}">
+  <div class="row" style="align-items:center;gap:8px"><b class="grow">✦ AI summary</b>
+    <small class="muted" data-meta>{% if sm %}{{ sm.engine }}{% endif %}</small>
+    <button type="button" class="btn btn-sm btn-ghost" data-summarize="{% if sm %}1{% else %}0{% endif %}">{% if sm %}Refresh{% else %}Summarize{% endif %}</button></div>
+  <p data-text class="{% if not sm %}muted{% endif %}" style="margin:6px 0 0;white-space:pre-wrap">{% if sm %}{{ sm.text }}{% else %}A short summary of this document for the next person — generated from its field values.{% endif %}</p>
+</div>
+<script>
+(function () {
+  const box = document.getElementById("ai-summary"), btn = box.querySelector("[data-summarize]"), out = box.querySelector("[data-text]");
+  btn.addEventListener("click", async () => {
+    btn.disabled = true; const label = btn.textContent; btn.textContent = "Summarizing…";
+    const fd = new FormData(); fd.append("refresh", btn.dataset.summarize); fd.append("csrfmiddlewaretoken", window.SD.csrf());
+    try {
+      const j = await (await fetch(box.dataset.url, { method: "POST", body: fd, headers: { "X-Requested-With": "fetch" } })).json();
+      if (j.error) throw new Error(j.error);
+      out.textContent = j.text; out.classList.remove("muted"); box.querySelector("[data-meta]").textContent = j.engine;
+      btn.dataset.summarize = "1"; btn.textContent = "Refresh"; btn.disabled = false; return;
+    } catch (e) { out.textContent = e.message || "The AI model could not be reached."; }
+    btn.textContent = label; btn.disabled = false;
+  });
+})();
+</script>
+{% endwith %}{% endif %}
+<div class="row top" style="gap:28px">
+  <div class="status-flow grow">
+    {% for d in diagram %}
+    <div class="sf-item {{ d.state }}">
+      <div class="rail2"><span class="dotc">{% if d.state == 'done' %}✓{% elif d.state == 'declined' or d.state == 'expired' %}!{% else %}{{ forloop.counter }}{% endif %}</span>{% if not forloop.last %}<span class="vline"></span>{% endif %}</div>
+      <div class="box">
+        <div class="row"><b class="grow">{% if d.step.kind == 'branch' %}⑂ {% elif d.step.kind == 'bot' %}🤖 {% endif %}{{ d.step.name }}</b>{% badge d.state %}</div>
+        {% for r in d.runs %}
+        <div class="row" style="margin-top:8px;font-size:12.5px;gap:8px">
+          <span class="avatar" style="width:24px;height:24px;font-size:9px">{{ r.assignee_name|default:r.assignee_email|initials }}</span>
+          <span class="grow">{{ r.assignee_name|default:r.assignee_email|default:"Anyone with the link" }}{% if r.assignee_email and r.assignee_name != r.assignee_email %} <small class="muted">{{ r.assignee_email }}</small>{% endif %}<br>
+            <small class="muted">{% badge r.status %} {% if r.completed_at %}{{ r.completed_at|date:"M d, H:i" }}{% elif r.opened_at %}opened {{ r.opened_at|date:"M d, H:i" }}{% else %}sent {{ r.created_at|date:"M d, H:i" }}{% endif %}{% if r.reminders_sent %} · {{ r.reminders_sent }} reminder{{ r.reminders_sent|pluralize }}{% endif %}{% if r.expires_at and r.is_open %} · expires {{ r.expires_at|date:"M d, H:i" }}{% endif %}{% if r.due_at and r.is_open %} · {% if r.is_overdue %}<b class="text-red">overdue since {{ r.due_at|date:"M d, H:i" }}</b>{% else %}due {{ r.due_at|date:"M d, H:i" }}{% endif %}{% endif %}{% if r.delegated_from %} · covering for {{ r.delegated_from }}{% endif %}</small>
+            {% if r.decline_reason %}<br><small style="color:var(--red)">Reason: {{ r.decline_reason }}</small>{% endif %}</span>
+          {% if r.is_open and packet.status == 'in_progress' %}
+            <button class="btn btn-sm btn-icon" data-copy="{{ r.fill_url }}" title="Copy link">{% icon "link" %}</button>
+            <a class="btn btn-sm" href="{{ r.fill_url }}" target="_blank" title="Open the recipient view">Open</a>
+            {% if can_manage %}
+            <div class="menu-wrap"><button aria-label="More actions" title="More actions" class="btn btn-sm btn-icon" data-menu>{% icon "dots" %}</button><div class="menu">
+              <form method="post" action="{% url 'flows:packet_action' packet.pk 'remind' %}">{% csrf_token %}<input type="hidden" name="run" value="{{ r.pk }}"><button>{% icon "bell" %} Send reminder</button></form>
+              <form method="post" action="{% url 'flows:packet_action' packet.pk 'resend' %}">{% csrf_token %}<input type="hidden" name="run" value="{{ r.pk }}"><button>{% icon "mail" %} Resend invitation</button></form>
+              <button data-modal-template="#reassign-modal" data-set-run="{{ r.pk }}">{% icon "user" %} Reassign</button>
+            </div></div>
+            {% endif %}
+          {% endif %}
+        </div>
+        {% empty %}
+        {% if d.step.kind == 'recipient' %}<div class="muted" style="font-size:12px;margin-top:6px">{% if d.state == 'skipped' %}Skipped — conditions were not met{% elif d.state == 'not_used' %}Not used — this request took a different path{% else %}Not reached yet{% endif %}</div>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    <div class="sf-item {% if packet.status == 'completed' %}done{% endif %}"><div class="rail2"><span class="dotc">✓</span></div><div class="box"><b>Completed</b></div></div>
+  </div>
+  <div style="width:300px;max-width:100%">
+    <div class="card card-pad">
+      <h3 style="margin-bottom:8px">Progress</h3>
+      {% with prog=packet.progress %}<div class="progress"><span style="width:{{ packet.progress_pct }}%"></span></div><small class="muted">{{ prog.0 }} of {{ prog.1 }} steps</small>{% endwith %}
+      {% if can_manage and recipient_steps %}
+      <hr id="revise">
+      <form method="post" action="{% url 'flows:packet_action' packet.pk 'revise' %}" data-confirm="Send the document back to this step? Open steps will be revoked.">{% csrf_token %}
+        <h4 style="margin-bottom:6px">Revise</h4>
+        <p class="muted" style="font-size:12px">Send the document back to a step to collect changes.</p>
+        <select name="step_key">{% for s in recipient_steps %}<option value="{{ s.key }}">{{ s.name }}</option>{% endfor %}</select>
+        <button class="btn btn-block" style="margin-top:8px" {% if packet.locked %}disabled{% endif %}>Revise</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>

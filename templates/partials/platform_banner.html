@@ -1,0 +1,6 @@
+{% if maintenance_on and request.user.is_superuser %}<div class="platform-banner warning" role="status">🛠 <b>Maintenance mode is on</b> — only super admins can use {{ app_name }} right now. <a class="link" href="{% url 'superadmin:settings' %}#operations">Turn it off</a></div>{% endif %}
+{% if announcement %}<div class="platform-banner {{ announcement.level }}" role="status" data-announce="{{ announcement.key }}" hidden>
+  <span class="grow">{% if announcement.level == 'warning' %}⚠️{% elif announcement.level == 'success' %}🎉{% else %}📣{% endif %} {{ announcement.text }}</span>
+  <button type="button" aria-label="Dismiss" data-dismiss-announce>×</button>
+</div>
+<script>(function(){var b=document.currentScript.previousElementSibling,k="announce:"+b.dataset.announce;try{if(localStorage.getItem(k))return;}catch(e){}b.hidden=false;b.querySelector("[data-dismiss-announce]").onclick=function(){b.remove();try{localStorage.setItem(k,"1")}catch(e){}};})();</script>{% endif %}

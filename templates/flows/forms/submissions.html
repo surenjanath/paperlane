@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Submissions · {{ form.name }}{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}Submissions{% endblock %}
+{% block subheading %}<a class="link" href="{% url 'flows:form_settings' form.pk %}">{{ form.name }}</a><span class="sep"></span><span>{% if filtered %}{{ matched }} match{{ matched|pluralize:"es" }}{% else %}{{ matched }} submission{{ matched|pluralize }}{% endif %}</span>{% if truncated %}<span class="sep"></span><span>showing {{ rows|length }}</span>{% endif %}{% endblock %}
+{% block actions %}<a class="btn" href="?{{ export_qs }}">{% icon "download" %} Export CSV</a>{% endblock %}
+{% block content %}
+<form class="ppl-toolbar" method="get">
+  <div class="ppl-search">{% icon "search" 16 %}<input type="search" name="q" value="{{ filters.q }}" placeholder="Search answers, document, or error" aria-label="Search submissions"></div>
+  <select name="status" data-autosubmit aria-label="Status">
+    <option value="">All statuses</option>
+    {% for value, label in statuses %}<option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <input type="date" name="from" value="{{ filters.from }}" data-autosubmit aria-label="From date">
+  <input type="date" name="to" value="{{ filters.to }}" data-autosubmit aria-label="To date">
+  {% if filtered %}<a class="link small" href="?">Clear</a>{% endif %}
+</form>
+<div class="table-wrap"><table class="table sub-table"><thead><tr><th>Submission</th><th>Submitted</th><th>Status</th><th>Document</th></tr></thead><tbody>
+{% for r in rows %}<tr>
+  <td><button type="button" class="sub-open" data-drawer-url="{% url 'flows:form_submission' form.pk r.s.pk %}"><span class="sub-who"><b>{{ r.title|truncatechars:48 }}</b>{% if r.email %}<small>{{ r.email }}</small>{% endif %}</span></button></td>
+  <td style="white-space:nowrap"><button type="button" class="sub-open" data-drawer-url="{% url 'flows:form_submission' form.pk r.s.pk %}">{{ r.s.created_at|date:"M j, Y H:i" }}</button></td>
+  <td><button type="button" class="sub-open" data-drawer-url="{% url 'flows:form_submission' form.pk r.s.pk %}"><span class="badge {{ r.badge }}">{{ r.s.get_status_display }}</span></button></td>
+  <td>{% if r.s.packet %}{% if r.s.packet.pk in visible_packets %}<a class="link" href="{% url 'flows:packet_detail' r.s.packet.pk %}">{{ r.s.packet.name|truncatechars:42 }}</a>{% else %}{{ r.s.packet.name|truncatechars:42 }}{% endif %}{% else %}<span class="muted">—</span>{% endif %}</td>
+</tr>{% empty %}<tr><td colspan="4"><div class="empty" style="padding:30px"><h3>{% if filtered %}No submissions match{% else %}No submissions yet{% endif %}</h3><p>{% if filtered %}Try a different search, status, or date.{% else %}Share the form's link to start collecting.{% endif %}</p></div></td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

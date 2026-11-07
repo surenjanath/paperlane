@@ -1,0 +1,27 @@
+{% extends "superadmin/_base.html" %}
+{% load ui %}
+{% block title %}Platform settings · Super admin{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">Platform settings</h1>
+<p class="muted" style="margin-bottom:6px">Rules for every workspace and user on this installation.{% if ps.updated_by %} Last changed {{ ps.updated_at|timesince }} ago by {{ ps.updated_by.email }}.{% endif %}</p>
+<div class="sa-filters" style="margin:10px 0 14px">{% for s in sections %}<a href="#{{ s.key }}">{{ s.title }}</a>{% endfor %}<a href="#features">Features</a></div>
+<form method="post" novalidate>{% csrf_token %}
+{% for s in sections %}
+<div class="card card-pad sa-section" id="{{ s.key }}" style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px">{{ s.title }}</h3>
+  {% for f in s.fields %}
+  <div class="field">{% if f.widget_type == 'checkbox' %}<label class="check">{{ f }} {{ f.label }}</label>{% else %}<label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% endif %}
+    {% if f.help_text %}<div class="help">{{ f.help_text }}</div>{% endif %}
+    {% for e in f.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+  {% endfor %}
+  {% if s.key == 'operations' %}<p class="help">Maintenance mode shows a “we'll be right back” page to everyone except super admins; the API answers 503.</p>{% endif %}
+</div>
+{% endfor %}
+<div class="card card-pad sa-section" id="features" style="margin-bottom:16px">
+  <h3 style="margin-bottom:4px">Features</h3>
+  <p class="muted small" style="margin-bottom:6px">Switch a feature off for every workspace. You can also switch features per workspace (Workspaces › Manage).</p>
+  {% for f in feats %}<label class="sa-feat"><input type="checkbox" name="feat_{{ f.key }}" {% if f.on %}checked{% endif %} style="margin-top:4px"><div class="grow"><b>{{ f.label }}</b><br><small class="muted">{{ f.help }}</small></div></label>{% endfor %}
+</div>
+<div class="fill-bar" style="position:sticky;bottom:0;border-radius:12px;justify-content:flex-end"><button class="btn btn-dark btn-lg">Save platform settings</button></div>
+</form>
+{% endblock %}

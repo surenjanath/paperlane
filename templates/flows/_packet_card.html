@@ -1,0 +1,66 @@
+{% load ui %}
+{% with cur=p.current_step nxt=p.next_recipient_step run=p.latest_run prog=p.progress manage=p|can_manage_doc:request tags=p.tags.all %}
+<article class="pk-card {% if p.is_overdue %}is-overdue{% endif %}">
+  <header class="pk-head">
+    {% if selectable %}<input type="checkbox" class="row-check" value="{{ p.pk }}" aria-label="Select {{ p.name }}">{% endif %}
+    <div class="pk-title">
+      <a href="{{ p.get_absolute_url }}" class="pk-name">{{ p.name }}</a>
+      {% if show_wf %}<span class="pk-dash">–</span>{% if p.workflow_id|wf_visible:request %}<a class="pk-wf" href="{{ p.workflow.get_absolute_url }}">{{ p.workflow.name }}</a>{% else %}<span class="pk-wf">{{ p.workflow.name }}</span>{% endif %}{% endif %}
+      <span class="pk-pill">Version {{ p.version }}</span>
+      {% if p.locked %}<span class="pk-pill">Locked</span>{% endif %}
+      {% if p.is_test %}<span class="pk-pill pk-pill-purple">Test</span>{% endif %}
+      {% if p.flags.duplicates %}<span class="pk-pill pk-pill-amber" title="Possible duplicate">Duplicate?</span>{% endif %}
+      {% if p.status == 'in_progress' and p.next_due %}{% if p.is_overdue %}<span class="pk-pill pk-pill-red" title="Was due {{ p.next_due|date:'M j, H:i' }}">Overdue</span>{% else %}<span class="pk-pill pk-pill-amber" title="Next deadline">Due {{ p.next_due|date:"M j, H:i" }}</span>{% endif %}{% endif %}
+    </div>
+    {% include "flows/_packet_menu.html" %}
+  </header>
+
+  <div class="pk-body">
+    <div class="pk-status">
+      {% if p.status == 'completed' %}
+        <span class="pk-ico pk-ico-done">{% icon "check" 18 %}</span>
+        <div><div><b>Completed</b> <span class="pk-when">{{ p.completed_at|timesince|upto:"," }} ago</span></div>
+          <a class="pk-link" href="{% url 'flows:packet_download' p.pk %}">Download documents</a></div>
+      {% elif p.status == 'declined' %}
+        <span class="pk-ico pk-ico-declined">✕</span>
+        <div><div><b>Declined{% if run %} by {{ run.step_name }}{% endif %}</b> <span class="pk-when">{{ p.last_activity_at|timesince|upto:"," }} ago</span></div>
+          {% if run.decline_reason %}<div class="pk-sub">{{ run.decline_reason|truncatechars:60 }}</div>{% endif %}</div>
+      {% elif p.status == 'cancelled' %}
+        <span class="pk-ico pk-ico-muted">–</span>
+        <div><b>Cancelled</b> <span class="pk-when">{{ p.last_activity_at|timesince|upto:"," }} ago</span></div>
+      {% else %}
+        {% if run.status == 'opened' %}<span class="pk-ico pk-ico-inuse">{% icon "edit" 18 %}</span>{% else %}<span class="pk-ico pk-ico-sent">{% icon "send" 18 %}</span>{% endif %}
+        <div class="pk-status-text">
+          <div class="pk-line"><b title="{{ cur.name|default:run.step_name }}">{% if run.status == 'opened' %}In use by{% else %}Sent to{% endif %} {{ cur.name|default:run.step_name }}</b> <span class="pk-when">{{ p.last_activity_at|timesince|upto:"," }} ago</span></div>
+          <div class="menu-wrap"><button class="pk-assignee" data-menu>{{ run.assignee_group.name|default:run.assignee_name|default:run.assignee_email|default:"Anyone with the link" }}{% if run.claimed_by_id %} · ✋ {{ run.claimed_by.get_full_name|default:run.claimed_by.email }}{% endif %} ▾</button>
+            <div class="menu left">
+              {% for r in p.runs.all %}{% if r.is_open %}<div style="padding:6px 10px;font-size:12.5px"><b>{{ r.assignee_group.name|default:r.assignee_name|default:"—" }}</b>{% if r.assignee_email %}<br><span class="muted">{{ r.assignee_email }}</span>{% endif %}</div>{% endif %}{% endfor %}
+              <div class="sep"></div>
+              <button data-copy="{{ run.fill_url }}">{% icon "link" %} Copy link</button>
+              <a href="{{ p.get_absolute_url }}">{% icon "user" %} Reassign or remind</a>
+            </div></div>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if p.status == 'in_progress' %}
+    <div class="pk-track"><span class="pk-dots"></span><span class="pk-arrow">▸</span></div>
+    <div class="pk-next">Next: <b>{% if nxt %}{{ nxt.name }}{% else %}Unassigned{% endif %}</b></div>
+    <div class="pk-track"><span class="pk-dots"></span><span class="pk-node"></span></div>
+    {% else %}
+    <div class="pk-track pk-track-long"><span class="pk-dots"></span><span class="pk-node"></span></div>
+    {% endif %}
+
+    <a class="pk-steps" href="{{ p.get_absolute_url }}" title="{{ prog.0 }} of {{ prog.1 }} steps done">
+      <span>view all {{ prog.1 }} step{{ prog.1|pluralize }}</span>
+      <span class="pk-bar"><span style="width:{{ p.progress_pct }}%"></span></span>
+    </a>
+  </div>
+
+  <footer class="pk-tags" data-tags>
+    <button class="pk-tag pk-tag-add" data-modal-template="#packet-tags-modal" data-action="{% url 'flows:packet_action' p.pk 'tags' %}" data-set-tags="{% for t in tags %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">+ Add tags</button>
+    {% for t in tags %}<a class="pk-tag" href="{% url 'flows:documents' %}?tag={{ t.name|urlencode }}">#{{ t.name|cut:"#" }}</a>{% endfor %}
+    <button class="pk-tag pk-tag-more" data-show-more-tags hidden>Show more</button>
+  </footer>
+</article>
+{% endwith %}

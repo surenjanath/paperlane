@@ -1,0 +1,24 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Webhooks{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">Webhooks</h1>
+<p class="muted" style="margin-bottom:18px">Send events — a document started, a step completed, a deadline missed — to other systems as they happen. Every request is signed so your receiver can check it came from Paperlane. Failed deliveries are retried for about 15 hours.</p>
+{% if endpoints %}
+<div class="card" style="margin-bottom:16px"><div class="table-wrap" style="border:0"><table class="table">
+  <thead><tr><th>Endpoint</th><th>Events</th><th>Last delivery</th><th></th></tr></thead>
+  <tbody>{% for ep in endpoints %}
+  <tr>
+    <td><a class="link" href="{% url 'flows:webhook_detail' ep.pk %}"><b>{{ ep.description|default:ep.url|truncatechars:60 }}</b></a>{% if not ep.active %} <span class="badge badge-gray">Paused</span>{% endif %}<br><small class="muted">{{ ep.url|truncatechars:70 }}{% if ep.workflow %} · {{ ep.workflow.name }}{% endif %}</small></td>
+    <td><small>{% if ep.events %}{{ ep.events|length }} event{{ ep.events|length|pluralize }}{% else %}All events{% endif %}</small></td>
+    <td>{% if ep.last %}{% if ep.last.status == "ok" %}<span class="badge badge-green">{{ ep.last.response_code }}</span>{% elif ep.last.status == "failed" %}<span class="badge badge-red">Failed</span>{% else %}<span class="badge badge-amber">Retrying</span>{% endif %} <small class="muted">{{ ep.last.event }} · {{ ep.last.created_at|timesince }} ago</small>{% else %}<small class="muted">No deliveries yet</small>{% endif %}</td>
+    <td style="text-align:right"><a class="btn btn-sm" href="{% url 'flows:webhook_detail' ep.pk %}">Open</a></td>
+  </tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+<div class="card card-pad">
+  <h3 style="margin-bottom:12px">Add a webhook</h3>
+  <form method="post">{% csrf_token %}{% include "flows/_webhook_form.html" with ep=None %}<button class="btn btn-dark" style="margin-top:12px">{% icon "plus" %} Add webhook</button></form>
+</div>
+<p class="muted small" style="margin-top:12px">Background jobs (retries, reminders, deadlines, scheduled starts): {% if heartbeat %}running — last run {{ heartbeat|timesince }} ago{% else %}<b>not running in this process</b> — start <code>manage.py paperlane_tick --loop 30</code> or leave <code>PAPERLANE_SCHEDULER</code> on{% endif %}.</p>
+{% endblock %}

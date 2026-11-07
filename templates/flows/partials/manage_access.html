@@ -1,0 +1,15 @@
+<form method="post" action="{% url 'flows:workflow_action' wf.pk 'access' %}">{% csrf_token %}
+<div class="modal-head"><h2>Manage access</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="modal-body">
+  <div class="field"><label>General access</label>
+    <label class="check"><input type="radio" name="access" value="private" {% if wf.access == 'private' %}checked{% endif %}> <span><b>Private</b><br><small class="muted">Only you, the people and groups below, supervisors and auditors.</small></span></label>
+    <label class="check"><input type="radio" name="access" value="team" {% if wf.access == 'team' %}checked{% endif %}> <span><b>Team</b><br><small class="muted">Everyone in the workspace can run it; creators can edit it.</small></span></label>
+  </div>
+  <div class="grid-2">
+    <div class="field"><label>Teammates</label><select name="users" multiple size="7" style="height:auto">{% for m in members %}<option value="{{ m.pk }}" {% if m.user_id in shared_user_ids %}selected{% endif %}>{{ m.user.get_full_name|default:m.user.email }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Groups</label><select name="groups" multiple size="7" style="height:auto">{% for g in groups %}<option value="{{ g.pk }}" {% if g.pk in shared_group_ids %}selected{% endif %}>{{ g.name }}</option>{% empty %}<option disabled>No groups</option>{% endfor %}</select></div>
+  </div>
+  <small class="muted">Hold ⌘/Ctrl to select several.</small>
+</div>
+<div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form>

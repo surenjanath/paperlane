@@ -1,0 +1,24 @@
+{% load ui %}
+<a class="nav-item" href="{% url 'core:dashboard' %}">{% icon "back" %} Back to app</a>
+<h2>My workspace</h2>
+<div class="grp">General</div>
+<a class="nav-item {% if section == 'info' %}active{% endif %}" href="{% url 'accounts:workspace_info' %}">{% icon "documents" %} Workspace info</a>
+<a class="nav-item {% if section == 'settings' %}active{% endif %}" href="{% url 'accounts:workspace_settings' %}">{% icon "gear" %} Workspace settings</a>
+<div class="grp">Branding & Customization</div>
+<a class="nav-item {% if section == 'theme' %}active{% endif %}" href="{% url 'accounts:theme' %}">{% icon "palette" %} Theme</a>
+<a class="nav-item {% if section == 'emails' %}active{% endif %}" href="{% url 'accounts:email_templates' %}">{% icon "mail" %} Email templates</a>
+<a class="nav-item {% if section == 'thankyou' %}active{% endif %}" href="{% url 'accounts:thank_you' %}">{% icon "globe" %} Thank you page</a>
+<a class="nav-item {% if section == 'domains' %}active{% endif %}" href="{% url 'accounts:domains' %}">{% icon "link" %} Domains</a>
+<div class="grp">Data</div>
+<a class="nav-item {% if section == 'data' %}active{% endif %}" href="{% url 'accounts:datasheets' %}">{% icon "chart" %} Spreadsheets</a>
+{% if features.webhooks %}<a class="nav-item {% if section == 'webhooks' %}active{% endif %}" href="{% url 'flows:webhooks' %}">{% icon "bolt" %} Webhooks</a>{% endif %}
+<div class="grp">Integrations</div>
+{% if features.connectors %}<a class="nav-item {% if section == 'connectors' %}active{% endif %}" href="{% url 'flows:connectors' %}">{% icon "link" %} Connectors</a>{% endif %}
+{% if features.ai %}<a class="nav-item {% if section == 'ai' %}active{% endif %}" href="{% url 'flows:ai_settings' %}">{% icon "bolt" %} AI &amp; models</a>{% endif %}
+<div class="grp">Logs</div>
+<a class="nav-item {% if section == 'retention' %}active{% endif %}" href="{% url 'accounts:retention' %}">{% icon "archive" %} Data retention</a>
+<a class="nav-item {% if section == 'email_log' %}active{% endif %}" href="{% url 'accounts:email_log' %}">{% icon "mail" %} Email log</a>
+<div class="grp">Billing</div>
+<a class="nav-item {% if section == 'subscription' %}active{% endif %}" href="{% url 'accounts:subscription' %}">{% icon "restore" %} Subscription</a>
+<a class="nav-item {% if section == 'billing' %}active{% endif %}" href="{% url 'accounts:billing' %}">{% icon "documents" %} Billing and payment</a>
+<a class="nav-item {% if section == 'usage' %}active{% endif %}" href="{% url 'accounts:usage' %}">{% icon "audit" %} Usage log</a>

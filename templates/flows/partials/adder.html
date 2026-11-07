@@ -1,0 +1,11 @@
+<div class="connector"></div>
+<div class="adder menu-wrap">
+  <button type="button" data-menu title="Add">+</button>
+  <div class="menu">
+    <div class="muted" style="font-size:11px;padding:4px 10px">+ ADD NEW</div>
+    <form method="post" action="{% url 'flows:step_add' wf.pk %}">{% csrf_token %}<input type="hidden" name="after" value="{{ after }}"><input type="hidden" name="lane" value="{{ lane|default:'' }}"><button name="kind" value="recipient">👤 Step</button><button name="kind" value="approval" title="Approver step + Approve/Reject field + end on Reject">✅ Approval</button><button name="kind" value="branch">⑂ Branches</button><button name="kind" value="bot">🤖 Bot</button></form>
+    {% if step_templates %}<div class="muted" style="font-size:11px;padding:6px 10px 2px">YOUR STEP TEMPLATES</div>
+    {% for t in step_templates %}<form method="post" action="{% url 'flows:step_add' wf.pk %}">{% csrf_token %}<input type="hidden" name="after" value="{{ after }}"><input type="hidden" name="lane" value="{{ lane|default:'' }}"><input type="hidden" name="template" value="{{ t.pk }}"><button name="kind" value="template">📌 {{ t.name|truncatechars:28 }}</button></form>{% endfor %}{% endif %}
+  </div>
+</div>
+<div class="connector"></div>

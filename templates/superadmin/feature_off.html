@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Not available{% endblock %}
+{% block main %}
+<div class="center-screen" style="min-height:60vh"><div class="art">🔒</div><h2>{{ label }} is turned off</h2>
+<p class="muted" style="max-width:480px">The platform administrator has switched this feature off for your workspace.{% if platform.support_email %} Contact <a class="link" href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a> if you need it.{% endif %}</p>
+<a class="btn" href="{% url 'core:dashboard' %}">Back to the dashboard</a></div>
+{% endblock %}

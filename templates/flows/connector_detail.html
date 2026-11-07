@@ -1,0 +1,73 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}{{ c.name }} · Connectors{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<p><a class="link" href="{% url 'flows:connectors' %}">← Connectors</a></p>
+<h1 style="margin:6px 0">{{ c.name }}</h1>
+<p class="muted" style="margin-bottom:18px">{{ c.description|default:"Custom connector" }} · last call: {% if c.last_used_at %}{{ c.last_status }} · {{ c.last_used_at|timesince }} ago{% else %}never{% endif %}</p>
+
+{% if result %}
+<div class="card card-pad" style="margin-bottom:16px;border-color:{% if result.ok %}#b9e3cc{% else %}#f3b4b4{% endif %}">
+  <h3 style="margin-bottom:6px">Test: <code>{{ result.key }}</code> — {% if result.ok %}<span class="badge badge-green">{{ result.status }} OK</span>{% else %}<span class="badge badge-red">{{ result.error|default:result.status }}</span>{% endif %}</h3>
+  <p class="muted small" style="word-break:break-all">{{ result.method }} {{ result.url }}</p>
+  {% if result.mapped %}<p style="margin:8px 0 4px"><b>Mapped fields</b></p><ul style="margin-left:18px">{% for k, v in result.mapped.items %}<li>{{ k }} = <code>{{ v|truncatechars:120 }}</code></li>{% endfor %}</ul>{% endif %}
+  <p style="margin:8px 0 4px"><b>Response</b></p><pre class="code-block" style="max-height:300px;overflow:auto;white-space:pre-wrap">{{ result_json }}</pre>
+</div>
+{% endif %}
+
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px">Connection</h3>
+  <form method="post">{% csrf_token %}<input type="hidden" name="form" value="general">
+    <div class="grid-2">
+      <div class="field"><label>Name</label><input type="text" name="name" value="{{ c.name }}" required maxlength="120"></div>
+      <div class="field"><label>Base URL</label><input type="url" name="base_url" value="{{ c.base_url }}" required></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Authentication</label><select name="auth_type">{% for k, l in auths %}<option value="{{ k }}" {% if c.auth_type == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Header / query parameter name</label><input type="text" name="auth_name" value="{{ c.auth_name }}" placeholder="X-API-Key or api_key"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Secret / token</label><input type="password" name="secret" autocomplete="new-password" placeholder="{% if c.secret %}•••••••• (saved — type to replace){% else %}Not set{% endif %}">
+        {% if c.secret %}<label class="check small" style="margin-top:4px"><input type="checkbox" name="clear_secret"> Remove the saved secret</label>{% endif %}
+        <div class="help">Basic auth: <code>user:password</code>.</div></div>
+      <div class="field"><label>Timeout (seconds)</label><input type="number" name="timeout" min="1" max="60" value="{{ c.timeout }}"></div>
+    </div>
+    <div class="field"><label>Extra headers (one per line: <code>Name = value</code>)</label><textarea name="headers" rows="3" placeholder="X-Tenant = acme">{{ headers_text }}</textarea></div>
+    <div class="field"><label>Description</label><input type="text" name="description" value="{{ c.description }}" maxlength="300"></div>
+    <label class="check"><input type="checkbox" name="active" {% if c.active %}checked{% endif %}> Active</label>
+    <div style="margin-top:12px"><button class="btn btn-dark">Save connection</button></div>
+  </form>
+</div>
+
+<h2 style="margin:18px 0 8px">Actions</h2>
+<p class="muted small" style="margin-bottom:10px">Tokens: <code>{field:Policy Number}</code> — a value from the document or form · <code>{value}</code> — what was typed in a form lookup. Mapping lines: <code>Field name = json.path</code> (e.g. <code>Payee = data.holder.name</code>, <code>First = items.0.name</code>).</p>
+{% for a in actions %}
+<details class="card card-pad" style="margin-bottom:12px" {% if result and result.key == a.key %}open{% endif %}>
+  <summary style="cursor:pointer"><b>{{ a.name }}</b> <code>{{ a.key }}</code> <span class="muted small">{{ a.method }} /{{ a.path }}</span></summary>
+  <form method="post" style="margin-top:12px">{% csrf_token %}<input type="hidden" name="form" value="action"><input type="hidden" name="orig_key" value="{{ a.key }}">
+    {% include "flows/_connector_action_fields.html" %}
+    <button class="btn btn-dark">Save action</button>
+  </form>
+  <form method="post" action="{% url 'flows:connector_action' c.pk 'test' %}" class="card-pad" style="margin-top:12px;background:var(--bg-soft,#f7f7fa);border-radius:10px">{% csrf_token %}<input type="hidden" name="key" value="{{ a.key }}">
+    <b>Test this action</b>
+    <div class="grid-2" style="margin-top:8px">
+      <div class="field"><label><code>{value}</code></label><input type="text" name="value" placeholder="POL-200101"></div>
+      <div class="field"><label>…or values of document #</label><input type="text" name="document" inputmode="numeric" placeholder="33"></div>
+    </div>
+    <div class="field"><label>Field values (<code>Name = value</code> per line)</label><textarea name="values" rows="2" placeholder="Policy Number = POL-200101"></textarea></div>
+    <button class="btn">{% icon "bolt" %} Send test request</button>
+  </form>
+  <form method="post" action="{% url 'flows:connector_action' c.pk 'remove_action' %}" style="margin-top:8px" data-confirm="Remove the action “{{ a.name }}”? Bots that use it will fail.">{% csrf_token %}<input type="hidden" name="key" value="{{ a.key }}"><button class="btn btn-sm btn-danger">Remove action</button></form>
+</details>
+{% endfor %}
+<details class="card card-pad" {% if not actions %}open{% endif %}>
+  <summary style="cursor:pointer"><b>{% icon "plus" %} Add an action</b></summary>
+  <form method="post" style="margin-top:12px">{% csrf_token %}<input type="hidden" name="form" value="action">
+    {% include "flows/_connector_action_fields.html" with a=None %}
+    <button class="btn btn-dark">Add action</button>
+  </form>
+</details>
+
+<form method="post" action="{% url 'flows:connector_action' c.pk 'delete' %}" style="margin-top:24px" data-confirm="Delete the connector “{{ c.name }}”? Bots and form lookups that use it will stop working.">{% csrf_token %}<button class="btn btn-danger">Delete connector</button></form>
+{% endblock %}

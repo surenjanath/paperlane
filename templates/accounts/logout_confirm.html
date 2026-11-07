@@ -1,0 +1,8 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Log out{% endblock %}
+{% block card %}
+<h2>Log out of Paperlane?</h2>
+<p class="muted">You're signed in as {{ request.user.email }}.</p>
+<form method="post">{% csrf_token %}<button class="btn btn-dark btn-block btn-lg">Log out</button></form>
+<a class="btn btn-block btn-lg" style="margin-top:8px" href="{% url 'core:dashboard' %}">Stay signed in</a>
+{% endblock %}

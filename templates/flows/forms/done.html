@@ -1,0 +1,20 @@
+{% extends "base_bare.html" %}
+{% block title %}{{ o.success_title|default:"Thank you!" }}{% endblock %}
+{% block head %}{% include "flows/_fill_theme.html" %}{% endblock %}
+{% block body %}
+<div class="fill-page">{% if not embed %}<header class="fill-top"><div class="brand">{% if workspace.logo %}<img src="{{ workspace.logo.url }}" alt="">{% endif %}<span class="brand-name">{{ workspace.name }}</span></div></header>{% endif %}<div class="done-box" style="max-width:520px;margin:12vh auto;text-align:center;padding:0 16px">
+  {% if payment == 'pending' %}
+  <div style="font-size:44px">⏳</div>
+  <h2 style="margin:10px 0 6px">Waiting for your payment</h2>
+  <p class="muted">Your answers are saved. If you've just paid, confirmation can take a moment.</p>
+  <a class="btn" href="">Refresh</a>
+  {% else %}
+  <div style="font-size:44px">🎉</div>
+  {% if payment == 'paid' %}<p class="pay-ok">✓ Payment received</p>{% endif %}
+  <h2 style="margin:10px 0 6px">{{ o.success_title|default:"Thank you!" }}</h2>
+  <p class="muted" style="white-space:pre-wrap">{{ o.success_body|default:"Your form has been submitted." }}</p>
+  {% if sub and sub.packet and request.user.is_authenticated %}<p><a class="link" href="{% url 'flows:packet_detail' sub.packet.pk %}">Open “{{ sub.packet.name }}”</a></p>{% endif %}
+  <a class="btn" href="{% url 'flows:form_public' form.token %}{% if embed %}?embed=1{% endif %}">Submit another response</a>
+  {% endif %}
+</div></div>
+{% endblock %}

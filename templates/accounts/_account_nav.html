@@ -1,0 +1,11 @@
+{% load ui %}
+<a class="nav-item" href="{% url 'core:dashboard' %}">{% icon "back" %} Back to app</a>
+<h2>My account</h2>
+<a class="nav-item {% if section == 'profile' %}active{% endif %}" href="{% url 'accounts:profile' %}">{% icon "user" %} Profile info</a>
+<a class="nav-item {% if section == 'settings' %}active{% endif %}" href="{% url 'accounts:settings' %}">{% icon "gear" %} Account settings</a>
+<a class="nav-item {% if section == 'security' %}active{% endif %}" href="{% url 'accounts:security' %}">{% icon "lock" %} Security</a>
+<a class="nav-item {% if section == 'ooo' %}active{% endif %}" href="{% url 'accounts:out_of_office' %}">{% icon "calendar" %} Out of office</a>
+<a class="nav-item {% if section == 'notifications' %}active{% endif %}" href="{% url 'accounts:notifications' %}">{% icon "bell" %} Notification settings</a>
+<a class="nav-item {% if section == 'connections' %}active{% endif %}" href="{% url 'accounts:connections' %}">{% icon "link" %} Connected accounts</a>
+<a class="nav-item {% if section == 'api' %}active{% endif %}" href="{% url 'accounts:api_tokens' %}">{% icon "code" %} API &amp; AI access</a>
+<a class="nav-item {% if section == 'activity' %}active{% endif %}" href="{% url 'accounts:activity' %}">{% icon "audit" %} My activity</a>

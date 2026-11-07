@@ -1,0 +1,28 @@
+{% load ui %}
+{% for s in steps %}
+<li class="ai-step ai-{{ s.type }}">
+  {% if s.type == "branch" %}
+    <div class="ai-node ai-branch"><span class="ai-ico">{% icon "branch" %}</span><div><b>{{ s.name }}</b></div></div>
+    <div class="ai-lanes">
+      {% for ln in s.lanes %}
+      <div class="ai-lane">
+        <div class="ai-lane-head"><b>{{ ln.label }}</b><small>When {{ ln.when }}</small></div>
+        {% if ln.steps %}<ol class="ai-steps">{% include "flows/partials/ai_step.html" with steps=ln.steps %}</ol>{% endif %}
+        <div class="ai-exit">↳ then {{ ln.exit }}</div>
+      </div>
+      {% endfor %}
+      <div class="ai-lane ai-lane-else"><div class="ai-lane-head"><b>Otherwise</b><small>continue to the next step</small></div></div>
+    </div>
+  {% else %}
+    <div class="ai-node">
+      <span class="ai-ico">{% if s.type == "bot" %}{% icon "bot" %}{% else %}{% icon "user" %}{% endif %}</span>
+      <div class="grow">
+        <div class="ai-node-top"><b>{{ s.name }}</b>{% if s.to %}<span class="ai-to">{{ s.to }}</span>{% endif %}</div>
+        {% if s.when %}<div class="ai-cond">Only when {{ s.when }}</div>{% endif %}
+        {% if s.fills %}<div class="ai-fields">{% for f in s.fills %}<span class="ai-chip" title="{{ f.type }}{% if f.options %}: {{ f.options|join:' / ' }}{% endif %}">{{ f.label }}{% if f.required %}<i>*</i>{% endif %}</span>{% endfor %}</div>{% endif %}
+        {% for j in s.jumps %}<div class="ai-jump">↩ Back to <b>{{ j.to }}</b> when {{ j.when }}</div>{% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</li>
+{% endfor %}

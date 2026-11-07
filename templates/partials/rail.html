@@ -1,0 +1,42 @@
+{% load ui %}
+<nav class="rail" aria-label="Main">
+  <a class="logo" href="{% url 'core:dashboard' %}" title="Paperlane">{% logo_mark 34 %}</a>
+  <button class="rail-btn" data-open-search data-tip="Search (⌘K)" aria-label="Search">{% icon "search" %}</button>
+  <a class="rail-btn {% if nav == 'team' %}active{% endif %}" href="{% url 'accounts:team' %}" data-tip="Manage team" aria-label="Manage team">{% icon "team" %}</a>
+  <a class="rail-btn {% if nav == 'contacts' %}active{% endif %}" href="{% url 'accounts:contacts' %}" data-tip="Contacts" aria-label="Contacts">{% icon "contacts" %}</a>
+  <div class="spacer"></div>
+  {% if request.membership %}<button type="button" class="rail-btn rail-ai" data-chat-open data-tip="Assistant — help and “what went wrong?”" aria-label="Open the assistant">{% icon "sparkle" %}</button>{% endif %}
+  <a class="rail-btn" href="{% url 'core:help' %}" data-tip="Help" aria-label="Help">{% icon "help" %}</a>
+  <button class="rail-btn" data-open-notifications data-live-count="unread" data-tip="Notifications" aria-label="Notifications">{% icon "bell" %}<span class="dot" data-count {% if not unread_count %}hidden{% endif %}>{{ unread_count|default:"0" }}</span></button>
+  {% if request.membership.can_view_all %}
+  <a class="rail-btn {% if nav == 'audit' %}active{% endif %}" href="{% url 'core:audit' %}" data-tip="Audit trail" aria-label="Audit trail">{% icon "audit" %}</a>
+  {% endif %}
+  {% if request.membership.can_manage %}
+  <a class="rail-btn" href="{% url 'accounts:subscription' %}" data-tip="Workspace & billing" aria-label="Workspace">{% icon "building" %}</a>
+  {% endif %}
+  {% if request.user.is_superuser %}
+  <a class="rail-btn {% if nav == 'platform' %}active{% endif %}" href="{% url 'superadmin:overview' %}" data-tip="Super admin" aria-label="Super admin">{% icon "shield" %}</a>
+  {% endif %}
+  <div class="menu-wrap">
+    <button class="rail-btn" data-menu="#profile-menu" data-tip="Account" aria-label="Open account menu">
+      <span class="avatar">{% if request.user.profile.avatar %}<img src="{{ request.user.profile.avatar.url }}" alt="">{% else %}{{ request.user|initials }}{% endif %}</span>
+    </button>
+    <div class="menu left up" id="profile-menu" style="left:calc(100% + 10px);bottom:0">
+      <div style="padding:8px 10px"><b>{{ request.user|display_name }}</b><br><small class="muted">{{ request.user.email }}</small></div>
+      <div class="sep"></div>
+      <a href="{% url 'accounts:profile' %}">{% icon "user" %} My account</a>
+      <a href="{% url 'accounts:settings' %}">{% icon "globe" %} Language (English)</a>
+      <a href="{% url 'accounts:connections' %}">{% icon "link" %} Connected accounts</a>
+      <div class="sep"></div>
+      {% if request.user.is_superuser %}<a href="{% url 'superadmin:overview' %}">{% icon "shield" %} Super admin</a>{% endif %}
+      {% if request.membership.can_manage %}<a href="{% url 'accounts:workspace_info' %}">{% icon "building" %} My workspace</a>{% endif %}
+      <a href="{% url 'accounts:datasheets' %}">{% icon "chart" %} Spreadsheets</a>
+      <div class="sep"></div>
+      <a href="{% url 'core:page' 'release-notes' %}">{% icon "bell" %} Release notes</a>
+      <a href="{% url 'core:page' 'terms' %}">{% icon "documents" %} Terms of Service</a>
+      <a href="{% url 'core:page' 'privacy' %}">{% icon "lock" %} Privacy Notice</a>
+      <div class="sep"></div>
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button>{% icon "logout" %} Log out</button></form>
+    </div>
+  </div>
+</nav>

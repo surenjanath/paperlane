@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block heading %}Search{% endblock %}
+{% block content %}
+<form class="row" style="margin-bottom:16px"><input type="search" name="q" value="{{ q }}" placeholder="Search in workflows, templates, documents, and contacts" style="max-width:520px"><button class="btn btn-dark">Search</button></form>
+{% for r in results %}<a class="doc-row" style="display:flex;gap:10px;padding:10px 14px;align-items:center" href="{{ r.url }}"><span class="badge badge-gray">{{ r.type }}</span><b class="grow">{{ r.title }}</b><small class="muted">{{ r.meta }}</small></a>
+{% empty %}{% if q %}<p class="muted">No results for “{{ q }}”.</p>{% endif %}{% endfor %}
+{% endblock %}

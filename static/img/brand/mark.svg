@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Paperlane">
+  <rect width="64" height="64" rx="15" fill="#E4572E"/>
+  <path d="M11 50 C 19 47, 24 43, 28.5 38" fill="none" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="0.1 6.4"/>
+  <path d="M15 31.5 L50 15 L41.5 49 L31.5 39.5 Z" fill="#FFFFFF"/>
+  <path d="M50 15 L31.5 39.5 L30 47.5 Z" fill="#F8D9CE"/>
+  <path d="M50 15 L31.5 39.5" stroke="#E4572E" stroke-opacity=".35" stroke-width="1.2"/>
+</svg>

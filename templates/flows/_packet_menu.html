@@ -1,0 +1,19 @@
+{% load ui %}<div class="menu-wrap"><button class="{{ kebab|default:'pk-kebab' }}" data-menu title="More actions" aria-label="More actions for {{ p.name }}">{% icon "dots" 20 %}</button>
+    <div class="menu">
+      <a href="{{ p.get_absolute_url }}">{% icon "eye" %} Check status</a>
+      <a href="{{ p.get_absolute_url }}?tab=data">{% icon "documents" %} Open last revision</a>
+      <a href="{{ p.get_absolute_url }}?tab=revisions">{% icon "copy" %} All revisions</a>
+      {% if manage %}<a href="{{ p.get_absolute_url }}?tab=status#revise">{% icon "edit" %} Revise</a>{% endif %}
+      <button data-modal-template="#packet-tags-modal" data-action="{% url 'flows:packet_action' p.pk 'tags' %}" data-set-tags="{% for t in tags %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">{% icon "tag" %} Edit tags</button>
+      <div class="sep"></div>
+      <a href="{% url 'flows:packet_download' p.pk %}">{% icon "download" %} Download</a>
+      <a href="{% url 'flows:packet_export' p.pk %}">{% icon "upload" %} Export metadata</a>
+      {% if manage %}<button data-modal-template="#send-copy-modal" data-action="{% url 'flows:packet_action' p.pk 'save_and_send' %}">{% icon "send" %} Save and send</button>{% endif %}
+      <a href="{{ p.get_absolute_url }}?tab=comments">{% icon "comment" %} Comments</a>
+      {% if manage %}<form method="post" action="{% url 'flows:packet_action' p.pk 'hold' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button>{% icon "shield" %} {% if p.flags.legal_hold %}Remove legal hold{% else %}Legal hold{% endif %}</button></form>{% endif %}
+      {% if manage %}<form method="post" action="{% url 'flows:packet_action' p.pk 'lock' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button>{% icon "lock" %} {{ p.locked|yesno:"Unlock,Lock" }}</button></form>{% endif %}
+      <a href="{{ p.get_absolute_url }}?tab=audit">{% icon "audit" %} Audit trail</a>
+      <a href="{{ p.get_absolute_url }}?tab=bots">{% icon "bot" %} Bots log</a>
+      {% if manage %}<div class="sep"></div>
+      <form method="post" action="{% url 'flows:packet_action' p.pk 'trash' %}" data-confirm="Move this document to Trash?" data-confirm-ok="Delete" data-danger>{% csrf_token %}<button class="danger">{% icon "trash" %} Delete</button></form>{% endif %}
+    </div></div>

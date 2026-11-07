@@ -1,0 +1,30 @@
+{% load ui %}
+<div class="drawer-head"><h2>Checks</h2><button type="button" class="modal-close" data-close aria-label="Close">×</button></div>
+<div class="drawer-body">
+  <div class="chk-summary">
+    <span class="chk-count chk-error"><b>{{ summary.error }}</b> must fix</span>
+    <span class="chk-count chk-warning"><b>{{ summary.warning }}</b> warning{{ summary.warning|pluralize }}</span>
+    <span class="chk-count chk-info"><b>{{ summary.info }}</b> tip{{ summary.info|pluralize }}</span>
+  </div>
+  {% if fix_all and ai_enabled %}<button type="button" class="btn btn-sm chk-fixall" data-ai-ask="{{ fix_all }}">✦ Fix all with AI</button>{% endif %}
+  <p class="muted small">Errors stop Publish. Warnings are things that will make documents behave unexpectedly. Checks run again after every change.</p>
+  {% for f in findings %}
+  <div class="chk-item chk-{{ f.level }}">
+    <span class="chk-dot" aria-hidden="true"></span>
+    <div class="grow">
+      <div>{{ f.message }}</div>
+      <div class="chk-actions">
+        {% if f.step_obj %}
+          {% if f.step_obj.kind == 'bot' %}<a class="link small" href="{% url 'flows:bot_catalog' wf.pk %}?trigger=inline&step={{ f.step_obj.key }}">Open step</a>
+          {% else %}<button type="button" class="link small" data-drawer-url="{% url 'flows:step_settings' wf.pk f.step_obj.pk %}">Open “{{ f.step_obj.name|truncatechars:40 }}”</button>{% endif %}
+          <button type="button" class="link small" data-goto-step="{{ f.step }}">Show on canvas</button>
+        {% elif f.code|slice:":4" == "bot_" %}<a class="link small" href="{% url 'flows:bots' wf.pk %}">Open bots</a>{% endif %}
+        {% if f.code == 'empty_group' and f.step_obj.recipient_group_id %}<a class="link small" href="{% url 'accounts:groups' %}" target="_blank" rel="noopener">Add members to “{{ f.step_obj.recipient_group.name|truncatechars:30 }}”</a>{% endif %}
+        {% if f.fix and ai_enabled %}<button type="button" class="link small" data-ai-ask="{{ f.fix }}">✦ Ask AI to fix</button>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="chk-clean">{% icon "check" 20 %}<div><b>No problems found</b><div class="muted small">Every step, branch, rule and bot points at something that exists.</div></div></div>
+  {% endfor %}
+</div>

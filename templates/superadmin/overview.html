@@ -1,0 +1,30 @@
+{% extends "superadmin/_base.html" %}
+{% load ui humanize %}
+{% block title %}Super admin{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">Platform overview</h1>
+<p class="muted" style="margin-bottom:18px">Everything running on this {{ app_name }} installation.</p>
+<div class="sa-kpis">
+  <a class="sa-kpi" href="{% url 'superadmin:workspaces' %}"><small>Workspaces</small><b>{{ stats.workspaces }}</b>{% if stats.suspended %}<em class="bad">{{ stats.suspended }} suspended</em>{% endif %}</a>
+  <a class="sa-kpi" href="{% url 'superadmin:users' %}"><small>Active users</small><b>{{ stats.users }}</b><em>{{ stats.active_users }} signed in this week · {{ stats.new_users }} new in 30 d</em></a>
+  <div class="sa-kpi"><small>Published workflows</small><b>{{ stats.workflows }}</b></div>
+  <div class="sa-kpi"><small>Documents in progress</small><b>{{ stats.in_progress|intcomma }}</b><em>{{ stats.completed_30|intcomma }} completed in 30 d</em></div>
+  <div class="sa-kpi"><small>Open steps</small><b>{{ stats.open_steps|intcomma }}</b>{% if stats.overdue %}<em class="bad">{{ stats.overdue }} overdue</em>{% else %}<em>none overdue</em>{% endif %}</div>
+</div>
+<div class="sa-grid">
+  <div class="card card-pad">
+    <h3 style="margin-bottom:10px">Documents started — last 14 days</h3>
+    <div class="sa-bars">{% for d in chart %}<div class="sa-bar" title="{{ d.day|date:'D M j' }}: {{ d.n }}"><span style="height:{{ d.pct }}%"></span><small>{{ d.day|date:"j" }}</small></div>{% endfor %}</div>
+    <h3 style="margin:18px 0 8px">Busiest workspaces (30 d)</h3>
+    <table class="table"><tbody>{% for w in top %}<tr><td><a class="link" href="{% url 'superadmin:workspace' w.pk %}">{{ w.name }}</a>{% if w.suspended_at %} <span class="badge badge-red">Suspended</span>{% endif %}</td><td class="num">{{ w.docs }} docs</td><td class="num muted">{{ w.members }} members</td></tr>{% empty %}<tr><td class="muted">No workspaces yet.</td></tr>{% endfor %}</tbody></table>
+  </div>
+  <div class="card card-pad">
+    <h3 style="margin-bottom:10px">Health</h3>
+    {% include "superadmin/_checks.html" %}
+  </div>
+</div>
+<div class="card card-pad" style="margin-top:16px">
+  <div class="row"><h3 class="grow">Recent admin activity</h3><a class="link small" href="{% url 'superadmin:audit' %}">All activity →</a></div>
+  {% include "superadmin/_events.html" with events=events %}
+</div>
+{% endblock %}

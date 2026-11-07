@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ wf.name }}{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}{{ wf.name }}{% endblock %}
+{% block subheading %}
+{% if wf.trashed_at %}<span class="badge badge-red">In Trash</span>{% elif wf.archived_at %}<span class="badge badge-gray">Archived</span>{% endif %}
+{% if wf.status == 'draft' %}<span class="badge badge-gray">Unpublished {{ wf.get_kind_display|lower }}</span>{% elif wf.has_unpublished_changes %}<span class="badge badge-amber">Unpublished changes</span>{% else %}<span class="badge badge-green">Published · Version {{ wf.version }}</span>{% endif %}
+<span class="sep"></span><span>{{ packet_count }} document{{ packet_count|pluralize }}</span>{% if wf.routing_mode == 'bots' %}<span class="badge badge-purple" title="Routing bots decide the next step">Diagram-bot routing</span>{% endif %}
+<span class="sep"></span><span>Access: {% if can_edit %}<a class="link" href="#" data-modal-url="{% url 'flows:manage_access' wf.pk %}">{{ wf.get_access_display }}</a>{% else %}{{ wf.get_access_display }}{% endif %}</span>
+{% for t in wf.tags.all %}<span class="tag">{{ t.name }}</span>{% endfor %}
+{% endblock %}
+{% block actions %}
+{% if wf.trashed_at or wf.archived_at %}
+  <form method="post" action="{% url 'flows:workflow_action' wf.pk 'restore' %}">{% csrf_token %}<button class="btn">{% icon "restore" %} Restore</button></form>
+{% else %}
+{% if can_edit %}<a class="btn icon-col" href="{% if wf.kind == 'template' %}{% url 'flows:editor' wf.pk wf.documents.first.pk %}{% else %}{% url 'flows:builder' wf.pk %}{% endif %}">{% icon "configure" %}Configure</a>{% endif %}
+{% if request.membership.can_run %}
+<div class="menu-wrap"><button class="btn icon-col" data-menu>{% icon "share" %}Distribute</button>
+  <div class="menu">
+    <button data-modal-template="#link-modal">{% icon "send" %} Via link</button>
+    <a href="{% url 'flows:send_bulk' wf.pk %}">{% icon "documents" %} Send in bulk</a>
+    <button data-modal-template="#hook-modal">{% icon "link" %} Via webhook (API)</button>
+  </div></div>
+{% endif %}
+<div class="menu-wrap"><button class="btn icon-col" data-menu>{% icon "dots" %}More actions</button>
+  <div class="menu">
+    {% if can_edit %}<button data-modal-url="{% url 'flows:manage_access' wf.pk %}">{% icon "user" %} Manage access</button>{% endif %}
+    <a href="{% url 'flows:workflow_bots_log' wf.pk %}">{% icon "bot" %} Bots log</a>
+    <a href="{% url 'flows:workflow_audit' wf.pk %}">{% icon "audit" %} Audit trail</a>
+    <a href="{% url 'flows:workflow_insights' wf.pk %}">{% icon "chart" %} Insights (bottlenecks)</a>
+    <a href="{% url 'flows:workflow_export' wf.pk %}">{% icon "download" %} Export definition (JSON)</a>
+    <a href="{% url 'flows:workflow_export' wf.pk %}?format=blueprint">{% icon "code" %} Export blueprint (for AI / API)</a>
+    {% if can_edit %}
+    <button data-modal-template="#consent-modal">{% icon "edit" %} Consent to eSign</button>
+    <button data-modal-template="#dup-modal">{% icon "copy" %} Duplicate check{% if dup.fields %} · on{% endif %}</button>
+    <button data-modal-template="#welcome-modal">{% icon "mail" %} Welcome message</button>
+    <button data-modal-template="#rename-modal">{% icon "edit" %} Rename</button>
+    {% if versions %}<button data-modal-template="#versions-modal">{% icon "restore" %} Version history</button>{% endif %}
+    {% endif %}
+    <div class="sep"></div>
+    {% if request.membership.can_create %}<form method="post" action="{% url 'flows:workflow_action' wf.pk 'duplicate' %}">{% csrf_token %}<button>{% icon "copy" %} Duplicate</button></form>{% endif %}
+    {% if can_edit %}
+    <form method="post" action="{% url 'flows:workflow_action' wf.pk 'archive' %}">{% csrf_token %}<button>{% icon "archive" %} Archive</button></form>
+    <form method="post" action="{% url 'flows:workflow_action' wf.pk 'trash' %}" data-confirm="Move “{{ wf.name }}” to Trash?" data-confirm-ok="Move to Trash" data-danger>{% csrf_token %}<button>{% icon "trash" %} Move to Trash</button></form>
+    <form method="post" action="{% url 'flows:workflow_action' wf.pk wf.is_hidden|yesno:'unhide,hide' %}">{% csrf_token %}<button>{% icon "hide" %} {{ wf.is_hidden|yesno:"Unhide,Hide" }}</button></form>
+    {% endif %}
+  </div></div>
+{% endif %}
+{% endblock %}
+{% block content %}
+{% if not wf.trashed_at and not wf.archived_at %}
+<div class="row" style="margin-bottom:16px;gap:8px">
+  {% if request.membership.can_run %}<a class="btn btn-dark" href="{% url 'flows:run' wf.pk %}">{% icon "play" %} Run {{ wf.get_kind_display|lower }}</a>{% endif %}
+  {% if can_edit %}<form method="post" action="{% url 'flows:test_run' wf.pk %}" style="display:contents">{% csrf_token %}<button class="btn">Test</button></form>{% endif %}
+  {% if tests %}<span class="muted">{{ tests }} test run{{ tests|pluralize }}</span>{% endif %}
+  <span class="grow"></span>
+  {% include "flows/_view_toggle.html" %}
+  <form class="row" style="gap:6px"><select name="status" data-autosubmit style="width:auto"><option value="">All statuses</option><option value="in_progress" {% if status == 'in_progress' %}selected{% endif %}>In progress</option><option value="completed" {% if status == 'completed' %}selected{% endif %}>Completed</option><option value="declined" {% if status == 'declined' %}selected{% endif %}>Declined</option><option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Cancelled</option></select></form>
+</div>
+{% endif %}
+{% if at_step %}<div class="alert alert-info" style="margin:8px 0">Showing documents waiting at “{{ at_step_name }}”. <a class="link" href="{{ request.path }}">Show all</a></div>{% endif %}
+{% if wf.description %}<p class="muted">{{ wf.description }}</p>{% endif %}
+{% include "flows/partials/packet_modals.html" %}
+{% if packets %}<div class="pk-list {% if list_view == 'compact' %}dl-list{% endif %}">{% if list_view == 'compact' %}{% include "flows/_packet_head.html" %}{% endif %}{% endif %}
+{% for p in packets %}{% if list_view == 'compact' %}{% include "flows/_packet_row.html" %}{% else %}{% include "flows/_packet_card.html" %}{% endif %}
+{% empty %}
+<div class="empty" style="max-width:480px;margin:0 auto">
+  <div class="ico">🗃</div>
+  <p class="muted">{{ wf.created_by|display_name|default:"Someone" }} created a {{ wf.get_kind_display|lower }}</p>
+  <h3>{{ wf.name }}</h3>
+  <p>Run this {{ wf.get_kind_display|lower }} to send documents to recipients.</p>
+  {% if request.membership.can_run and not wf.trashed_at %}<a class="btn btn-block" href="{% url 'flows:run' wf.pk %}">{% icon "edit" %} Run {{ wf.get_kind_display|lower }}</a>{% endif %}
+</div>
+{% endfor %}
+{% if packets %}</div>{% endif %}
+
+<template id="link-modal">
+  <div class="modal-head"><h2>Share via link</h2><button class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    {% if not wf.is_published %}<div class="alert alert-warning">Publish the workflow before sharing its link.</div>{% endif %}
+    <p class="muted">Anyone with this link can start a new document and fill out the first step.</p>
+    <form method="post" action="{% url 'flows:workflow_action' wf.pk 'link' %}" class="row" style="margin:10px 0">{% csrf_token %}
+      <label class="row" style="gap:8px"><span class="switch"><input type="checkbox" name="enabled" value="1" {% if wf.link_enabled %}checked{% endif %} onchange="this.form.submit()"><span></span></span> Link sharing is {{ wf.link_enabled|yesno:"on,off" }}</label>
+    </form>
+    <div class="copy-row"><input id="share-link" type="text" readonly value="{{ link_url }}"><button class="btn" data-copy="#share-link">Copy</button></div>
+    <form method="post" action="{% url 'flows:workflow_action' wf.pk 'regenerate_link' %}" style="margin-top:10px" data-confirm="The current link will stop working.">{% csrf_token %}<button class="btn btn-sm btn-ghost">Regenerate link</button></form>
+  </div>
+</template>
+<template id="hook-modal">
+  <div class="modal-head"><h2>Start via webhook</h2><button class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <p class="muted">POST JSON to this URL to start a document. Keys matching field names pre-fill the documents. Optional keys: <code>recipient</code>, <code>recipient_name</code>, <code>document_name</code>.</p>
+    <div class="copy-row"><input id="hook-url" type="text" readonly value="{{ hook_url }}"><button class="btn" data-copy="#hook-url">Copy</button></div>
+    <div class="code-box" style="margin-top:10px">curl -X POST {{ hook_url }} -H 'Content-Type: application/json' -d '{"recipient":"jane@example.com","Full name":"Jane Doe"}'</div>
+  </div>
+</template>
+<template id="dup-modal">
+<form method="post" action="{% url 'flows:workflow_action' wf.pk 'duplicates' %}">{% csrf_token %}
+  <div class="modal-head"><h2>Duplicate check</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <p class="muted" style="margin-bottom:10px">Flag a new document when another one has the same value — e.g. a second withdrawal for the same policy number. Flagged documents get the tag <b>#Possible duplicate</b>, a comment linking the other document, and a warning banner. Branch and bot rules can use <code>@duplicate</code> (yes / no).</p>
+    <div class="field"><label>Fields to compare (up to 5, comma separated — any match flags it)</label>
+      <input type="text" name="fields" list="dup-fields" value="{{ dup.fields|join:', ' }}" placeholder="POLICY NUMBER"><datalist id="dup-fields">{% for n in field_names %}<option value="{{ n }}">{% endfor %}</datalist></div>
+    <div class="field"><label>Compare with</label><select name="days">
+      <option value="0" {% if not dup.days %}selected{% endif %}>Documents still in progress</option>
+      {% for d in "30,90,180,365"|split:"," %}<option value="{{ d }}" {% if dup.days|stringformat:"s" == d %}selected{% endif %}>Every document from the last {{ d }} days</option>{% endfor %}</select></div>
+    <label class="check"><input type="checkbox" name="notify" value="1" {% if dup.notify|default_if_none:True != False %}checked{% endif %}> Notify the workflow owner</label>
+  </div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form></template>
+<template id="consent-modal">
+<form method="post" action="{% url 'flows:workflow_action' wf.pk 'consent' %}">{% csrf_token %}
+  <div class="modal-head"><h2>Consent to eSign</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><label class="check"><input type="checkbox" name="enabled" value="1" {% if wf.esign_consent %}checked{% endif %}> Ask recipients to agree to use legally-binding electronic signatures before they submit.</label></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form></template>
+<template id="welcome-modal">
+<form method="post" action="{% url 'flows:workflow_action' wf.pk 'welcome' %}">{% csrf_token %}
+  <div class="modal-head"><h2>Welcome message</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <label class="check" style="margin-bottom:10px"><input type="checkbox" name="enabled" value="1" {% if wf.welcome_enabled %}checked{% endif %}> Show a welcome message before recipients open the documents</label>
+    <textarea name="message" rows="5" placeholder="Hello! Please have your policy number ready…">{{ wf.welcome_message }}</textarea>
+  </div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form></template>
+<template id="rename-modal">
+<form method="post" action="{% url 'flows:workflow_action' wf.pk 'rename' %}">{% csrf_token %}
+  <div class="modal-head"><h2>Rename</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><div class="field"><label>Name</label><input type="text" name="name" value="{{ wf.name }}" required></div><div class="field"><label>Description</label><textarea name="description" rows="3">{{ wf.description }}</textarea></div></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form></template>
+<template id="versions-modal">
+  <div class="modal-head"><h2>Version history</h2><button class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+  <a class="btn btn-sm btn-block" href="{% url 'flows:workflow_compare' wf.pk %}" style="margin-bottom:8px">{% icon "copy" 14 %} Compare versions</a>
+  {% for v in versions %}<form method="post" action="{% url 'flows:workflow_action' wf.pk 'restore_version' %}" class="row" style="padding:8px 0;border-bottom:1px solid var(--line)" data-confirm="Load version {{ v.number }} into the editor? Unpublished changes will be replaced.">{% csrf_token %}
+    <input type="hidden" name="version" value="{{ v.pk }}"><span class="grow"><b>Version {{ v.number }}</b><br><small class="muted">{{ v.created_at|date:"M d, Y H:i" }} · {{ v.published_by|display_name }}</small></span><a class="btn btn-sm btn-ghost" href="{% url 'flows:workflow_compare' wf.pk %}?a={{ v.number }}&amp;b=draft">Compare</a><button class="btn btn-sm">Restore</button></form>{% endfor %}
+  </div>
+</template>
+{% endblock %}

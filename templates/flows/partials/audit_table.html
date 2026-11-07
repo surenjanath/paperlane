@@ -1,0 +1,4 @@
+<div class="table-wrap"><table class="table"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Details</th><th>IP</th></tr></thead><tbody>
+{% for e in events %}<tr><td style="white-space:nowrap">{{ e.created_at|date:"M d, Y H:i:s" }}</td><td>{{ e.actor_label }}</td><td><code>{{ e.action }}</code></td><td>{{ e.detail }}{% if show_packet and e.packet %} <a class="link" href="{{ e.packet.get_absolute_url }}">{{ e.packet.name }}</a>{% endif %}</td><td class="muted">{{ e.ip|default:"" }}</td></tr>
+{% empty %}<tr><td colspan="5" class="muted">No events yet.</td></tr>{% endfor %}
+</tbody></table></div>

@@ -1,0 +1,36 @@
+{% extends "superadmin/_base.html" %}
+{% load ui %}
+{% block title %}Background jobs · Super admin{% endblock %}
+{% block content %}
+<div class="row" style="margin-bottom:6px"><h1 class="grow">Background jobs</h1>
+  <form method="post">{% csrf_token %}<input type="hidden" name="op" value="tick"><button class="btn btn-dark">{% icon "play" %} Run jobs now</button></form></div>
+<p class="muted" style="margin-bottom:14px">Reminders, deadlines, delayed bots, scheduled starts and webhook retries. Scheduler: {% if scheduler_on %}in-process{% else %}external (<code>paperlane_tick --loop 30</code>){% endif %} · {% if heartbeat %}last ran {{ heartbeat|timesince }} ago{% else %}<b class="bad">no heartbeat</b>{% endif %}.</p>
+<div class="sa-kpis">
+  <div class="sa-kpi"><small>Bot runs (24 h)</small><b>{{ counts.bots_24 }}</b>{% if counts.bots_failed_24 %}<em class="bad">{{ counts.bots_failed_24 }} failed</em>{% endif %}</div>
+  <div class="sa-kpi"><small>Emails sent (24 h)</small><b>{{ counts.emails_24 }}</b></div>
+  <div class="sa-kpi"><small>Webhook deliveries (24 h)</small><b>{{ counts.hooks_24 }}</b></div>
+  <div class="sa-kpi"><small>Bot jobs waiting</small><b>{{ bot_jobs|length }}</b></div>
+</div>
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:8px">Bot job queue <small class="muted">(delayed, background and retrying bots)</small></h3>
+  <div class="table-wrap" style="border:0"><table class="table"><tbody>
+  {% for j in bot_jobs %}<tr><td><b>{{ j.bot.name|default:j.bot.bot_type }}</b><br><small class="muted">{{ j.packet.workspace.name }} · {{ j.packet.name|truncatechars:50 }}</small>{% if j.attempts %}<br><small class="bad">Attempt {{ j.attempts|add:1 }} of 4 · {{ j.last_error|truncatechars:90 }}</small>{% endif %}</td>
+    <td><small class="{% if j.run_at < now %}bad{% else %}muted{% endif %}">{% if j.run_at < now %}late by {{ j.run_at|timesince }}{% else %}in {{ j.run_at|timeuntil }}{% endif %}</small></td>
+    <td style="text-align:right;white-space:nowrap"><form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="job" value="{{ j.pk }}"><button class="btn btn-sm" name="op" value="run_job">Run now</button> <button class="btn btn-sm" name="op" value="cancel_job">Cancel</button></form></td></tr>
+  {% empty %}<tr><td class="muted">No bot jobs waiting.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:8px">Webhook deliveries waiting or failed</h3>
+  <div class="table-wrap" style="border:0"><table class="table"><tbody>
+  {% for d in hooks %}<tr><td><b>{{ d.event }}</b><br><small class="muted">{{ d.endpoint.workspace.name }} · {{ d.endpoint.url|truncatechars:60 }}</small></td>
+    <td>{% if d.status == 'failed' %}<span class="badge badge-red">Gave up</span>{% else %}<span class="badge badge-amber">Retrying</span>{% endif %}<br><small class="muted">{{ d.attempts }} attempt{{ d.attempts|pluralize }} · {{ d.error|default:d.response_code|truncatechars:60 }}</small></td>
+    <td style="text-align:right"><form method="post">{% csrf_token %}<input type="hidden" name="op" value="retry_hook"><input type="hidden" name="delivery" value="{{ d.pk }}"><button class="btn btn-sm">Retry now</button></form></td></tr>
+  {% empty %}<tr><td class="muted">Every webhook was delivered.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+<div class="card card-pad">
+  <h3 style="margin-bottom:8px">Recent bot failures</h3>
+  <div class="table-wrap" style="border:0"><table class="table"><tbody>
+  {% for b in failed_bots %}<tr><td style="white-space:nowrap"><small class="muted">{{ b.created_at|date:"M d, H:i" }}</small></td><td><b>{{ b.bot_name }}</b><br><small class="muted">{{ b.workspace.name }}{% if b.packet %} · {{ b.packet.name|truncatechars:40 }}{% endif %}</small></td><td><small>{{ b.message|truncatechars:140 }}</small></td></tr>
+  {% empty %}<tr><td class="muted">No failures.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+{% endblock %}

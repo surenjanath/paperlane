@@ -1,0 +1,68 @@
+{% load ui %}
+<form method="post" action="{% url 'flows:autostart' wf.pk %}" enctype="multipart/form-data" style="display:contents">{% csrf_token %}
+<input type="hidden" name="type" value="{{ item.type }}">{% if item.id %}<input type="hidden" name="item" value="{{ item.id }}">{% endif %}
+<div class="drawer-head">
+  <button type="button" class="btn btn-ghost btn-sm btn-icon" data-drawer-url="{% url 'flows:autostart' wf.pk %}" title="Back">‹</button>
+  <h2>{% if item.source %}{{ item.source }}{% else %}{{ types|get:item.type }}{% endif %}</h2>
+  <button type="button" class="modal-close" data-close>×</button>
+</div>
+<div class="drawer-body">
+{% if item.type == 'schedule' or item.type == 'sheet' %}
+  {% if item.type == 'sheet' %}
+  <div class="field"><label>Spreadsheet (XLSX or CSV)</label>
+    <input type="file" name="sheet" accept=".xlsx,.xlsm,.csv">
+    <div class="help">{% if item.file_name %}Current file: <b>{{ item.file_name }}</b> ({{ item.rows }} row{{ item.rows|pluralize }}). Upload a new file to replace it.{% else %}The first row holds column names; columns named like a field (name or label) pre-fill it. Optional columns: <code>recipient</code>, <code>recipient_name</code>, <code>document_name</code>.{% endif %}</div>
+    {% if item.preview %}<div class="table-wrap" style="margin-top:6px"><table class="table"><thead><tr>{% for k in item.preview.0.keys %}<th>{{ k }}</th>{% endfor %}</tr></thead><tbody>{% for r in item.preview %}<tr>{% for v in r.values %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
+  </div>
+  <div class="field"><label>Each run sends</label>
+    <label class="check"><input type="radio" name="row_mode" value="all" {% if item.row_mode != 'next' %}checked{% endif %}> One document for every row</label>
+    <label class="check"><input type="radio" name="row_mode" value="next" {% if item.row_mode == 'next' %}checked{% endif %}> The next unused row only{% if item.next_row %} (row {{ item.next_row|add:1 }} is next){% endif %}</label>
+  </div>
+  {% endif %}
+  <div class="field"><label>Start date and time</label>
+    <div class="grid-2"><input type="datetime-local" name="start" value="{{ item.start|default:'' }}">
+      <select name="tz">{% for z in timezones %}<option value="{{ z }}" {% if z == item.tz|default:tz_default %}selected{% endif %}>{{ z }}</option>{% endfor %}</select></div></div>
+  <div class="field"><label>Repeat</label>
+    <div class="seg">{% for v, l in "once:Once,multiple:Multiple times,schedule:On schedule"|pairs %}<input type="radio" id="rep-{{ v }}" name="repeat" value="{{ v }}" {% if item.repeat|default:'once' == v %}checked{% endif %}><label for="rep-{{ v }}">{{ l }}</label>{% endfor %}</div></div>
+  <div data-show-when="repeat=multiple" class="field"><label>Send documents every</label>
+    <div class="grid-2"><input type="number" name="every" min="1" max="999" value="{{ item.every|default:3 }}">
+      <select name="unit">{% for u in units %}<option value="{{ u }}" {% if item.unit == u %}selected{% endif %}>{{ u|title }}</option>{% endfor %}</select></div></div>
+  <div data-show-when="repeat=schedule">
+    <div class="field"><label>Schedule type</label><select name="schedule_type">
+      {% for v, l in "week:Days of the week,month:Days of the month,daily:Every day,custom:Custom"|pairs %}<option value="{{ v }}" {% if item.schedule_type == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Months</label><div class="chips">{% for n, m in months %}<label class="chip-check"><input type="checkbox" name="months" value="{{ n }}" {% if n in item.months %}checked{% endif %}><span>{{ m|slice:":3" }}</span></label>{% endfor %}</div></div>
+    <div class="field" data-show-when="schedule_type=week|custom"><label>Days of the week</label><div class="chips">{% for n, d in weekdays %}<label class="chip-check"><input type="checkbox" name="weekdays" value="{{ n }}" {% if n in item.weekdays %}checked{% endif %}><span>{{ d|slice:":2" }}</span></label>{% endfor %}</div></div>
+    <div class="field" data-show-when="schedule_type=month|custom"><label>Days of the month</label><input type="text" name="monthdays" value="{{ item.monthdays|join:', ' }}" placeholder="e.g. 1, 15, 28"></div>
+    <div class="field"><label>Time</label><input type="time" name="time" value="{{ item.time|default:'09:00' }}" style="max-width:160px"></div>
+  </div>
+  <div data-show-when="repeat=multiple|schedule" class="field"><label>Stop sending documents</label>
+    <select name="stop">{% for v, l in "never:Never,date:On exact date,count:After number of occurrences"|pairs %}<option value="{{ v }}" {% if item.stop == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    <div data-show-when="stop=date" style="margin-top:6px"><input type="date" name="stop_date" value="{{ item.stop_date|default:'' }}"></div>
+    <div data-show-when="stop=count" style="margin-top:6px"><input type="number" name="stop_count" min="1" value="{{ item.stop_count|default:'' }}" placeholder="Number of runs"></div>
+  </div>
+  <div class="help">Runs while <code>python manage.py paperlane_tick --loop 60</code> is running. Only published workflows start.</div>
+{% elif item.type == 'workflow' %}
+  <div class="field"><label>Start when this workflow completes</label><select name="source_workflow"><option value="">Select a workflow</option>{% for o in others %}<option value="{{ o.pk }}" {% if item.source_workflow == o.pk %}selected{% endif %}>{{ o.name }}</option>{% endfor %}</select>
+    <div class="help">Fields with the same name in both workflows are pre-filled.</div></div>
+{% elif item.type == 'email' %}
+  <p class="muted">Forward or send an email to this workflow's address. It starts a document, the AI fills the first step from the message, attachments are saved, and the sender gets a link to check it and submit.</p>
+  {% if item.token and inbound_domain %}
+  <div class="copy-row"><input id="as-mail" type="text" readonly value="{{ item.token }}@{{ inbound_domain }}"><button type="button" class="btn" data-copy="#as-mail">Copy</button></div>
+  {% elif item.token %}<div class="alert">Address token <code>{{ item.token }}</code>. Set <code>PAPERLANE_INBOUND_DOMAIN</code> to show the full address.</div>
+  {% else %}<div class="help">The address appears after you apply the changes.</div>{% endif %}
+  <div class="field" style="margin-top:12px"><label>Who may start it</label>
+    <label class="check"><input type="radio" name="senders" value="members" {% if item.senders != 'domains' %}checked{% endif %}> Members of this workspace</label>
+    <label class="check"><input type="radio" name="senders" value="domains" {% if item.senders == 'domains' %}checked{% endif %}> Members, plus anyone from these domains</label>
+    <input type="text" name="domains" value="{{ item.domains|default:'' }}" placeholder="e.g. example.com, partner.org" data-show-when="senders=domains"></div>
+  <label class="check"><input type="checkbox" name="ai_fill" {% if item.ai_fill %}checked{% endif %}> Fill the first step from the email with AI <small class="muted">(sensitive fields are left for people)</small></label>
+  {% if not inbound_ready %}<div class="help" style="margin-top:8px">Not receiving yet: set <code>PAPERLANE_INBOUND_SECRET</code> and point your mail provider's inbound webhook at <code>/inbound/email/&lt;secret&gt;/</code>, or pipe messages to <code>python manage.py inbound_email</code>.</div>{% endif %}
+{% else %}
+  <input type="hidden" name="source" value="{{ item.source|default:'' }}">
+  <p class="muted">{% if item.source %}Connect <b>{{ item.source }}</b> through a Connected account or an automation tool (Zapier, Make, n8n, Power Automate) that POSTs JSON to this URL when the event happens.{% else %}Another system starts the workflow by POSTing JSON to this URL.{% endif %}</p>
+  <div class="copy-row"><input id="as-hook" type="text" readonly value="{{ hook_url }}"><button type="button" class="btn" data-copy="#as-hook">Copy</button></div>
+  <div class="help" style="margin-top:8px">Body: <code>{"Field name": "value", …, "recipient": "email (optional)", "document_name": "…"}</code></div>
+{% endif %}
+  <label class="check" style="margin-top:12px"><input type="checkbox" name="notify_admin" {% if item.notify_admin %}checked{% endif %}> Notify the workflow owner every time documents are sent</label>
+</div>
+<div class="drawer-foot"><button type="button" class="btn" data-drawer-url="{% url 'flows:autostart' wf.pk %}">Cancel</button><button class="btn btn-dark">Apply changes</button></div>
+</form>

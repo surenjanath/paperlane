@@ -1,0 +1,74 @@
+{% extends "base_bare.html" %}
+{% load i18n %}
+{% load ui static %}
+{% block title %}{% if preview %}Preview{% else %}{{ packet.name }}{% endif %}{% endblock %}
+{% block head %}{% include "flows/_fill_theme.html" %}{% endblock %}
+{% block body %}
+<div class="fill-page" {% with d=docs.0.design %}{% if d.page_background %}style="--fill-bg:{{ d.page_background }}"{% endif %}{% endwith %}>
+  <header class="fill-top">
+    <div class="brand">{% if workspace.logo %}<img src="{{ workspace.logo.url }}" alt="">{% endif %}<span class="brand-name">{{ workspace.name }}</span></div>
+    <div class="grow muted" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{% if preview %}Preview of {{ docs.0.name }}{% else %}{{ packet.name }} · {{ step.name }}{% endif %}</div>
+    {% if not preview %}<nav class="fill-lang" aria-label="{% translate "Language" %}">{% get_current_language as LANG %}<a href="?lang=en" {% if LANG == "en" %}class="on" aria-current="true"{% endif %}>English</a><a href="?lang=es" {% if LANG == "es" %}class="on" aria-current="true"{% endif %}>Español</a></nav>{% endif %}
+    {% if not preview and request.user.is_authenticated %}<a class="btn btn-sm" href="{% url 'core:inbox' %}">{% translate "Inbox" %}</a>{% endif %}
+  </header>
+  {% if preview %}<div class="alert alert-info" style="max-width:760px;margin:12px auto 0">Preview mode — submissions are disabled. Fields of every role are editable here.</div>{% endif %}
+  {% if has_errors %}<div class="alert alert-error" style="max-width:760px;margin:12px auto 0">{% translate "Please fix the highlighted fields." %}</div>{% endif %}
+  {% if not preview and packet.flags.duplicates and request.membership.workspace_id == packet.workspace_id %}<div class="dup-banner" style="max-width:760px;margin:12px auto 0">⚠️ <b>Possible duplicate</b> of {% for d in packet.flags.duplicates %}<a class="link" href="{% url 'flows:packet_detail' d.id %}" target="_blank">#{{ d.id }} {{ d.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %} — same {{ packet.flags.duplicates.0.field }}. Check before you continue.</div>{% endif %}
+  {% if not preview and run.assignee_group_id and request.user.is_authenticated %}
+  <form method="post" class="claim-bar {% if run.claimed_by_id == request.user.id %}mine{% endif %}">{% csrf_token %}
+    {% if run.claimed_by_id == request.user.id %}<span>✋ <b>You took this task</b> from the {{ run.assignee_group.name }} queue{% if run.claimed_at %} · {{ run.claimed_at|timesince }} ago{% endif %}.</span>
+      <button class="btn btn-sm" name="action" value="release">Release to the group</button>
+    {% else %}<span>👥 This task is for <b>{{ run.assignee_group.name }}</b>. Take it so teammates don't work on it at the same time.</span>
+      <button class="btn btn-sm btn-dark" name="action" value="claim">Take this task</button>{% endif %}
+  </form>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data" id="fill-form" {% if preview %}onsubmit="return false"{% endif %}>{% csrf_token %}
+  {% for d in docs %}
+    <div class="fill-wrap {% if d.design.width == 'wide' %}wide{% endif %}" data-doc-wrap {% if docs|length > 1 and not forloop.first %}hidden{% endif %} {% if d.design.width == 'custom' and d.design.custom_width %}style="max-width:{{ d.design.custom_width }}px"{% endif %}>
+      <div class="fill-doc" data-doc style="{% if d.design.background %}background:{{ d.design.background }};{% endif %}{% if d.design.font %}font-family:'{{ d.design.font }}',Inter,sans-serif;{% endif %}{% if d.design.accent %}--fill-accent:{{ d.design.accent }};{% endif %}">
+        <div class="doc-head" style="{% if d.design.header_color %}background:{{ d.design.header_color }}{% endif %}">
+          {% if d.design.logo_url %}<img src="{{ d.design.logo_url }}" alt="" style="height:36px;margin-bottom:6px;display:block">{% elif d.design.use_workspace_logo and workspace.logo %}<img src="{{ workspace.logo.url }}" alt="" style="height:48px;margin:0 0 6px auto;display:block">{% endif %}
+          <b>{{ d.name }}</b>{% if d.file_url %} · <a class="link" href="{{ d.file_url }}" target="_blank">{% translate "Open attached file" %}</a>{% endif %}
+        </div>
+        {% if d.file_url %}<iframe src="{{ d.file_url }}" style="width:100%;height:480px;border:1px solid var(--line);border-radius:6px;margin-bottom:16px" title="{{ d.name }}"></iframe>{% endif %}
+        {% for page in d.pages %}
+        <div class="fill-pg" data-pg="{{ forloop.counter0 }}" {% if not forloop.first %}hidden{% endif %}>
+          <div class="ff-grid">{% for f in page %}{% include "flows/fields/field.html" %}{% endfor %}</div>
+          {% if d.pages|length > 1 %}<div class="pager"><button type="button" class="btn" data-prev {% if forloop.first %}disabled{% endif %}>‹ {% translate "Back" %}</button><small class="muted">{% blocktranslate with n=forloop.counter total=d.pages|length %}Page {{ n }} of {{ total }}{% endblocktranslate %}</small><button type="button" class="btn" data-next {% if forloop.last %}disabled{% endif %}>{% translate "Next" %} ›</button></div>{% endif %}
+        </div>
+        {% endfor %}
+        {% if docs|length > 1 %}<div class="pager doc-pager"><button type="button" class="btn" data-doc-prev {% if forloop.first %}disabled{% endif %}>‹ {% translate "Previous document" %}</button><small class="muted">{% blocktranslate with name=d.name n=forloop.counter total=docs|length %}{{ name }} · {{ n }} of {{ total }}{% endblocktranslate %}</small><button type="button" class="btn" data-doc-next {% if forloop.last %}disabled{% endif %}>{% translate "Next document" %} ›</button></div>{% endif %}
+      </div>
+    </div>
+  {% endfor %}
+  {% if not preview %}
+  <div class="fill-wrap" style="padding-top:0">
+    {% if consent_required %}
+    <div class="consent"><label class="check"><input type="checkbox" name="consent" {% if request.POST.consent %}checked{% endif %}> <span>{% translate "I agree to use electronic records and signatures and that my electronic signature is the legal equivalent of my handwritten signature." %}</span></label>{% if consent_error %}<div class="err-msg">{{ consent_error }}</div>{% endif %}</div>
+    {% endif %}
+  </div>
+  <div class="fill-bar">
+    <button type="button" class="fill-progress" data-next-field hidden aria-live="polite"></button>
+    {% if ai_assist %}<button type="button" class="btn" data-modal-template="#ai-fill-tpl" title="{% translate "Paste an email, letter or notes and let AI fill this form" %}">✦ {% translate "Fill from text" %}</button>{% endif %}
+    {% if not settings.forbid_decline %}<button type="button" class="btn btn-danger" data-modal-template="#decline-tpl">{% translate "Decline" %}</button>{% endif %}
+    {% if not settings.forbid_discard and run.draft %}<button class="btn" name="action" value="discard" data-confirm="{% translate "Discard your saved draft?" %}">{% translate "Discard" %}</button>{% endif %}
+    {% if not settings.forbid_draft %}<button class="btn" name="action" value="draft">{% translate "Save as draft" %}</button>{% endif %}
+    <button class="btn btn-lg fill-btn" name="action" value="submit">{% translate "Complete" %}</button>
+  </div>
+  {% endif %}
+  </form>
+</div>
+{% if not preview %}
+<template id="decline-tpl"><form method="post">{% csrf_token %}<input type="hidden" name="action" value="decline">
+  <div class="modal-head"><h2>{% translate "Decline documents" %}</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><p class="muted">{% translate "The sender will be notified. Please tell them why." %}</p><textarea name="reason" rows="4" required></textarea></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>{% translate "Cancel" %}</button><button class="btn btn-danger">{% translate "Decline" %}</button></div></form></template>
+{% if ai_assist %}<template id="ai-fill-tpl"><form data-ai-fill="{% url 'flows:fill_ai_extract' run.token %}">{% csrf_token %}
+  <div class="modal-head"><h2>✦ {% translate "Fill from text" %}</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><p class="muted">{% translate "Paste an email, letter or notes. AI fills the fields you can edit on this step — check them before you complete. Nothing is saved until you do." %}</p>
+    <textarea name="text" rows="9" required placeholder="{% translate "Paste text here…" %}"></textarea><div class="err-msg" data-ai-err hidden></div></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>{% translate "Cancel" %}</button><button class="btn btn-dark">✦ {% translate "Fill fields" %}</button></div></form></template>{% endif %}
+{% endif %}
+{% endblock %}
+{% block scripts %}<script type="application/json" id="fill-i18n">{"left_one": "{% translate "1 required field left · Next ↓" %}", "left_many": "{% translate "%(n)s required fields left · Next ↓" %}", "all_done": "{% translate "✓ All required fields filled" %}", "reading": "{% translate "Reading…" %}", "filled_one": "{% translate "AI filled 1 field — please check it." %}", "filled_many": "{% translate "AI filled %(n)s fields — please check them." %}", "nothing": "{% translate "AI found nothing to fill in that text." %}", "unreachable": "{% translate "The AI model could not be reached." %}", "fill_fields": "{% translate "Fill fields" %}"}</script>
+<script src="{% static 'js/fill.js' %}?v={{ asset_v }}"></script>{% endblock %}

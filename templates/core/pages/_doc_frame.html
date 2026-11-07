@@ -1,0 +1,42 @@
+{% extends layout %}
+{% load ui %}
+{% block shell_class %}no-sidebar{% endblock %}
+{% block sidebar %}{% endblock %}
+{% block main %}
+<div class="hc">
+  <header class="hc-top">
+    <a class="hc-brand" href="{% if request.user.is_authenticated %}{% url 'core:dashboard' %}{% else %}{% url 'core:landing' %}{% endif %}"><span class="hc-logo">{% logo_mark 28 %}</span><span><b>{{ app_name|default:"Paperlane" }}</b></span></a>
+    <span class="grow"></span>
+    <a class="btn btn-sm btn-ghost" href="{% url 'core:help' %}">{% icon "help" 16 %} Help center</a>
+    {% if request.user.is_authenticated %}<a class="btn btn-sm btn-ghost" href="{% url 'core:dashboard' %}">{% icon "back" 16 %} Back to app</a>{% else %}<a class="btn btn-sm btn-dark" href="{% url 'accounts:login' %}">Log in</a>{% endif %}
+  </header>
+  <div class="hc-doc">
+    <nav class="hc-nav" aria-label="Documents">
+      <ul class="dc-nav">{% for key, label, icon in docs %}<li><a href="{% url 'core:page' key %}" {% if key == page %}class="on" aria-current="page"{% endif %}>{% icon icon 16 %} {{ label }}</a></li>{% endfor %}
+        <li><a href="{% url 'core:help' %}">{% icon "help" 16 %} Help center</a></li></ul>
+    </nav>
+    <article class="hc-article">
+      <div class="hc-crumbs"><a href="{% if request.user.is_authenticated %}{% url 'core:dashboard' %}{% else %}/{% endif %}">{{ app_name|default:"Paperlane" }}</a><span>›</span><span>{% block crumb %}{% endblock %}</span></div>
+      {% block doc %}{% endblock %}
+    </article>
+    <aside class="hc-aside">
+      <div class="hc-toc" data-doc-toc hidden><b>On this page</b><ul></ul></div>
+      {% block aside %}{% endblock %}
+      <div class="hc-askcard"><b>Questions?</b><p>{% if platform.support_email %}Write to <a class="link" href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a> or visit{% else %}Visit{% endif %} the help center.</p><a class="btn btn-sm btn-block" href="{% url 'core:help' %}">{% icon "help" 14 %} Help center</a></div>
+    </aside>
+  </div>
+</div>
+<script>
+(function () {
+  const body = document.querySelector("[data-doc-body]"), toc = document.querySelector("[data-doc-toc]");
+  if (!body || !toc) return;
+  const hs = [...body.querySelectorAll("h2[id], h3[id]")];
+  if (hs.length < 2) return;
+  toc.querySelector("ul").innerHTML = hs.map((h) => `<li class="${h.tagName === "H3" ? "sub" : ""}"><a href="#${h.id}">${h.textContent.replace(/[<>&]/g, "")}</a></li>`).join("");
+  toc.hidden = false;
+  const links = [...toc.querySelectorAll("a")];
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) links.forEach((a) => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id)); }), { rootMargin: "-80px 0px -70% 0px" });
+  hs.forEach((h) => io.observe(h));
+})();
+</script>
+{% endblock %}

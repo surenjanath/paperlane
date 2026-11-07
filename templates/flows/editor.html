@@ -1,0 +1,88 @@
+{% extends "base_bare.html" %}
+{% load ui static %}
+{% block title %}{{ ed.kind|default:"Document" }} editor · {{ ed.name }}{% endblock %}
+{% block body %}
+<div class="editor" id="editor"
+     data-save-url="{{ ed.save_url }}" data-continue-url="{{ ed.continue_url }}"
+     data-preview-url="{{ ed.preview_url }}" data-back-url="{{ ed.back_url }}" data-ai-url="{{ ed.ai_url|default:'' }}">
+  <div class="editor-top">
+    <a class="btn icon-col" href="{{ ed.back_url }}" data-leave>{% icon "back" %}Back</a>
+    <button class="btn icon-col on" data-left="elements">{% icon "dashboard" %}Elements</button>
+    <button class="btn icon-col" data-left="widgets">{% icon "chart" %}Widgets</button>
+    <button class="btn icon-col" data-left="pages">{% icon "documents" %}Pages</button>
+    <button class="btn icon-col" data-left="library">{% icon "folder" %}Library</button>
+    <div class="mid">
+      <input id="doc-name" type="text" value="{{ ed.name }}" style="width:220px;height:30px;text-align:center;font-weight:600" aria-label="{{ ed.kind|default:'Document' }} name">
+      <span class="vsep"></span>
+      <button class="btn icon-col" id="undo" disabled>↶<span>Undo</span></button>
+      <button class="btn icon-col" id="redo" disabled>↷<span>Redo</span></button>
+      <span class="vsep"></span>
+      <button class="btn icon-col" id="preview-btn">{% icon "eye" %}Preview</button>
+      <button class="btn icon-col {% if ed.ai_url %}ai-top{% endif %}" id="assistant-btn">✦<span>{% if ed.ai_url %}AI builder{% else %}Assistant{% endif %}</span></button>
+    </div>
+    <button class="btn icon-col on" data-right="properties">{% icon "edit" %}Properties</button>
+    <button class="btn icon-col" data-right="design">{% icon "palette" %}Design</button>
+    <button class="btn icon-col" data-right="conditions">{% icon "branch" %}Conditions</button>
+  </div>
+
+  <div class="editor-main">
+    <aside class="palette-col">
+      <div class="roles-box" {% if ed.hide_roles %}hidden{% endif %}>
+        <div class="h"><span>Select who will be filling out</span><button class="btn btn-ghost btn-sm" id="add-role" title="Add role">+ Add roles</button></div>
+        <div id="roles"></div>
+      </div>
+      <div id="left-elements">
+        {% for group, items in elements %}
+        <details class="pal-group" open><summary>{{ group }}</summary>
+          {% for t, label, glyph in items %}<div class="pal-item" draggable="true" data-type="{{ t }}"><span class="gl">{{ glyph }}</span>{{ label }}</div>{% endfor %}
+        </details>
+        {% endfor %}
+      </div>
+      <div id="left-widgets" hidden>
+        {% for group, items in widgets %}
+        <details class="pal-group" open><summary>{{ group }}</summary>
+          {% for t, label, glyph in items %}<div class="widget-tile" draggable="true" data-type="{{ t }}"><span>{{ glyph }}</span>{{ label }}</div>{% endfor %}
+        </details>
+        {% endfor %}
+      </div>
+      <div id="left-library" hidden data-url="{% url 'flows:field_library' %}"></div>
+      <div id="left-pages" hidden style="padding:12px">
+        <div id="pages-list"></div>
+        <button class="btn btn-block" id="add-page" style="margin-top:8px">+ Add page</button>
+        <hr>
+        {% if ed.side_items %}<div class="muted" style="font-size:12px">{{ ed.side_title }}</div>
+        {% for name, url, active in ed.side_items %}<a class="nav-item {% if active %}active{% endif %}" href="{{ url }}" data-leave>{% icon "documents" %} {{ name }}</a>{% endfor %}{% endif %}
+      </div>
+    </aside>
+
+    <section class="canvas-col" id="canvas"></section>
+
+    <aside class="props-col">
+      <div id="right-properties"></div>
+      <div id="right-design" hidden></div>
+      <div id="right-conditions" hidden></div>
+      <div id="right-ai" hidden></div>
+    </aside>
+  </div>
+
+  <div class="editor-foot">
+    <a class="btn" href="{{ ed.back_url }}" data-leave>Cancel</a>
+    <button class="btn" id="save-btn">Save</button>
+    <button class="btn btn-dark" id="continue-btn">{{ ed.continue_label|default:"Continue" }}</button>
+  </div>
+</div>
+<script id="schema-data" type="application/json">{{ schema_json|safe }}</script>
+<script id="design-data" type="application/json">{{ design_json|safe }}</script>
+<script id="roles-data" type="application/json">{{ roles_json|safe }}</script>
+<script id="composites-data" type="application/json">{{ composites_json|safe }}</script>
+<script id="ops-data" type="application/json">{{ ops_json|safe }}</script>
+<template id="assistant-tpl">
+  <div class="modal-head"><h2>✦ Form assistant</h2><button class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <p class="muted">Paste your questions, one per line. The assistant picks a field type from each line (email, phone, date, signature, amount, yes/no, choices in brackets…) and adds them to the form for the selected role.</p>
+    <textarea id="assistant-text" rows="9" placeholder="Full name&#10;Email address&#10;Date of birth&#10;Policy number&#10;Claim amount&#10;Payment method [Cheque, ACH, Cash]&#10;Do you agree to the terms? (yes/no)&#10;Signature"></textarea>
+  </div>
+  <div class="modal-foot"><button class="btn" data-close>Cancel</button><button class="btn btn-dark" id="assistant-go">Add fields</button></div>
+</template>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/editor.js' %}?v={{ asset_v }}"></script>{% endblock %}

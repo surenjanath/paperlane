@@ -1,0 +1,11 @@
+{% extends "accounts/_settings_base.html" %}
+{% block title %}Domains{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">Domains</h1>
+<div class="card card-pad" style="margin-top:16px">
+  <h3>Custom domains</h3>
+  <p class="muted">Paperlane is self-hosted: serve it on your own domain by pointing DNS at your server, adding the host to <code>PAPERLANE_ALLOWED_HOSTS</code> and setting <code>PAPERLANE_SITE_URL</code> so emailed links use it.</p>
+  <div class="kv" style="margin-top:10px"><dt>Current site URL</dt><dd class="mono">{{ request.scheme }}://{{ request.get_host }}</dd><dt>Workspace identifier</dt><dd class="mono">{{ request.workspace.slug }}</dd></div>
+</div>
+{% endblock %}

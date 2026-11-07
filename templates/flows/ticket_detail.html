@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ t.ref }} · Support{% endblock %}
+{% block heading %}<span class="dx-badge sev-{{ t.severity }}" style="vertical-align:middle">{{ t.get_severity_display }}</span> {{ t.title }}{% endblock %}
+{% block subheading %}<span><a class="link" href="{% url 'flows:tickets' %}">Support tickets</a> › {{ t.ref }}</span><span class="sep"></span><span>{% if t.source == 'auto' %}✦ Filed automatically by the assistant{% else %}Reported by {{ t.created_by.get_full_name|default:t.created_by.email|default:"—" }}{% endif %} · {{ t.created_at|date:"M j, Y H:i" }}</span>{% endblock %}
+{% block actions %}
+{% if t.packet %}<a class="btn btn-sm" href="{{ t.packet.get_absolute_url }}?diagnose=1">{% icon "sparkle" 16 %} Ask the assistant</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="tk-detail">
+  <div class="tk-col">
+    <section class="card card-pad">
+      <div class="tk-facts">
+        <div><small>Status</small><span class="tk-status st-{{ t.status }}">{{ t.get_status_display }}</span></div>
+        <div><small>Impact</small><b>{{ t.impact|default:"—" }}</b></div>
+        <div><small>Affected</small><b>{{ t.affected_count }} document{{ t.affected_count|pluralize }}</b></div>
+        <div><small>Support response</small>{% if t.first_response_at %}<b>✓ {{ t.first_response_at|date:"M j, H:i" }}</b>{% elif t.due_at %}<b {% if t.response_overdue %}style="color:var(--red)"{% endif %}>Target {{ t.due_at|date:"M j, H:i" }}</b>{% else %}<b>—</b>{% endif %}</div>
+        {% if t.packet %}<div><small>Document</small><a class="link" href="{{ t.packet.get_absolute_url }}">#{{ t.packet_id }} {{ t.packet.name }}</a></div>{% endif %}
+        {% if t.workflow %}<div><small>Workflow</small><a class="link" href="{{ t.workflow.get_absolute_url }}">{{ t.workflow.name }}</a></div>{% endif %}
+      </div>
+    </section>
+    {% if t.summary %}<section class="card card-pad"><h3>✦ What went wrong</h3><div class="tk-summary" data-md>{{ t.summary }}</div></section>{% endif %}
+    {% if t.findings %}<section class="card card-pad"><h3>Findings</h3>
+      <ul class="dx-list">{% for f in t.findings %}<li class="dx-f sev-{{ f.severity }}"><div><span class="dx-badge sev-{{ f.severity }}">{{ f.severity|title }}</span> <b>{{ f.title }}</b></div><p>{{ f.detail }}</p><p class="dx-fix"><b>Fix:</b> {{ f.fix }}</p>{% if f.link %}<a class="link" href="{{ f.link }}">Open →</a>{% endif %}</li>{% endfor %}</ul>
+    </section>{% endif %}
+  </div>
+  <aside class="tk-col">
+    {% if can_status %}<section class="card card-pad"><h3>Status</h3>
+      <form method="post" class="row" style="gap:8px">{% csrf_token %}<input type="hidden" name="do" value="status">
+        <select name="status" style="flex:1">{% for k, l in statuses %}<option value="{{ k }}" {% if t.status == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <button class="btn btn-sm btn-dark">Update</button></form>
+      {% if t.packet %}<form method="post" style="margin-top:8px">{% csrf_token %}<input type="hidden" name="do" value="rediagnose"><button class="btn btn-sm btn-block">↻ Check the document again</button></form>{% endif %}
+    </section>{% endif %}
+    <section class="card card-pad"><h3>Activity</h3>
+      <div class="tk-notes">{% for n in t.notes %}<div class="tk-note {% if n.staff %}staff{% endif %}"><div><b>{{ n.by }}</b>{% if n.staff %} <span class="dx-badge sev-low">Support</span>{% endif %} <small class="muted">{{ n.at|iso_dt|date:"M j, H:i" }}</small></div><p>{{ n.text }}</p></div>
+      {% empty %}<p class="muted small">No notes yet.</p>{% endfor %}</div>
+      <form method="post" style="margin-top:10px">{% csrf_token %}<input type="hidden" name="do" value="note"><textarea name="text" rows="3" placeholder="Add details or an update…" required></textarea><button class="btn btn-sm btn-dark" style="margin-top:6px">Add note</button></form>
+    </section>
+  </aside>
+</div>
+<script>
+document.querySelectorAll("[data-md]").forEach((el) => {
+  const esc = (t) => t.replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+  el.innerHTML = el.textContent.split(/\n+/).map((l) => "<p>" + esc(l).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") + "</p>").join("");
+});
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Key dates{% endblock %}
+{% block heading %}Key dates{% endblock %}
+{% block subheading %}{% if soon %}<b>{{ soon }}</b> in the next 30 days{% else %}Nothing due in the next 30 days{% endif %}<span class="sep"></span>Renewals, expiries and reviews from finished documents{% endblock %}
+{% block tabs %}<nav class="tabs" aria-label="Key dates"><a href="?show=upcoming" class="{% if show != 'passed' %}active{% endif %}">Upcoming</a><a href="?show=passed" class="{% if show == 'passed' %}active{% endif %}">Passed (90 days)</a></nav>{% endblock %}
+{% block content %}
+{% if rows %}
+<div class="kd-list">
+  {% for k in rows %}
+  {% ifchanged k.date|date:"F Y" %}<h3 class="kd-month">{{ k.date|date:"F Y" }}</h3>{% endifchanged %}
+  <div class="kd-item{% if k.done_at %} done{% endif %}">
+    <div class="kd-date {% if not k.done_at and k.days_left <= 7 and k.days_left >= 0 %}soon{% elif k.days_left < 0 %}past{% endif %}"><b>{{ k.date|date:"j" }}</b><small>{{ k.date|date:"M" }}</small></div>
+    <div class="grow">
+      <div><b>{{ k.label }}</b> · <a class="link" href="{% url 'flows:packet_detail' k.packet_id %}">{{ k.packet.name|truncatechars:70 }}</a></div>
+      <div class="muted small">{{ k.packet.workflow.name }} · {% if k.done_at %}Handled {{ k.done_at|date:"M j" }}{% elif k.days_left == 0 %}Today{% elif k.days_left > 0 %}In {{ k.days_left }} day{{ k.days_left|pluralize }}{% else %}{{ k.days_left|stringformat:"d"|slice:"1:" }} day{{ k.days_left|pluralize }} ago{% endif %}{% if k.remind_days %} · reminders {{ k.remind_days|join:", " }} days before{% endif %}</div>
+    </div>
+    <form method="post">{% csrf_token %}<button class="btn btn-sm" name="done" value="{{ k.pk }}">{% if k.done_at %}Reopen{% else %}{% icon "check" 14 %} Handled{% endif %}</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card card-pad" style="text-align:center">
+  <h3>No key dates {% if show == 'passed' %}in the last 90 days{% else %}coming up{% endif %}</h3>
+  <p class="muted">In a workflow's builder open <b>⋯ › Key dates &amp; reminders</b> and pick its renewal, expiry or review date fields. Finished documents then show up here, with reminders before each date.</p>
+</div>
+{% endif %}
+{% endblock %}

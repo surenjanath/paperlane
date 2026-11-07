@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}New document{% endblock %}
+{% block heading %}Send a document{% endblock %}
+{% block subheading %}A one-time request to fill out or sign a document.{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="card card-pad" style="max-width:680px">{% csrf_token %}
+  <div class="field"><label>Document name</label><input type="text" name="name" placeholder="e.g. Service agreement" required></div>
+  <div class="field"><label>Document</label>
+    <div class="seg" style="margin-bottom:8px"><input type="radio" id="src-form" name="src" value="form" checked><label for="src-form">Build a form</label><input type="radio" id="src-file" name="src" value="file"><label for="src-file">Upload a file</label></div>
+    <div data-show-when="src=file"><input type="file" name="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"><div class="help">The file is shown to recipients; you'll add signature and other fields next.</div></div>
+  </div>
+  <div class="field"><label>Recipients (in signing order)</label>
+    <div id="recips">
+      <div class="rule-row grid-2" style="margin-bottom:6px"><input type="email" name="emails" placeholder="Email" value="{{ request.user.email }}"><div class="row" style="gap:6px;flex-wrap:nowrap"><input type="text" name="names" placeholder="Role name, e.g. Signer"><button class="btn btn-icon" data-remove-rule title="Remove">×</button></div></div>
+    </div>
+    <button class="btn btn-sm" data-add-rule="#recips">{% icon "plus" %} Add recipient</button>
+  </div>
+  <div class="field"><label>Message (optional)</label><textarea name="message" rows="3">Hi {user_name},
+You're invited to fill out {workflow_name}.</textarea></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn btn-dark">Continue to editor</button></div>
+</form>
+{% endblock %}

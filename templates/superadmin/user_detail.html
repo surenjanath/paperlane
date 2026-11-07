@@ -1,0 +1,62 @@
+{% extends "superadmin/_base.html" %}
+{% load ui %}
+{% block title %}{{ u.email }} · Super admin{% endblock %}
+{% block content %}
+<p><a class="link" href="{% url 'superadmin:users' %}">← Users</a></p>
+<h1 style="margin:6px 0 4px">{{ u.get_full_name|default:u.username }} {% if u.is_superuser %}<span class="badge badge-purple">Super admin</span>{% endif %}{% if not u.is_active %} <span class="badge badge-red">Deactivated</span>{% endif %}</h1>
+<p class="muted" style="margin-bottom:16px">{{ u.email }} · joined {{ u.date_joined|date:"M j, Y" }} · last sign-in {% if u.last_login %}{{ u.last_login|timesince }} ago{% else %}never{% endif %} · {{ sessions }} active session{{ sessions|pluralize }} · two-step {% if profile.two_factor_on %}<b>on</b>{% else %}off{% endif %}</p>
+<div class="sa-grid">
+<div>
+  <div class="card card-pad" style="margin-bottom:16px">
+    <h3 style="margin-bottom:10px">Workspaces</h3>
+    <div class="table-wrap" style="border:0"><table class="table"><tbody>
+    {% for m in memberships %}<tr {% if not m.active %}style="opacity:.55"{% endif %}><td><a class="link" href="{% url 'superadmin:workspace' m.workspace.pk %}">{{ m.workspace.name }}</a>{% if m.workspace.suspended_at %} <span class="badge badge-red">Suspended</span>{% endif %}</td><td><small>{{ m.get_role_display }}{% if not m.active %} · removed{% endif %}</small></td></tr>
+    {% empty %}<tr><td class="muted">Not a member of any workspace.</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% if workspaces %}<form method="post" class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">{% csrf_token %}<input type="hidden" name="op" value="add_membership">
+      <select name="workspace" style="flex:1;min-width:180px">{% for w in workspaces %}<option value="{{ w.pk }}">{{ w.name }}</option>{% endfor %}</select>
+      <select name="role" style="width:auto">{% for k, l in roles %}<option value="{{ k }}" {% if k == 'creator' %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      <button class="btn">Add to workspace</button></form>{% endif %}
+  </div>
+  <div class="card card-pad" style="margin-bottom:16px">
+    <h3 style="margin-bottom:10px">Profile</h3>
+    <form method="post">{% csrf_token %}<input type="hidden" name="op" value="profile">
+      <div class="grid-2"><div class="field"><label>First name</label><input type="text" name="first_name" value="{{ u.first_name }}"></div>
+      <div class="field"><label>Last name</label><input type="text" name="last_name" value="{{ u.last_name }}"></div></div>
+      <div class="field"><label>Email</label><input type="email" name="email" value="{{ u.email }}" required></div>
+      <button class="btn btn-dark">Save profile</button></form>
+  </div>
+  <div class="card card-pad">
+    <h3 style="margin-bottom:6px">API tokens</h3>
+    {% for t in tokens %}<div class="row" style="padding:4px 0"><span class="grow">{{ t.name }} <small class="muted">· {{ t.workspace.name }} · {{ t.get_scope_display }}{% if t.revoked_at %} · revoked{% endif %}</small></span><small class="muted">{% if t.last_used_at %}used {{ t.last_used_at|timesince }} ago{% else %}never used{% endif %}</small></div>
+    {% empty %}<p class="muted small">No API tokens.</p>{% endfor %}
+    {% if tokens %}<form method="post" style="margin-top:8px" data-confirm="Delete all of {{ u.email }}'s API tokens? Apps and AI agents using them stop working." data-danger>{% csrf_token %}<input type="hidden" name="op" value="revoke_tokens"><button class="btn btn-sm btn-danger">Revoke all tokens</button></form>{% endif %}
+  </div>
+</div>
+<div>
+  <div class="card card-pad" style="margin-bottom:16px">
+    <h3 style="margin-bottom:10px">Access</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+    <form method="post">{% csrf_token %}<input type="hidden" name="op" value="send_reset"><button class="btn btn-block">{% icon "mail" %} Email a password reset link</button></form>
+    <form method="post" data-confirm="Sign {{ u.email }} out of every device?">{% csrf_token %}<input type="hidden" name="op" value="signout"><button class="btn btn-block">{% icon "logout" %} Sign out everywhere ({{ sessions }})</button></form>
+    {% if profile.two_factor_on %}<form method="post" data-confirm="Turn off two-step verification for {{ u.email }}? Use this when they lost their phone and recovery codes." data-danger>{% csrf_token %}<input type="hidden" name="op" value="reset_2fa"><button class="btn btn-block">{% icon "key" %} Reset two-step verification</button></form>{% endif %}
+    {% if not is_self %}
+      {% if u.is_superuser %}<form method="post" data-confirm="Remove super admin access from {{ u.email }}?" data-danger>{% csrf_token %}<input type="hidden" name="op" value="revoke_super"><button class="btn btn-block">{% icon "shield" %} Remove super admin</button></form>
+      {% else %}<form method="post" data-confirm="Make {{ u.email }} a super admin? They will control every workspace and user." data-danger>{% csrf_token %}<input type="hidden" name="op" value="grant_super"><button class="btn btn-block">{% icon "shield" %} Make super admin</button></form>{% endif %}
+      {% if u.is_active %}<form method="post" data-confirm="Deactivate {{ u.email }}? They are signed out and can't sign in until reactivated." data-danger>{% csrf_token %}<input type="hidden" name="op" value="deactivate"><button class="btn btn-block btn-danger">Deactivate account</button></form>
+      {% else %}<form method="post">{% csrf_token %}<input type="hidden" name="op" value="activate"><button class="btn btn-block btn-dark">Reactivate account</button></form>{% endif %}
+    {% else %}<p class="muted small">This is your account — another super admin must change your access.</p>{% endif %}
+    </div>
+  </div>
+  <div class="card card-pad" style="margin-bottom:16px">
+    <div class="row"><h3 class="grow" style="margin-bottom:6px">Recent sign-ins</h3><a class="link small" href="{% url 'superadmin:signins' %}?q={{ u.email|urlencode }}">All →</a></div>
+    {% for e in signins %}<div class="row" style="padding:4px 0;gap:8px"><small class="muted" style="width:92px">{{ e.created_at|date:"M d, H:i" }}</small>{% if e.result == 'ok' %}<span class="badge badge-green">In</span>{% elif e.result == 'failed' %}<span class="badge badge-red">Failed</span>{% else %}<span class="badge badge-gray">Out</span>{% endif %}<small class="grow">{{ e.device }} · <code>{{ e.ip|default:"—" }}</code></small></div>
+    {% empty %}<p class="muted small">No sign-ins recorded yet.</p>{% endfor %}
+  </div>
+  <div class="card card-pad">
+    <h3 style="margin-bottom:6px">Admin activity</h3>
+    {% include "superadmin/_events.html" with events=events %}
+  </div>
+</div>
+</div>
+{% endblock %}

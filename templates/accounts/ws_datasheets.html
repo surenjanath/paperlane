@@ -1,0 +1,10 @@
+{% extends "accounts/_settings_base.html" %}
+{% block title %}Spreadsheets{% endblock %}
+{% block nav %}{% if request.membership.can_manage %}{% include "accounts/_ws_nav.html" %}{% else %}{% include "accounts/_account_nav.html" %}{% endif %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">Spreadsheets</h1>
+<p class="muted">Rows written by “Export to spreadsheet” bots. Use them with “Pre-fill from a spreadsheet” bots or download them as CSV.</p>
+<div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Name</th><th class="num">Rows</th><th>Columns</th><th></th></tr></thead><tbody>
+{% for s in sheets %}<tr><td><a class="link" href="{% url 'accounts:datasheet' s.pk %}">{{ s.name }}</a></td><td class="num">{{ s.n }}</td><td class="muted">{{ s.columns|join:", "|truncatechars:80 }}</td><td class="num"><a class="btn btn-sm" href="{% url 'accounts:datasheet' s.pk %}?format=csv">CSV</a></td></tr>
+{% empty %}<tr><td colspan="4" class="muted">No spreadsheets yet. Add an “Export to spreadsheet” bot to a workflow.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

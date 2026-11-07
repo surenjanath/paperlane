@@ -1,0 +1,29 @@
+{% load ui %}<div class="drawer-head"><h2>Teammate</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="drawer-body mp">
+  <div class="mp-top">
+    <span class="avatar xl">{% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" alt="">{% else %}{{ m.user|initials }}{% endif %}</span>
+    <div><h3>{{ m.user|display_name }}</h3><a class="link small" href="mailto:{{ m.user.email }}">{{ m.user.email }}</a>
+      <div class="row" style="gap:6px;margin-top:6px"><span class="role-pill role-{{ m.role }}">{{ m.get_role_display }}</span>{% if not m.active %}<span class="ppl-flag red">Blocked</span>{% endif %}{% if profile.two_factor_on %}<span class="ppl-flag green" title="Two-step sign-in is on">🔒 2-step</span>{% endif %}</div></div>
+  </div>
+  {% if profile and profile.ooo_from and profile.ooo_until and profile.ooo_from <= today and profile.ooo_until >= today %}<div class="mp-ooo">🌴 Out of office until <b>{{ profile.ooo_until|date:"M j" }}</b>{% if profile.ooo_delegate %} — covered by {{ profile.ooo_delegate|display_name }}{% endif %}{% if profile.ooo_message %}<div class="small muted">“{{ profile.ooo_message }}”</div>{% endif %}</div>{% endif %}
+  <div class="mp-stats">
+    <div><b>{{ open_count }}</b><small>open steps</small></div>
+    <div><b>{{ done_30 }}</b><small>done in 30 days</small></div>
+    <div><b>{{ member_groups|length }}</b><small>groups</small></div>
+  </div>
+  <dl class="mp-facts">
+    <dt>Position</dt><dd>{% if request.membership.can_manage %}<form method="post" action="{% url 'accounts:team_member' m.pk 'position' %}" class="row" style="gap:6px">{% csrf_token %}<input type="hidden" name="next" value="{% url 'accounts:team' %}"><input type="text" name="position" value="{{ m.position }}" placeholder="e.g. Claims officer" style="flex:1"><button class="btn btn-sm">Save</button></form>{% else %}{{ m.position|default:"—" }}{% endif %}</dd>
+    <dt>Phone</dt><dd>{{ profile.phone|default:"—" }}</dd>
+    <dt>Joined</dt><dd>{{ m.joined_at|date:"M j, Y" }}</dd>
+    <dt>Last active</dt><dd>{% if m.user.last_login %}{{ m.user.last_login|timesince|upto:"," }} ago{% else %}Never signed in{% endif %}</dd>
+  </dl>
+  <h4 class="mp-h">Open work</h4>
+  {% for r in runs %}<a class="mp-run" href="{{ r.packet.get_absolute_url }}"><span><b>{{ r.packet.name|truncatechars:48 }}</b><small>{{ r.step_name }}{% if r.claimed_by_id == m.user_id and r.assignee_group_id %} · taken from {{ r.assignee_group.name }}{% endif %}</small></span>{% if r.due_at %}<span class="dl-pill {% if r.is_overdue %}red{% else %}amber{% endif %}">{% if r.is_overdue %}Overdue{% else %}Due {{ r.due_at|date:"M j" }}{% endif %}</span>{% endif %}</a>
+  {% empty %}<p class="muted small">Nothing waiting for {{ m.user.first_name|default:"them" }}.</p>{% endfor %}
+  {% if open_count > runs|length %}<a class="link small" href="{% url 'flows:workload' %}">See all {{ open_count }} in Team workload →</a>{% endif %}
+  <h4 class="mp-h">Groups</h4>
+  {% if request.membership.can_manage %}<form method="post" action="{% url 'accounts:team_member' m.pk 'groups' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'accounts:team' %}">
+    <div class="gp-list compact">{% for g in groups %}<label class="gp-item"><input type="checkbox" name="groups" value="{{ g.pk }}" {% if g.pk in member_groups %}checked{% endif %}><span class="gp-name"><b>{{ g.name }}</b>{% if g.description %}<small>{{ g.description|truncatechars:60 }}</small>{% endif %}</span></label>{% empty %}<p class="muted small">No groups yet. <a class="link" href="{% url 'accounts:groups' %}">Create one</a>.</p>{% endfor %}</div>
+    {% if groups %}<button class="btn btn-sm btn-dark" style="margin-top:8px">Save groups</button>{% endif %}</form>
+  {% else %}<div class="ppl-groups">{% for g in groups %}{% if g.pk in member_groups %}<span class="ppl-chip">{{ g.name }}</span>{% endif %}{% empty %}<span class="muted small">—</span>{% endfor %}</div>{% endif %}
+</div>

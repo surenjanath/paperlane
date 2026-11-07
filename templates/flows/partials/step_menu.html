@@ -1,0 +1,12 @@
+{% load ui %}
+<div class="menu-wrap"><button aria-label="More actions" title="More actions" class="btn btn-ghost btn-sm btn-icon" data-menu>{% icon "dots" %}</button>
+  <div class="menu">
+    <button data-modal-template="#rename-step" data-action="{% url 'flows:step_action' wf.pk s.pk 'rename' %}" data-set-name="{{ s.name }}">{% icon "edit" %} Rename</button>
+    <form method="post" action="{% url 'flows:step_action' wf.pk s.pk 'duplicate' %}">{% csrf_token %}<button>{% icon "copy" %} Duplicate</button></form>
+    <form method="post" action="{% url 'flows:step_action' wf.pk s.pk 'up' %}">{% csrf_token %}<button>↑ Move up</button></form>
+    <form method="post" action="{% url 'flows:step_action' wf.pk s.pk 'down' %}">{% csrf_token %}<button>↓ Move down</button></form>
+    {% if s.kind == 'recipient' %}<a href="{% url 'flows:bot_catalog' wf.pk %}?trigger=step_complete&step={{ s.key }}">{% icon "bot" %} Add bot to this step</a>{% endif %}
+    {% if s.kind == 'recipient' %}<form method="post" action="{% url 'flows:step_action' wf.pk s.pk 'save_template' %}">{% csrf_token %}<button title="Reuse this step, its fields and bots in any workflow">📌 Save as template</button></form>{% endif %}
+    <div class="sep"></div>
+    <form method="post" action="{% url 'flows:step_action' wf.pk s.pk 'delete' %}" data-confirm="Delete “{{ s.name }}”?" data-danger data-confirm-ok="Delete">{% csrf_token %}<button class="danger">{% icon "trash" %} Delete</button></form>
+  </div></div>

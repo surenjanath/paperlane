@@ -1,0 +1,16 @@
+{% load ui %}
+<div class="drawer-head"><h2>Notifications</h2><a class="link" href="{% url 'core:notifications' %}">View all</a><button class="modal-close" data-close-panel>×</button></div>
+<div class="drawer-body">
+  {% for title, items in groups %}
+  <div class="row" style="margin:6px 0"><b class="grow" style="font-size:13px">{{ title }}</b>{% if forloop.first %}<a href="#" class="link" style="font-size:12px" data-mark-all-read>Mark all as read</a>{% endif %}</div>
+  {% for n in items %}
+  <a class="notif" href="{% url 'core:notification_open' n.pk %}">
+    <span class="avatar">{% icon "bell" 14 %}</span>
+    <div class="body"><b>{{ n.title }}</b>{% if n.body %}<div class="muted">{{ n.body }}</div>{% endif %}<div class="when">{{ n.created_at|date:"d.m.Y \a\t g:i A" }}</div></div>
+    {% if not n.read %}<span class="unread-dot"></span>{% endif %}
+  </a>
+  {% endfor %}
+  {% empty %}
+  <div class="empty"><div class="ico">🔔</div><h3>You're all caught up</h3></div>
+  {% endfor %}
+</div>

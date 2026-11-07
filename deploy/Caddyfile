@@ -1,0 +1,33 @@
+# HTTPS front for Paperlane. Caddy gets and renews the certificate for PAPERLANE_DOMAIN by itself
+# (ports 80 and 443 must reach this server, and the domain's DNS must point at it).
+{
+	email {$PAPERLANE_ACME_EMAIL}
+}
+
+{$PAPERLANE_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 100MB
+	}
+
+	# collected static files (CSS, JS, fonts, images)
+	handle_path /static/* {
+		root * /srv/static
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+
+	# only logos and profile pictures are public; documents, uploads and sealed PDFs go through
+	# Paperlane's own views, which check who is asking
+	@public_media path /media/logos/* /media/avatars/*
+	handle @public_media {
+		root * /srv
+		file_server
+	}
+
+	handle {
+		reverse_proxy web:8000
+	}
+
+	header -Server
+}

@@ -1,0 +1,36 @@
+{% load ui %}<div class="drawer-head"><h2>Submission</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="drawer-body mp sub-panel">
+  <div class="mp-top">
+    <span class="avatar xl ct-av">{{ title|initials }}</span>
+    <div><h3>{{ title }}</h3>{% if email %}<div class="small muted">{{ email }}</div>{% endif %}</div>
+  </div>
+  <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+    <span class="badge {{ badge }}">{{ sub.get_status_display }}</span>
+    <span class="muted small">{{ sub.created_at|date:"M j, Y H:i" }}</span>
+  </div>
+  <div class="row" style="gap:6px;flex-wrap:wrap">
+    {% if sub.packet and packet_visible %}<a class="btn btn-sm" href="{% url 'flows:packet_detail' sub.packet.pk %}">{% icon "documents" 14 %} Open document</a>{% endif %}
+    {% if email %}<a class="btn btn-sm" href="mailto:{{ email }}">{% icon "mail" 14 %} Email</a>
+    <button type="button" class="btn btn-sm" data-copy="{{ email }}" data-copy-toast="Email copied">{% icon "copy" 14 %} Copy email</button>{% endif %}
+  </div>
+  <div class="mp-stats">
+    <div><b>{{ filled }}</b><small>answer{{ filled|pluralize }}</small></div>
+    <div><b>{{ files|length }}</b><small>file{{ files|length|pluralize }}</small></div>
+    <div><b>{{ sub.created_at|date:"M j" }}</b><small>submitted</small></div>
+  </div>
+  <dl class="mp-facts">
+    <dt>Status</dt><dd>{{ sub.get_status_display }}</dd>
+    <dt>Document</dt><dd>{% if sub.packet %}{% if packet_visible %}<a class="link" href="{% url 'flows:packet_detail' sub.packet.pk %}">{{ sub.packet.name }}</a>{% else %}{{ sub.packet.name }}{% endif %}{% else %}—{% endif %}</dd>
+    <dt>Submitted by</dt><dd>{% if sub.user %}{{ sub.user|display_name }}{% else %}Public form{% endif %}</dd>
+    {% if pay_label %}<dt>Payment</dt><dd>{{ pay_label }}{% if pay_status %} · {{ pay_status }}{% endif %}</dd>{% endif %}
+    {% if sub.ip %}<dt>IP address</dt><dd>{{ sub.ip }}</dd>{% endif %}
+  </dl>
+  {% if sub.error %}<h4 class="mp-h">Why it failed</h4><p class="mp-notes">{{ sub.error }}</p>{% endif %}
+  <h4 class="mp-h">Answers</h4>
+  <div class="sub-answers">
+    {% for a in answers %}<div><small>{{ a.label }}</small><span>{% if a.value == "[signed]" %}Signed{% elif a.value %}{{ a.value }}{% else %}<span class="muted">—</span>{% endif %}</span></div>{% empty %}<p class="muted small">This form has no fields.</p>{% endfor %}
+  </div>
+  {% if files %}<h4 class="mp-h">Files</h4>
+  {% for f in files %}<a class="mp-run" href="{% url 'flows:form_file' form.token f.key %}"><span><b>{{ f.original_name }}</b><small>{{ f.created_at|date:"M j, Y" }}</small></span>{% icon "download" 14 %}</a>{% endfor %}
+  {% endif %}
+</div>

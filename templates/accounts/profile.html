@@ -1,0 +1,60 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Profile{% endblock %}
+{% block nav %}{% include "accounts/_account_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:18px">Profile info</h1>
+<form method="post" enctype="multipart/form-data" class="form-rows">{% csrf_token %}
+  <h3 style="margin-bottom:12px">Personal information</h3>
+  <div class="frow"><label>Profile picture</label><div class="row"><span class="avatar lg">{% if request.user.profile.avatar %}<img src="{{ request.user.profile.avatar.url }}" alt="">{% else %}{{ request.user|initials }}{% endif %}</span><div><input type="file" name="avatar" accept="image/png,image/jpeg"><div class="help">Maximum upload file size: 5 MB. Supported formats: JPG, JPEG, PNG.</div>{% if request.user.profile.avatar %}<label class="check"><input type="checkbox" name="remove_avatar"> Remove picture</label>{% endif %}</div></div></div>
+  <div class="frow"><label>Full name</label><div class="grid-2">{{ form.first_name }}{{ form.last_name }}</div></div>
+  <div class="frow"><label>Username</label><div>{{ form.username }}{{ form.username.errors }}</div></div>
+  <div class="frow"><label>Phone number</label>{{ form.phone }}</div>
+  <hr>
+  <h3 style="margin-bottom:12px">Default signature and initials</h3>
+  <div class="frow top"><label>Signature</label><div class="row top">
+    <div><div class="sig-box" data-profile-sig="signature" style="width:280px;height:100px">{% if request.user.profile.signature %}<img class="sig" src="{{ request.user.profile.signature }}" alt="">{% else %}<div class="muted" style="padding:36px;text-align:center">No signature</div>{% endif %}</div><a href="#" class="link" data-modal-template="#sig-tpl" data-set-kind="signature">Change signature</a></div>
+    <div><div class="sig-box small" style="width:120px;height:100px">{% if request.user.profile.initials %}<img class="sig" src="{{ request.user.profile.initials }}" alt="">{% else %}<div class="muted" style="padding:36px 10px;text-align:center">—</div>{% endif %}</div><a href="#" class="link" data-modal-template="#sig-tpl" data-set-kind="initials">Change initials</a></div>
+  </div></div>
+  <hr>
+  <h3 style="margin-bottom:12px">Corporate information</h3>
+  <div class="frow"><label>Workspace role</label><div><span class="badge badge-purple">{{ request.membership.get_role_display }}</span></div></div>
+  <div class="frow"><label>Position</label>{{ form.position }}</div>
+  <div class="frow"><label>Fax</label>{{ form.fax }}</div>
+  <div class="frow"><label>Video conference link</label>{{ form.video_link }}</div>
+  {% if form.errors %}<div class="alert alert-error">{{ form.errors }}</div>{% endif %}
+  <div class="row" style="justify-content:flex-end"><button class="btn btn-dark">Save changes</button></div>
+</form>
+<template id="sig-tpl">
+  <div class="modal-head"><h2>Draw your signature</h2><button class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><input type="hidden" name="kind"><div class="sig-box" id="profile-pad" style="height:160px"><canvas></canvas></div><div class="row" style="margin-top:8px"><input type="text" id="profile-typed" class="sig-type" placeholder="…or type it here" style="height:48px"></div></div>
+  <div class="modal-foot"><button class="btn" id="pad-clear">Clear</button><button class="btn" data-close>Cancel</button><button class="btn btn-dark" id="pad-save">Save</button></div>
+</template>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-modal-template='#sig-tpl']");
+  if (!t) return;
+  setTimeout(() => {
+    const box = document.getElementById("profile-pad"), c = box.querySelector("canvas"), x = c.getContext("2d");
+    const r = c.getBoundingClientRect(); c.width = r.width; c.height = r.height;
+    x.lineWidth = 2.4; x.lineCap = "round"; x.strokeStyle = "#1a237e";
+    let d = false, l = null, drawn = false;
+    const p = (ev) => { const b = c.getBoundingClientRect(), q = ev.touches ? ev.touches[0] : ev; return { x: q.clientX - b.left, y: q.clientY - b.top }; };
+    c.onmousedown = c.ontouchstart = (ev) => { ev.preventDefault(); d = true; l = p(ev); };
+    c.onmousemove = c.ontouchmove = (ev) => { if (!d) return; ev.preventDefault(); const q = p(ev); x.beginPath(); x.moveTo(l.x, l.y); x.lineTo(q.x, q.y); x.stroke(); l = q; drawn = true; };
+    window.onmouseup = c.ontouchend = () => (d = false);
+    document.getElementById("pad-clear").onclick = () => { x.clearRect(0, 0, c.width, c.height); drawn = false; };
+    document.getElementById("pad-save").onclick = async () => {
+      const typed = document.getElementById("profile-typed").value.trim();
+      if (typed) { x.clearRect(0, 0, c.width, c.height); x.fillStyle = "#1a237e"; x.font = "48px Caveat, cursive"; x.textBaseline = "middle"; x.fillText(typed, 16, c.height / 2); drawn = true; }
+      if (!drawn) return;
+      const body = new FormData(); body.append("kind", document.querySelector("#modal [name=kind]").value); body.append("data", c.toDataURL("image/png"));
+      const res = await fetch("{% url 'flows:save_signature' %}", { method: "POST", headers: { "X-CSRFToken": SD.csrf() }, body });
+      if (res.ok) location.reload(); else SD.toast("Could not save", "error");
+    };
+  }, 30);
+});
+</script>
+{% endblock %}

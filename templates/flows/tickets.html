@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Support tickets{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}Support tickets{% endblock %}
+{% block subheading %}<span>Problems found by the assistant and reports from your team. High and critical problems are filed automatically.</span>{% endblock %}
+{% block actions %}<button type="button" class="btn btn-sm" data-chat-open>{% icon "sparkle" 16 %} Ask the assistant</button>{% endblock %}
+{% block content %}
+<div class="tk-sev">
+  {% for key, label in severities reversed %}{% with n=counts|get:key %}
+  <a class="tk-sevcard sev-{{ key }} {% if severity == key %}on{% endif %}" href="{% if severity == key %}?status={{ status }}{% else %}?status={{ status }}&severity={{ key }}{% endif %}">
+    <span class="dx-badge sev-{{ key }}">{{ label }}</span><b>{{ n }}</b><small>open</small></a>
+  {% endwith %}{% endfor %}
+</div>
+<div class="pk-toolbar">
+  <nav class="tk-tabs">
+    <a href="?status=active{% if severity %}&severity={{ severity }}{% endif %}" class="{% if status == 'active' %}on{% endif %}">Active</a>
+    {% for key, label in statuses %}<a href="?status={{ key }}{% if severity %}&severity={{ severity }}{% endif %}" class="{% if status == key %}on{% endif %}">{{ label }}</a>{% endfor %}
+    <a href="?status={% if severity %}&severity={{ severity }}{% endif %}" class="{% if not status %}on{% endif %}">All</a>
+  </nav>
+</div>
+<div class="tk-list">
+{% for t in page %}
+  <a class="tk-row" href="{{ t.get_absolute_url }}">
+    <span class="dx-badge sev-{{ t.severity }}">{{ t.get_severity_display }}</span>
+    <div class="tk-main"><b>{{ t.title }}</b>
+      <small>{{ t.ref }} · {% if t.source == 'auto' %}✦ filed automatically{% else %}{{ t.created_by.get_full_name|default:t.created_by.email|default:"—" }}{% endif %} · {{ t.created_at|timesince|upto:"," }} ago{% if t.affected_count > 1 %} · <span class="tk-aff">{{ t.affected_count }} documents affected</span>{% endif %}</small></div>
+    <span class="tk-status st-{{ t.status }}">{{ t.get_status_display }}</span>
+  </a>
+{% empty %}
+  <div class="empty"><div class="ico">🎫</div><h3>No tickets here</h3><p>When something goes wrong, open the document and click <b>✦ What went wrong?</b> — the assistant explains it and files a ticket when it's serious.</p></div>
+{% endfor %}
+</div>
+{% if page.has_other_pages %}<nav class="row" style="justify-content:center;margin-top:16px">{% if page.has_previous %}<a class="btn btn-sm" href="?status={{ status }}&severity={{ severity }}&page={{ page.previous_page_number }}">‹ Previous</a>{% endif %}<span class="muted small">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="btn btn-sm" href="?status={{ status }}&severity={{ severity }}&page={{ page.next_page_number }}">Next ›</a>{% endif %}</nav>{% endif %}
+{% endblock %}

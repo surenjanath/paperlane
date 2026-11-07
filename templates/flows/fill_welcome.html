@@ -1,0 +1,14 @@
+{% extends "base_bare.html" %}
+{% load i18n %}
+{% block title %}{{ packet.name }}{% endblock %}
+{% block head %}{% include "flows/_fill_theme.html" %}{% endblock %}
+{% block body %}
+<div class="fill-page center-screen">
+  <div class="card card-pad" style="max-width:560px;text-align:left">
+    <div class="brand" style="font-weight:700;margin-bottom:10px">{% if workspace.logo %}<img src="{{ workspace.logo.url }}" style="height:28px" alt=""> {% endif %}{{ workspace.name }}</div>
+    <h2 style="margin-bottom:10px">{{ wf.name }}</h2>
+    <div style="white-space:pre-wrap">{{ wf.welcome_message }}</div>
+    <a class="btn btn-lg fill-btn" style="margin-top:16px" href="?start=1">{% translate "Start" %}</a>
+  </div>
+</div>
+{% endblock %}

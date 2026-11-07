@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Documents{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}Documents{% endblock %}
+{% block subheading %}<span>{{ total }} documents</span><span class="sep"></span><span>View all your sent documents in this workspace</span>{% endblock %}
+{% block actions %}<a class="btn btn-sm ai-toggle-btn" href="{% url 'flows:ask_documents' %}">✦ Ask your documents</a><a class="btn btn-sm" href="{% url 'flows:key_dates' %}">{% icon "calendar" %} Key dates</a><form class="pk-search {% if ai_search %}has-ai{% endif %}">{% icon "search" 18 %}<input type="search" name="q" value="{% if g.ai %}{{ g.ai }}{% else %}{{ g.q }}{% endif %}" placeholder="{% if ai_search %}Search, or ask AI…{% else %}Search{% endif %}" title="{% if ai_search %}Type words to search, or describe what you want (e.g. “declined claims this month”) and press ✦{% endif %}" aria-label="Search documents">{% for k, v in g.items %}{% if k != 'q' and k != 'page' and k != 'ai' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}{% if ai_search %}<button class="pk-ai-btn" formaction="{% url 'flows:ai_search' %}" title="AI search — describe what you are looking for">✦</button>{% endif %}</form>{% endblock %}
+{% block content %}
+{% if g.ai %}<div class="ai-search-note" role="status">✦ <span>Results for “<b>{{ g.ai }}</b>”: {% for k, v in g.items %}{% if k in "status workflow tag from to quick q" and k|length > 0 and k != 'ai' and k != 'page' %}<span class="pk-pill">{% if k == 'workflow' %}{% for w in workflows %}{% if w.pk|stringformat:"s" == v %}{{ w.name }}{% endif %}{% endfor %}{% else %}{{ k }}: {{ v }}{% endif %}</span> {% endif %}{% endfor %}</span> <a class="link" href="?">Clear</a></div>{% endif %}
+{% if saved_views or has_filters %}<div class="sv-row">
+  {% for s in saved_views %}<span class="sv-chip {% if s.on %}on{% endif %}"><a href="?{{ s.v.query }}" title="{% if s.v.shared %}Shared with the team{% else %}Only you{% endif %}">{% if s.v.shared %}👥{% else %}★{% endif %} {{ s.v.name }} <em>{{ s.count }}</em></a>{% if s.mine or request.membership.can_manage %}<form method="post" action="{% url 'flows:saved_view_delete' s.v.pk %}" data-confirm="Remove the view “{{ s.v.name }}”?">{% csrf_token %}<button aria-label="Remove view {{ s.v.name }}" title="Remove">×</button></form>{% endif %}</span>{% endfor %}
+  {% if has_filters %}<button type="button" class="sv-save" data-modal-template="#save-view-tpl">＋ Save this view</button>{% endif %}
+</div>
+<template id="save-view-tpl"><form method="post" action="{% url 'flows:saved_view_new' %}">{% csrf_token %}<input type="hidden" name="query" value="{{ request.GET.urlencode }}">
+  <div class="modal-head"><h2>Save this view</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><div class="field"><label>Name</label><input type="text" name="name" maxlength="80" required placeholder="e.g. Overdue claims"></div>
+    {% if request.membership.can_create %}<label class="check"><input type="checkbox" name="shared"> Share with my team</label>{% endif %}</div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save view</button></div></form></template>
+{% endif %}
+<div class="pk-chips">
+  <a class="pk-chip {% if g.quick == 'attention' %}on{% endif %}" href="{% if g.quick == 'attention' %}{% qs quick=None %}{% else %}{% qs quick='attention' %}{% endif %}">Needs attention</a>
+  <a class="pk-chip {% if g.quick == 'stale' %}on{% endif %}" href="{% if g.quick == 'stale' %}{% qs quick=None %}{% else %}{% qs quick='stale' %}{% endif %}">No activity for 7+ days</a>
+  <a class="pk-chip {% if g.quick == 'overdue' %}on{% endif %}" href="{% if g.quick == 'overdue' %}{% qs quick=None %}{% else %}{% qs quick='overdue' %}{% endif %}">Overdue</a>
+  <a class="pk-chip {% if g.quick == 'mine' %}on{% endif %}" href="{% if g.quick == 'mine' %}{% qs quick=None %}{% else %}{% qs quick='mine' %}{% endif %}">My documents</a>
+  {% if g.status or g.workflow or g.tag or g.from or g.to or g.q %}<a class="link" style="align-self:center" href="?">Clear filters</a>{% endif %}
+</div>
+<div class="pk-toolbar">
+  {% if list_view == 'compact' %}<span class="pk-count">{{ page.paginator.count }} document{{ page.paginator.count|pluralize }}</span>
+  {% else %}<label class="pk-selectall"><input type="checkbox" data-select-all=".row-check" aria-label="Select all documents on this page"> <span class="pk-count">{{ page.paginator.count }} document{{ page.paginator.count|pluralize }}</span></label>{% endif %}
+  <span data-bulk-bar hidden class="row" style="gap:6px"><b><span data-bulk-count>0</span> selected</b>
+    <button class="btn btn-sm" data-bulk-submit="#bulk-form" data-bulk-action="download">{% icon "download" %} Download</button>
+    <button class="btn btn-sm" data-bulk-submit="#bulk-form" data-bulk-action="export">Export metadata</button>
+    <button class="btn btn-sm" data-modal-template="#bulk-tags-modal">Add tags</button>
+    <button class="btn btn-sm" data-bulk-submit="#bulk-form" data-bulk-action="lock">Lock</button>
+    <button class="btn btn-sm" data-bulk-submit="#bulk-form" data-bulk-action="archive">Archive</button>
+    <button class="btn btn-sm btn-danger" data-bulk-submit="#bulk-form" data-bulk-action="trash">Delete</button>
+  </span>
+  <span class="grow"></span>
+  {% include "flows/_view_toggle.html" %}
+  <div class="menu-wrap"><button class="pk-tool" data-menu title="Sort" aria-label="Sort">{% icon "sort" 22 %}<span class="pk-chev">⌄</span></button>
+    <div class="menu">
+      {% for key, label in sort_options %}<a href="{% qs sort=key %}">{% if g.sort == key or not g.sort and key == 'activity' %}{% icon "check" %}{% else %}<span style="width:15px"></span>{% endif %} {{ label }}</a>{% endfor %}
+    </div></div>
+  <div class="menu-wrap"><button class="pk-tool {% if g.status or g.workflow or g.tag or g.from %}on{% endif %}" data-menu title="Filter" aria-label="Filter">{% icon "filter" 22 %}<span class="pk-chev">⌄</span></button>
+    <form class="menu" style="width:300px;padding:14px">
+      {% if g.q %}<input type="hidden" name="q" value="{{ g.q }}">{% endif %}{% if g.quick %}<input type="hidden" name="quick" value="{{ g.quick }}">{% endif %}{% if g.sort %}<input type="hidden" name="sort" value="{{ g.sort }}">{% endif %}
+      <div class="field"><label>Status</label><select name="status"><option value="">Any</option>{% for k, l in statuses %}<option value="{{ k }}" {% if g.status == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Workflow</label><select name="workflow"><option value="">Any</option>{% for w in workflows %}<option value="{{ w.pk }}" {% if g.workflow == w.pk|to_str %}selected{% endif %}>{{ w.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Tag</label><select name="tag"><option value="">Any</option>{% for t in tags %}<option {% if g.tag == t.name %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+      <div class="grid-2"><div class="field"><label>From</label><input type="date" name="from" value="{{ g.from }}"></div><div class="field"><label>To</label><input type="date" name="to" value="{{ g.to }}"></div></div>
+      <div class="row"><a class="btn" href="?">Reset</a><span class="grow"></span><button class="btn btn-dark">Apply</button></div>
+    </form></div>
+  <div class="menu-wrap"><button class="pk-tool" data-menu title="More" aria-label="More actions">{% icon "kebab" 22 %}</button>
+    <div class="menu">
+      <a href="{% url 'flows:documents_export_all' %}{% qs %}">{% icon "upload" %} Export metadata (all filtered)</a>
+      <a href="{% url 'core:archive' %}">{% icon "archive" %} Archived documents</a>
+      <a href="{% url 'core:trash' %}">{% icon "trash" %} Deleted documents</a>
+    </div></div>
+</div>
+<form id="bulk-form" method="post" action="{% url 'flows:documents_bulk' %}">{% csrf_token %}<input type="hidden" name="action"><input type="hidden" name="tags"><input type="hidden" name="next" value="{{ request.get_full_path }}"></form>
+<div class="pk-list {% if list_view == 'compact' %}dl-list{% endif %}">
+{% if page.object_list and list_view == 'compact' %}{% include "flows/_packet_head.html" with selectable=True %}{% endif %}
+{% for p in page %}{% if list_view == 'compact' %}{% include "flows/_packet_row.html" with selectable=True show_wf=True %}{% else %}{% include "flows/_packet_card.html" with selectable=True show_wf=True %}{% endif %}
+{% empty %}
+<div class="empty"><div class="ico">📄</div><h3>No documents yet</h3><p>Run a workflow or send a document to see it here.</p>{% if request.membership.can_create %}<a class="btn btn-dark" href="{% url 'flows:document_new' %}">Send a document</a>{% endif %}</div>
+{% endfor %}
+</div>
+{% if page.has_other_pages %}
+<div class="row" style="justify-content:center;margin-top:16px">
+  {% if page.has_previous %}<a class="btn btn-sm" href="?{{ querystring }}&page={{ page.previous_page_number }}">‹ Previous</a>{% endif %}
+  <span class="muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn btn-sm" href="?{{ querystring }}&page={{ page.next_page_number }}">Next ›</a>{% endif %}
+</div>
+{% endif %}
+{% include "flows/partials/packet_modals.html" %}
+<template id="bulk-tags-modal">
+  <div class="modal-head"><h2>Add tags to selected</h2><button class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><input type="text" id="bulk-tags-input" placeholder="#Reviewed, #Q4"></div>
+  <div class="modal-foot"><button class="btn" data-close>Cancel</button><button class="btn btn-dark" data-bulk-submit="#bulk-form" data-bulk-action="tags" data-bulk-tags>Add tags</button></div>
+</template>
+{% endblock %}

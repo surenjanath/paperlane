@@ -1,0 +1,26 @@
+{% load ui %}{% for n in nodes %}{% with s=n.step %}
+  {% include "flows/partials/flow_node.html" %}
+  {% if s.kind == 'branch' %}
+  <div class="connector"></div>
+  <div class="lanes">
+    {% for ln in n.lanes %}
+    <div class="lane">
+      <button type="button" class="lane-head" data-drawer-url="{% url 'flows:step_settings' wf.pk s.pk %}"
+              title="{{ ln.branch.label }}{% if ln.rules_text %} — when {{ ln.rules_text }}{% else %} — no rules, always taken{% endif %}">
+        <b>⑂ {{ ln.branch.label }}</b>
+        <small>{% if ln.rules_text %}When {{ ln.rules_text }}{% else %}<span class="warn">No rules — always taken</span>{% endif %}</small>
+      </button>
+      {% if ln.is_lane %}
+        {% include "flows/partials/adder.html" with after=s.order lane=ln.key %}
+        {% include "flows/partials/flow_nodes.html" with nodes=ln.nodes lane=ln.key %}
+        <div class="lane-end">↳ {{ ln.exit }}</div>
+      {% else %}
+        <div class="connector"></div><div class="lane-end">↳ {{ ln.enter }}</div>
+      {% endif %}
+    </div>
+    {% empty %}<div class="lane"><div class="lane-end">No branches yet — open the settings to add one</div></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% include "flows/partials/adder.html" with after=s.order lane=lane %}
+{% endwith %}{% endfor %}

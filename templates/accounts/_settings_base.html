@@ -1,0 +1,17 @@
+{% extends "base_bare.html" %}
+{% load ui %}
+{% block body %}
+<div class="shell no-sidebar">
+  {% include "partials/rail.html" %}
+  <div class="settings-layout">
+    <nav class="settings-nav">{% block nav %}{% endblock %}</nav>
+    <main class="settings-content {% block content_class %}{% endblock %}">{% include "partials/platform_banner.html" %}{% block content %}{% endblock %}</main>
+  </div>
+</div>
+<div class="panel-left" id="notif-panel"></div>
+<template id="search-template">
+  <div class="input-icon">{% icon "search" %}<input id="palette-q" type="search" placeholder="Search in workflows, templates, documents, and contacts" autocomplete="off"></div>
+  <div class="results" id="palette-results"></div>
+  <div class="hint"><span><kbd>↵</kbd> to select</span><span><kbd>esc</kbd> to dismiss</span></div>
+</template>
+{% endblock %}

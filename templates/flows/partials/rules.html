@@ -1,0 +1,15 @@
+{% load ui %}{% condition_types wf as ctypes %}{% with p=prefix|default:"rule" %}
+<div class="row" style="margin-bottom:6px;font-size:12.5px">Match
+  <select name="{{ p }}_logic" style="width:auto;height:28px"><option value="and" {% if logic != 'or' %}selected{% endif %}>all (AND)</option><option value="or" {% if logic == 'or' %}selected{% endif %}>any (OR)</option></select> of the rules</div>
+<div id="rules-{{ p }}">
+{% for r in rules %}
+  <div class="rule-row">
+    <select name="{{ p }}_field"><option value="">Select condition</option>{% if r.field|slice:":5" == "@any:" %}<option value="{{ r.field }}" selected>Any of: {{ r.field|slice:"5:" }}</option>{% elif r.field|slice:":5" == "@all:" %}<option value="{{ r.field }}" selected>All of: {{ r.field|slice:"5:" }}</option>{% endif %}<optgroup label="When the document field">{% for id, label, name, opts in fields %}<option value="{{ id }}" {% if r.field == id or r.field == name %}selected{% endif %}>{{ label }}</option>{% endfor %}</optgroup>{% for g, items in ctypes %}<optgroup label="{{ g }}">{% for k, l in items %}<option value="{{ k }}" {% if r.field == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</optgroup>{% endfor %}</select>
+    <select name="{{ p }}_op">{% for k, l in ops %}<option value="{{ k }}" {% if r.op == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    <input type="text" name="{{ p }}_value" value="{{ r.value|default:'' }}" placeholder="Value">
+    <button class="btn btn-icon" data-remove-rule title="Remove rule" aria-label="Remove rule">×</button>
+  </div>
+{% endfor %}
+</div>
+<button class="btn btn-sm" data-add-rule="#rules-{{ p }}">{% icon "plus" %} Add rule</button>
+{% endwith %}

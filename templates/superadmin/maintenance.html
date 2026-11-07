@@ -1,0 +1,8 @@
+{% extends "base_bare.html" %}
+{% block title %}Maintenance{% endblock %}
+{% block body %}
+<div class="center-screen"><div class="art">🛠</div><h2>We'll be right back</h2>
+<p class="muted" style="max-width:480px">{{ ps.maintenance_message|default:"We're making improvements. Please try again in a few minutes." }}</p>
+{% if ps.support_email %}<p class="muted small">Urgent? <a class="link" href="mailto:{{ ps.support_email }}">{{ ps.support_email }}</a></p>{% endif %}
+<a class="link small" href="{% url 'accounts:login' %}">Administrator sign-in</a></div>
+{% endblock %}

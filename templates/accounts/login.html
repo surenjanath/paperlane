@@ -1,0 +1,37 @@
+{% extends "accounts/_auth_base.html" %}
+{% load ui %}
+{% block title %}Log in{% endblock %}
+{% block card %}
+<h2 class="ax-title">Log in to {{ app_name }}</h2>
+<p class="ax-sub">Welcome back.</p>
+{% if sso %}<div class="ax-sso">{% for p in sso %}<a class="ax-sso-btn" href="{% url 'accounts:sso_start' p.pk %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}"><span class="ax-sso-ico k-{{ p.kind }}">{% if p.kind == 'microsoft' %}<i></i><i></i><i></i><i></i>{% elif p.kind == 'google' %}G{% else %}{% icon "key" 16 %}{% endif %}</span>Sign in with {{ p.name }}</a>{% endfor %}</div>
+<div class="ax-or"><span>or with your email</span></div>{% endif %}
+{% if form.non_field_errors %}<div class="alert alert-error" role="alert">{{ form.non_field_errors.0 }}</div>{% endif %}
+<form method="post" novalidate class="ax-fields">{% csrf_token %}
+  <div class="field"><label for="id_email">Email</label>{{ form.email }}{% for e in form.email.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+  <div class="field"><div class="ax-labelrow"><label for="id_password">Password</label><a class="ax-link" href="{% url 'accounts:password_reset' %}">Forgot password?</a></div>
+    <div class="pw-wrap">{{ form.password }}<button type="button" class="pw-toggle" data-pw-toggle aria-label="Show password" title="Show password">Show</button></div>
+    {% for e in form.password.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+  <label class="check ax-remember"><input type="checkbox" name="remember" {% if form.remember.value %}checked{% endif %}> Keep me signed in</label>
+  <button class="ax-btn">Log in</button>
+</form>
+{% if platform.public_signup %}<p class="ax-switch">New to {{ app_name }}? <a class="ax-link" href="{% url 'accounts:signup' %}">Create an account</a></p>{% endif %}
+
+{% if demo_accounts %}
+<section class="ax-demo" aria-label="Demo accounts">
+  <div class="ax-demo-head"><span>Demo accounts</span><small>Development only, no password</small></div>
+  <div class="ax-demo-list">
+    {% for d in demo_accounts %}
+    <form method="post" action="{% url 'accounts:demo_login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">{% csrf_token %}
+      <input type="hidden" name="email" value="{{ d.email }}">
+      <button class="ax-demo-btn" title="Sign in as {{ d.name }} ({{ d.email }})">
+        <span class="ax-demo-av role-{{ d.role_key }}">{{ d.name|initials }}</span>
+        <span class="ax-demo-txt"><b>{{ d.name }}</b><small>{{ d.blurb }}</small></span>
+        <span class="role-pill role-{{ d.role_key }} sm">{{ d.role }}</span>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

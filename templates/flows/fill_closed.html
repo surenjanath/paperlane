@@ -1,0 +1,16 @@
+{% extends "base_bare.html" %}
+{% load i18n %}
+{% block title %}{% translate "Documents unavailable" %}{% endblock %}
+{% block body %}
+<div class="center-screen">
+  <div class="art">{% if packet.status == 'completed' or run.status == 'completed' %}✅{% else %}🔒{% endif %}</div>
+  {% if link_disabled %}<h2>{% translate "This link is not active" %}</h2><p class="muted">{% blocktranslate with org=workspace.name %}Ask {{ org }} for a new link.{% endblocktranslate %}</p>
+  {% elif run.status == 'completed' %}<h2>{% translate "You already completed these documents" %}</h2><p class="muted">{{ packet.name }}</p>
+  {% elif run.status == 'expired' %}<h2>{% translate "Your access has expired" %}</h2><p class="muted">{% translate "Contact the sender to receive a new link." %}</p>
+  {% elif run.status == 'declined' or packet.status == 'declined' %}<h2>{% translate "These documents were declined" %}</h2>
+  {% elif packet.status == 'cancelled' or run.status == 'revoked' %}<h2>{% translate "This request was cancelled" %}</h2><p class="muted">{% translate "The sender revoked access to these documents." %}</p>
+  {% elif packet.status == 'completed' %}<h2>{% translate "These documents are completed" %}</h2>
+  {% else %}<h2>{% translate "These documents are not available" %}</h2>{% endif %}
+  {% if request.user.is_authenticated %}<a class="btn" href="{% url 'core:inbox' %}">{% translate "Go to Inbox" %}</a>{% endif %}
+</div>
+{% endblock %}

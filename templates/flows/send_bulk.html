@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Send in bulk{% endblock %}
+{% block heading %}Send “{{ wf.name }}” in bulk{% endblock %}
+{% block subheading %}<a class="link" href="{{ wf.get_absolute_url }}">Back</a>{% endblock %}
+{% block content %}
+<div class="row top" style="gap:24px">
+<form method="post" enctype="multipart/form-data" class="card card-pad grow" style="max-width:620px">{% csrf_token %}
+  <p class="muted">Upload a CSV file. Each row creates one document. The <code>email</code> column (and optional <code>name</code>) sets the first recipient; other columns pre-fill fields with the same name. An optional <code>document_name</code> column names each document.</p>
+  <div class="field"><label>CSV file</label><input type="file" name="csv" accept=".csv,text/csv"></div>
+  <div class="field"><label>…or paste CSV</label><textarea name="csv_text" rows="6" placeholder="email,name,Full name&#10;jane@example.com,Jane,Jane Doe"></textarea></div>
+  <div class="row" style="justify-content:space-between"><a class="link" href="{% url 'flows:sample_csv' wf.pk %}">Download sample CSV</a><button class="btn btn-dark">Send documents</button></div>
+</form>
+<div class="card card-pad" style="width:300px"><h3 style="margin-bottom:8px">Available columns</h3>
+  <code>email</code>, <code>name</code>, <code>document_name</code>{% for id, label, name, opts in fields %}, <code>{{ name }}</code>{% endfor %}
+</div>
+</div>
+{% endblock %}

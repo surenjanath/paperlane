@@ -1,0 +1,25 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Workspace settings{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:18px">Workspace settings</h1>
+<form method="post">{% csrf_token %}
+{% for title, items in groups %}
+  <h3 class="section-title" style="color:var(--text);font-size:15px">{{ title }}</h3>
+  <div class="card card-pad" style="margin-bottom:14px">
+  {% for key, label, help, on in items %}
+    <div class="setting-row"><div class="grow"><div class="title">{{ label }}</div><div class="desc">{{ help }}</div>
+      {% if key == 'domain_join' %}<div class="extra"><input type="text" name="verified_domains" value="{{ request.workspace.verified_domains }}" placeholder="@company.com, @subsidiary.com"></div>{% endif %}</div>
+      <label class="switch"><input type="checkbox" name="{{ key }}" {% if on %}checked{% endif %}><span></span></label></div>
+  {% endfor %}
+  </div>
+{% endfor %}
+<h3 class="section-title" style="color:var(--text);font-size:15px">Recipients</h3>
+<div class="card card-pad" style="margin-bottom:14px">
+  <div class="setting-row"><div class="grow"><div class="title">Language for people who fill and sign</div><div class="desc">The fill, signing and thank-you pages. Recipients can switch between English and Español on the page; their choice is remembered.</div></div>
+    <select name="recipient_language" style="width:auto">{% for v, l in "en|English,es|Español,auto|Match the recipient's browser"|split_pairs %}<option value="{{ v }}" {% if recipient_language == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+</div>
+<div class="row" style="justify-content:flex-end"><button class="btn btn-dark">Save settings</button></div>
+</form>
+{% endblock %}

@@ -1,0 +1,1 @@
+{% if s.issue_level %}<button type="button" class="node-issue node-issue-{{ s.issue_level }}" data-drawer-url="{% url 'flows:workflow_checks' wf.pk %}" title="{{ s.issues.0.message }}{% if s.issues|length > 1 %} (+{{ s.issues|length|add:'-1' }} more){% endif %}" aria-label="{{ s.issues|length }} problem{{ s.issues|length|pluralize }} on this step">!</button>{% endif %}

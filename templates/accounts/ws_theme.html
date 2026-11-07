@@ -1,0 +1,93 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Theme{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">Theme</h1>
+<p class="muted" style="margin-bottom:14px">How recipients see {{ request.workspace.name }}: fill pages, start forms, welcome and thank-you pages. Documents can still override colours in their own design.{% if t.updated %} Last saved {{ t.updated|slice:":16"|cut:"T" }}.{% endif %}</p>
+
+<div class="th-presets" role="radiogroup" aria-label="Presets">
+  {% for k, p in presets.items %}<button type="button" class="th-preset {% if t.preset == k %}on{% endif %}" data-preset="{{ k }}"
+     data-values='{"primary":"{{ p.primary }}","accent":"{{ p.accent }}","button_text":"{{ p.button_text }}","page_bg":"{{ p.page_bg }}","header_bg":"{{ p.header_bg }}","header_text":"{{ p.header_text }}","font":"{{ p.font }}","radius":"{{ p.radius }}","field_style":"{{ p.field_style }}"}'>
+    <span class="sw" style="background:{{ p.page_bg }}"><i style="background:{{ p.header_bg }}"></i><i style="background:{{ p.primary }}"></i><i style="background:{{ p.accent }}"></i></span>{{ p.label }}</button>{% endfor %}
+</div>
+
+<div class="th-layout">
+<form method="post" class="card card-pad" id="th-form">{% csrf_token %}<input type="hidden" name="preset" value="{{ t.preset }}">
+  <h3 style="margin-bottom:10px">Colours</h3>
+  <div class="th-colors">
+    <label>Buttons <input type="color" name="primary" value="{{ t.primary }}"></label>
+    <label>Button text <input type="color" name="button_text" value="{{ t.button_text }}"></label>
+    <label>Accent <input type="color" name="accent" value="{{ t.accent }}"></label>
+    <label>Page background <input type="color" name="page_bg" value="{{ t.page_bg }}"></label>
+    <label>Header <input type="color" name="header_bg" value="{{ t.header_bg }}"></label>
+    <label>Header text <input type="color" name="header_text" value="{{ t.header_text }}"></label>
+  </div>
+  <h3 style="margin:16px 0 10px">Style</h3>
+  <div class="field"><label>Font</label><select name="font">{% for f in fonts %}<option {% if t.font == f %}selected{% endif %}>{{ f }}</option>{% endfor %}</select></div>
+  <div class="field"><label>Corners</label><div class="seg">
+    <label><input type="radio" name="radius" value="sharp" {% if t.radius == 'sharp' %}checked{% endif %}> Sharp</label>
+    <label><input type="radio" name="radius" value="rounded" {% if t.radius == 'rounded' %}checked{% endif %}> Rounded</label>
+    <label><input type="radio" name="radius" value="pill" {% if t.radius == 'pill' %}checked{% endif %}> Pill</label></div></div>
+  <div class="field"><label>Fields</label><div class="seg">
+    <label><input type="radio" name="field_style" value="outlined" {% if t.field_style == 'outlined' %}checked{% endif %}> Outlined</label>
+    <label><input type="radio" name="field_style" value="filled" {% if t.field_style == 'filled' %}checked{% endif %}> Filled</label>
+    <label><input type="radio" name="field_style" value="underline" {% if t.field_style == 'underline' %}checked{% endif %}> Underline</label></div></div>
+  <h3 style="margin:16px 0 8px">Header</h3>
+  <label class="check"><input type="checkbox" name="show_logo" {% if t.show_logo %}checked{% endif %}> <span>Show the logo {% if not request.workspace.logo %}<small class="muted">(<a class="link" href="{% url 'accounts:workspace_info' %}">upload one</a>)</small>{% endif %}</span></label>
+  <label class="check"><input type="checkbox" name="show_name" {% if t.show_name %}checked{% endif %}> Show the workspace name</label>
+  <div class="row" style="gap:8px;margin-top:16px">
+    <button class="btn" name="action" value="reset" formnovalidate data-confirm="Go back to the standard theme?">Reset</button>
+    <span class="grow"></span><button class="btn btn-dark" name="action" value="save">Save theme</button>
+  </div>
+</form>
+
+<div class="th-preview" id="th-preview" aria-label="Preview">
+  <div class="tp-top"><span class="tp-brand">{% if request.workspace.logo %}<img src="{{ request.workspace.logo.url }}" alt="" class="tp-logo">{% endif %}<span class="tp-name">{{ request.workspace.name }}</span></span><span class="tp-sub">Policy change request · Branch review</span></div>
+  <div class="tp-page">
+    <div class="tp-doc">
+      <div class="tp-head">Request details</div>
+      <div class="tp-field"><span>Policy number <i>*</i></span><div class="tp-input">POL-200101</div></div>
+      <div class="tp-row"><div class="tp-field"><span>First name</span><div class="tp-input">Jordan</div></div><div class="tp-field"><span>Last name</span><div class="tp-input">Sample</div></div></div>
+      <div class="tp-field"><span>Payment method</span><label class="tp-opt"><input type="radio" checked tabindex="-1"> Cheque</label><label class="tp-opt"><input type="radio" tabindex="-1"> Direct deposit</label></div>
+      <label class="tp-opt"><input type="checkbox" checked tabindex="-1"> I confirm the details are correct</label>
+    </div>
+  </div>
+  <div class="tp-bar"><span class="tp-btn ghost">Save as draft</span><span class="tp-btn">Complete</span></div>
+</div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+(function () {
+  const form = document.getElementById("th-form"), prev = document.getElementById("th-preview");
+  const R = { sharp: "2px", rounded: "8px", pill: "22px" };
+  const apply = () => {
+    const v = (n) => (form.querySelector(`[name=${n}]:checked`) || form.elements[n]).value;
+    const s = prev.style;
+    s.setProperty("--tp-btn", v("primary")); s.setProperty("--tp-btn-text", v("button_text")); s.setProperty("--tp-acc", v("accent"));
+    s.setProperty("--tp-bg", v("page_bg")); s.setProperty("--tp-head", v("header_bg")); s.setProperty("--tp-head-text", v("header_text"));
+    s.setProperty("--tp-r", R[v("radius")] || "8px"); s.fontFamily = `"${v("font")}", Inter, system-ui, sans-serif`;
+    prev.dataset.fields = v("field_style");
+    prev.classList.toggle("no-logo", !form.elements.show_logo.checked); prev.classList.toggle("no-name", !form.elements.show_name.checked);
+    const font = v("font");
+    if (!document.querySelector(`link[data-font="${font}"]`)) {
+      const l = document.createElement("link"); l.rel = "stylesheet"; l.dataset.font = font;
+      l.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@400;600;700&display=swap`; document.head.appendChild(l);
+    }
+  };
+  form.addEventListener("input", (e) => { if (e.target.name !== "preset") { form.elements.preset.value = "custom"; document.querySelectorAll(".th-preset").forEach((b) => b.classList.remove("on")); } apply(); });
+  form.addEventListener("change", apply);
+  document.querySelectorAll(".th-preset").forEach((b) => b.addEventListener("click", () => {
+    const vals = JSON.parse(b.dataset.values);
+    for (const [k, val] of Object.entries(vals)) {
+      const radio = form.querySelector(`[name=${k}][value="${val}"]`);
+      if (radio) radio.checked = true; else if (form.elements[k]) form.elements[k].value = val;
+    }
+    form.elements.preset.value = b.dataset.preset;
+    document.querySelectorAll(".th-preset").forEach((x) => x.classList.toggle("on", x === b));
+    apply();
+  }));
+  apply();
+})();
+</script>{% endblock %}

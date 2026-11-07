@@ -1,0 +1,13 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Usage log{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:14px">Usage log</h1>
+<form class="row" style="margin-bottom:12px"><input type="date" name="from" value="{{ start|date:'Y-m-d' }}" style="width:auto"><span>–</span><input type="date" name="to" value="{{ end|date:'Y-m-d' }}" style="width:auto"><button class="btn">Apply</button><span class="grow"></span><a class="btn" href="?from={{ start|date:'Y-m-d' }}&to={{ end|date:'Y-m-d' }}&format=csv">{% icon "download" %} Export as CSV</a></form>
+<div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th class="num">Sends</th><th class="num">Bot actions</th><th class="num">Credits</th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{% icon "folder" 14 %} {% if r.workflow_id %}<a class="link" href="{% url 'flows:workflow_detail' r.workflow_id %}">{{ r.workflow_name }}</a>{% else %}{{ r.workflow_name|default:"(deleted)" }}{% endif %}</td><td class="num">{{ r.sends }}</td><td class="num">{{ r.bots }}</td><td class="num">{{ r.credits }}</td></tr>
+{% empty %}<tr><td colspan="4" class="muted">No usage in this period.</td></tr>{% endfor %}
+<tr><td><b>Total</b></td><td class="num"><b>{{ total.sends }}</b></td><td class="num"><b>{{ total.bots }}</b></td><td class="num"><b>{{ total.credits }}</b></td></tr>
+</tbody></table></div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base_bare.html" %}
+{% load ui %}
+{% block title %}{{ meta.name }} · {{ wf.name }}{% endblock %}
+{% block body %}
+<div class="shell no-sidebar">
+{% include "partials/rail.html" %}
+<main class="main">
+  <div class="builder-top"><a class="btn btn-ghost btn-sm" href="{% url 'flows:bots' wf.pk %}">{% icon "back" %} Back</a><div class="t"><h1>{{ meta.name }}</h1><small class="muted">{{ meta.desc }}</small></div></div>
+  <form method="post" action="{% if bot %}{% url 'flows:bot_edit' wf.pk bot.pk %}{% else %}{% url 'flows:bot_new' wf.pk %}{% endif %}" class="page-body" style="max-width:720px;margin:0 auto;width:100%">{% csrf_token %}
+    <input type="hidden" name="bot_type" value="{{ bot_type }}">
+    <div class="card card-pad stack">
+      <div class="field"><label>Bot name</label><input type="text" name="name" value="{{ bot.name|default:meta.name }}"></div>
+      <div class="grid-2">
+        <div class="field"><label>Run</label><select name="trigger">{% for k, l in triggers %}<option value="{{ k }}" {% if trigger == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Step</label><select name="step_key"><option value="">Any step</option>{% for s in steps %}<option value="{{ s.key }}" {% if step_key == s.key %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></div>
+      </div>
+      <h3>Settings</h3>
+      {% for f in meta.fields %}
+      <div class="field">
+        {% if f.type == 'checkbox' %}<label class="check"><input type="checkbox" name="cfg_{{ f.name }}" {% if config|get:f.name %}checked{% endif %}> {{ f.label }}</label>
+        {% else %}<label>{{ f.label }}{% if f.required %} <span style="color:var(--red)">*</span>{% endif %}</label>
+          {% if f.type == 'textarea' or f.type == 'mapping' %}<textarea name="cfg_{{ f.name }}" rows="{% if f.type == 'mapping' %}5{% else %}4{% endif %}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}>{{ config|get:f.name }}</textarea>
+          {% elif f.type == 'workflow' %}<select name="cfg_{{ f.name }}" {% if f.required %}required{% endif %}><option value="">Select workflow</option>{% for w in workflows %}<option value="{{ w.pk }}" {% if config|get:f.name|to_str == w.pk|to_str %}selected{% endif %}>{{ w.name }}</option>{% endfor %}</select>
+          {% elif f.type == 'step' %}<select name="cfg_{{ f.name }}" {% if f.required %}required{% endif %}><option value="">Select step</option>{% for s in all_steps %}<option value="{{ s.key }}" {% if config|get:f.name == s.key %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select>
+          {% elif f.type == 'group' %}<select name="cfg_{{ f.name }}"><option value="">—</option>{% for g in groups %}<option value="{{ g.pk }}" {% if config|get:f.name|to_str == g.pk|to_str %}selected{% endif %}>{{ g.name }}</option>{% endfor %}</select>
+          {% elif f.type == 'datasheet' %}<select name="cfg_{{ f.name }}" {% if f.required %}required{% endif %}><option value="">Select spreadsheet</option>{% for d in datasheets %}<option value="{{ d.pk }}" {% if config|get:f.name|to_str == d.pk|to_str %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select>
+          {% elif f.type == 'select' %}<select name="cfg_{{ f.name }}">{% for o in f.options %}<option value="{{ o.0 }}" {% if config|get:f.name == o.0 %}selected{% endif %}>{{ o.1 }}</option>{% endfor %}</select>
+          {% elif f.type == 'connector' %}<select name="cfg_{{ f.name }}" {% if f.required %}required{% endif %}><option value="">Select connector</option>{% for c in connectors %}<option value="{{ c.pk }}" {% if config|get:f.name|to_str == c.pk|to_str %}selected{% endif %}>{{ c.name }} — {% for a in c.actions %}{{ a.key }}{% if not forloop.last %}, {% endif %}{% endfor %}</option>{% endfor %}</select>{% if not connectors %}<small class="help">No connectors yet{% if request.membership.can_manage %} — <a class="link" href="{% url 'flows:connectors' %}">create one</a>{% endif %}.</small>{% endif %}
+          {% elif f.type == 'connection' %}<select name="cfg_{{ f.name }}" {% if f.required %}required{% endif %}><option value="">Select connection</option>{% for c in connections %}<option value="{{ c.pk }}" {% if config|get:f.name|to_str == c.pk|to_str %}selected{% endif %}>{{ c.label }} ({{ c.get_kind_display }})</option>{% endfor %}</select>
+            <div class="help"><a class="link" href="{% url 'accounts:connections' %}" target="_blank">Manage connected accounts</a></div>
+          {% else %}<input type="{% if f.type == 'url' %}url{% elif f.type == 'number' %}number{% else %}text{% endif %}" name="cfg_{{ f.name }}" value="{{ config|get:f.name }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}>{% endif %}
+        {% endif %}
+        {% if f.help %}<div class="help">{{ f.help }}</div>{% endif %}
+      </div>
+      {% empty %}<p class="muted">This bot has no settings.</p>{% endfor %}
+      {% if fields %}<details><summary class="link" style="font-size:12.5px">Available field names</summary><div style="margin-top:6px">{% for id, label, name, opts in fields %}<code class="tag">{{ name }}</code>{% endfor %}</div></details>{% endif %}
+      <h3>Options</h3>
+      <div class="grid-3">
+        <label class="check"><input type="checkbox" name="run_once" {% if bot.run_once %}checked{% endif %}> Run once per document</label>
+        <label class="check"><input type="checkbox" name="skip_on_fail" {% if bot.config.skip_on_fail %}checked{% endif %}> Skip if this bot fails (log it as skipped, not failed)</label>
+        <label class="check" title="For slow bots (AI, connectors, webhooks). Don't use it when a later branch or step needs this bot's result straight away."><input type="checkbox" name="background" {% if bot.config.background %}checked{% endif %}> <span>Run in the background <small class="muted">— nobody waits for it; retried if it fails</small></span></label>
+        <div class="field"><label>Delay (minutes)</label><input type="number" min="0" name="delay_minutes" value="{{ bot.delay_minutes|default:0 }}"></div>
+        <div class="field"><label>Tags on success</label><input type="text" name="success_tags" value="{{ bot.success_tags|join:', ' }}"></div>
+      </div>
+      <h3>Conditions</h3>
+      <p class="muted">Run the bot only when… (leave empty to always run). Special fields: <code>@step</code> acting step, <code>@status</code> FILLED / DECLINED, <code>@document</code>, <code>@revision</code>.</p>
+      {% if nested %}
+        <div class="alert alert-info">This bot uses nested AND/OR groups (imported). Edit them as JSON below, or clear the box to use the simple rule builder.</div>
+        <textarea name="condition_json" rows="12" style="font-family:monospace;font-size:12px">{{ condition_json }}</textarea>
+      {% else %}
+      {% include "flows/partials/rules.html" with prefix="rule" %}
+      <details style="margin-top:8px"><summary class="link" style="font-size:12.5px">Advanced: nested conditions (JSON)</summary><textarea name="condition_json" rows="6" style="font-family:monospace;font-size:12px" placeholder='{"logic": "and", "rules": [{"field": "@step", "op": "eq", "value": "…"}, {"logic": "or", "rules": [...]}]}'></textarea></details>
+      {% endif %}
+      <label class="check"><input type="checkbox" name="enabled" {% if not bot or bot.enabled %}checked{% endif %}> Enabled</label>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><a class="btn" href="{% url 'flows:bots' wf.pk %}">Cancel</a><button class="btn btn-dark">Save bot</button></div>
+  </form>
+</main></div>
+{% endblock %}

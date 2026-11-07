@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Team{% endblock %}
+{% block sidebar %}{% endblock %}
+{% block shell_class %}no-sidebar{% endblock %}
+{% block heading %}Team{% endblock %}
+{% block subheading %}<span>Teammates, groups and invitations in {{ request.workspace.name }}</span>{% endblock %}
+{% block actions %}
+{% if request.membership.can_manage %}<button class="btn btn-dark" data-modal-template="#invite-tpl">{% icon "plus" 16 %} Invite teammates</button>{% endif %}
+{% endblock %}
+{% block content %}
+{% include "accounts/_people_head.html" %}
+
+<form class="ppl-toolbar">
+  <div class="ppl-search">{% icon "search" 16 %}<input type="search" name="q" value="{{ q }}" placeholder="Search name, email or position" aria-label="Search teammates"></div>
+  <select name="status" data-autosubmit aria-label="Status"><option value="active" {% if status == 'active' %}selected{% endif %}>Active</option><option value="blocked" {% if status == 'blocked' %}selected{% endif %}>Blocked</option><option value="all" {% if status == 'all' %}selected{% endif %}>Everyone</option></select>
+  <select name="role" data-autosubmit aria-label="Role"><option value="">All roles</option>{% for k, l in roles %}<option value="{{ k }}" {% if request.GET.role == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  <select name="group" data-autosubmit aria-label="Group"><option value="">All groups</option>{% for g in groups %}<option value="{{ g.pk }}" {% if request.GET.group == g.pk|to_str %}selected{% endif %}>{{ g.name }} ({{ g.n }})</option>{% endfor %}</select>
+  <select name="sort" data-autosubmit aria-label="Sort"><option value="name" {% if sort == 'name' %}selected{% endif %}>Name A–Z</option><option value="-name" {% if sort == '-name' %}selected{% endif %}>Name Z–A</option><option value="role" {% if sort == 'role' %}selected{% endif %}>Role</option><option value="active" {% if sort == 'active' %}selected{% endif %}>Recently active</option></select>
+  {% if request.GET.role or request.GET.group or q or status != 'active' %}<a class="link small" href="?">Clear</a>{% endif %}
+  <span class="grow"></span>
+  {% if request.membership.can_manage and groups %}<span data-bulk-bar hidden class="row" style="gap:6px"><b class="small"><span data-bulk-count>0</span> selected</b>
+    <select form="bulk-group" name="group" aria-label="Group">{% for g in groups %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}</select>
+    <button type="button" class="btn btn-sm" data-bulk-submit="#bulk-group" data-bulk-action="add">Add to group</button></span>{% endif %}
+</form>
+<form method="post" action="{% url 'accounts:team_bulk_group' %}" id="bulk-group" hidden>{% csrf_token %}<input type="hidden" name="action" value="add"></form>
+
+<div class="ppl-table" role="table" aria-label="Teammates">
+  <div class="ppl-row ppl-head" role="row"><span>{% if request.membership.can_manage %}<input type="checkbox" data-select-all=".row-check" aria-label="Select all">{% endif %}</span><span>Teammate</span><span>Role</span><span>Groups</span><span>Open work</span><span>Last active</span><span></span></div>
+  {% for m in members %}
+  <div class="ppl-row {% if not m.active %}is-blocked{% endif %}" role="row">
+    <span>{% if request.membership.can_manage %}<input type="checkbox" class="row-check" value="{{ m.pk }}" aria-label="Select {{ m.user|display_name }}">{% endif %}</span>
+    <button type="button" class="ppl-who" data-drawer-url="{% url 'accounts:team_member_panel' m.pk %}">
+      <span class="avatar lg {% if m.is_away %}away{% endif %}">{% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" alt="">{% else %}{{ m.user|initials }}{% endif %}</span>
+      <span class="ppl-name"><b>{{ m.user|display_name }}{% if m.user == request.user %} <small class="muted">(you)</small>{% endif %}</b>
+        <small>{{ m.user.email }}{% if m.position %} · {{ m.position }}{% endif %}</small>
+        {% if not m.active %}<span class="ppl-flag red">Blocked</span>{% elif m.is_away %}<span class="ppl-flag green">🌴 Out of office until {{ m.user.profile.ooo_until|date:"M j" }}</span>{% endif %}</span>
+    </button>
+    <span>{% if request.membership.can_manage and m.user != request.user and m.role != 'owner' or request.membership.role == 'owner' and m.user != request.user %}
+      <form method="post" action="{% url 'accounts:team_member' m.pk 'role' %}" class="role-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <select name="role" class="role-select role-{{ m.role }}" data-autosubmit aria-label="Role of {{ m.user|display_name }}" title="{{ role_help|get:m.role }}">{% for k, l in roles %}{% if k != 'owner' or request.membership.role == 'owner' %}<option value="{{ k }}" {% if k == m.role %}selected{% endif %}>{{ l }}</option>{% endif %}{% endfor %}</select></form>
+      {% else %}<span class="role-pill role-{{ m.role }}" title="{{ role_help|get:m.role }}">{{ m.get_role_display }}</span>{% endif %}</span>
+    <span class="ppl-groups">{% for g in m.group_list|slice:":2" %}<a class="ppl-chip" href="?group={{ g.pk }}" title="{{ g.name }}">{{ g.name|truncatechars:22 }}</a>{% endfor %}{% if m.group_list|length > 2 %}<button type="button" class="ppl-chip more" data-drawer-url="{% url 'accounts:team_member_panel' m.pk %}" title="{% for g in m.group_list %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">+{{ m.group_list|length|add:"-2" }}</button>{% elif not m.group_list %}<span class="muted small">—</span>{% endif %}</span>
+    <span>{% if m.open_steps %}<a class="ppl-work {% if m.overdue_steps %}late{% endif %}" href="{% url 'flows:workload' %}" title="{{ m.overdue_steps }} overdue">{{ m.open_steps }} open{% if m.overdue_steps %} · {{ m.overdue_steps }} late{% endif %}</a>{% else %}<span class="muted small">—</span>{% endif %}</span>
+    <span class="small muted" title="{{ m.user.last_login|date:'M j, Y H:i' }}">{% if m.user.last_login %}{{ m.user.last_login|timesince|upto:"," }} ago{% else %}Never signed in{% endif %}</span>
+    <span class="num">{% if request.membership.can_manage %}<div class="menu-wrap"><button aria-label="More actions for {{ m.user|display_name }}" title="More actions" class="btn btn-ghost btn-sm btn-icon" data-menu>{% icon "dots" %}</button><div class="menu">
+      <button data-drawer-url="{% url 'accounts:team_member_panel' m.pk %}">{% icon "user" %} Details &amp; groups</button>
+      <a href="mailto:{{ m.user.email }}">{% icon "mail" %} Email</a>
+      {% if m.user != request.user %}<div class="sep"></div>
+      {% if m.active %}<form method="post" action="{% url 'accounts:team_member' m.pk 'block' %}" data-confirm="Block {{ m.user.email }}? They lose access until activated.">{% csrf_token %}<button>{% icon "lock" %} Block</button></form>
+      {% else %}<form method="post" action="{% url 'accounts:team_member' m.pk 'activate' %}">{% csrf_token %}<button>{% icon "check" %} Activate</button></form>{% endif %}
+      <form method="post" action="{% url 'accounts:team_member' m.pk 'remove' %}" data-confirm="Remove {{ m.user.email }} from the workspace?" data-danger data-confirm-ok="Remove">{% csrf_token %}<button class="danger">{% icon "trash" %} Remove</button></form>{% endif %}
+    </div></div>{% endif %}</span>
+  </div>
+  {% empty %}<div class="empty"><div class="ico">👥</div><h3>No teammates match</h3><p>Try other filters{% if request.membership.can_manage %}, or invite someone{% endif %}.</p></div>{% endfor %}
+</div>
+
+{% if request.membership.can_manage %}
+<section id="invites" class="ppl-section">
+  <div class="row" style="align-items:center"><h3 class="grow">Pending invitations</h3>{% if invites %}<button class="btn btn-sm" data-modal-template="#invite-tpl">{% icon "plus" 14 %} Invite more</button>{% endif %}</div>
+  {% if invites %}<div class="ppl-table">{% for i in invites %}
+    <div class="ppl-row ppl-inv"><span class="avatar lg muted-avatar">{% icon "mail" 16 %}</span>
+      <span class="ppl-name"><b>{{ i.email }}</b><small>Invited {{ i.created_at|timesince|upto:"," }} ago{% if i.invited_by %} by {{ i.invited_by|display_name }}{% endif %}</small></span>
+      <span class="role-pill role-{{ i.role }}">{{ i.get_role_display }}</span>
+      <span class="num row" style="gap:6px;justify-content:flex-end"><button class="btn btn-sm" data-copy="{% url 'accept_invite' i.token %}" title="Copy the invitation link">{% icon "link" 14 %} Copy link</button>
+        <form method="post" action="{% url 'accounts:invite_cancel' i.pk %}" data-confirm="Cancel the invitation for {{ i.email }}?">{% csrf_token %}<button class="btn btn-sm">Cancel</button></form></span></div>
+  {% endfor %}</div>
+  {% else %}<p class="muted small">No pending invitations.</p>{% endif %}
+</section>
+{% endif %}
+
+{% if request.membership.can_manage %}<template id="invite-tpl"><form method="post" action="{% url 'accounts:team_invite' %}">{% csrf_token %}
+  <div class="modal-head"><h2>Invite teammates</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <div class="field"><label>Email addresses</label><textarea name="emails" rows="3" placeholder="alex@company.com, sam@company.com" required></textarea><div class="help">Separate several with commas or new lines. People who already belong to the workspace are skipped.</div></div>
+    <div class="field"><label>Role</label><div class="ppl-rolepick">{% for k, l in roles %}{% if k != 'owner' or request.membership.role == 'owner' %}<label><input type="radio" name="role" value="{{ k }}" {% if k == 'creator' %}checked{% endif %}><span><span class="role-pill role-{{ k }}">{{ l }}</span><small>{{ role_help|get:k }}</small></span></label>{% endif %}{% endfor %}</div></div>
+  </div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Send invitations</button></div></form></template>{% endif %}
+{% endblock %}

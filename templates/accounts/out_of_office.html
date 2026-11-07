@@ -1,0 +1,42 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Out of office{% endblock %}
+{% block nav %}{% include "accounts/_account_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">Out of office</h1>
+<p class="muted" style="margin-bottom:18px">While you're away, steps that would come to you go to a teammate instead — including your share of group steps. Steps already waiting for you stay with you; reassign them from the document if needed.</p>
+
+{% if profile.out_of_office %}
+<div class="card card-pad ooo-on" style="margin-bottom:16px">
+  <div class="sec-head"><div><h3>You're out of office</h3>
+    <p class="muted">Until <b>{{ profile.ooo_until|date:"l, M j" }}</b> · new steps go to <b>{{ profile.ooo_delegate.get_full_name|default:profile.ooo_delegate.email }}</b>{% if profile.ooo_message %} · “{{ profile.ooo_message }}”{% endif %}</p></div>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="off"><button class="btn">I'm back — turn off</button></form></div>
+</div>
+{% elif profile.ooo_until and profile.ooo_until >= today %}
+<div class="card card-pad" style="margin-bottom:16px"><b>Scheduled:</b> {{ profile.ooo_from|date:"M j" }} – {{ profile.ooo_until|date:"M j" }}, covered by {{ profile.ooo_delegate.get_full_name|default:profile.ooo_delegate.email }}.
+  <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="off"><button class="link" style="background:none;border:0;cursor:pointer;font:inherit">Cancel</button></form></div>
+{% endif %}
+
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px">{% if profile.ooo_until and profile.ooo_until >= today %}Change dates or cover{% else %}Set out of office{% endif %}</h3>
+  {% if teammates %}
+  <form method="post" class="ooo-form">{% csrf_token %}
+    <div class="field"><label for="ooo-from">From</label><input id="ooo-from" type="date" name="ooo_from" value="{{ profile.ooo_from|date:'Y-m-d'|default:today|date:'Y-m-d' }}" min="{{ today|date:'Y-m-d' }}"></div>
+    <div class="field"><label for="ooo-until">Back on (last day away)</label><input id="ooo-until" type="date" name="ooo_until" required value="{{ profile.ooo_until|date:'Y-m-d' }}" min="{{ today|date:'Y-m-d' }}"></div>
+    <div class="field ooo-wide"><label for="ooo-del">Who covers for you</label>
+      <select id="ooo-del" name="delegate" required><option value="">Choose a teammate…</option>
+        {% for m in teammates %}<option value="{{ m.user_id }}" {% if profile.ooo_delegate_id == m.user_id %}selected{% endif %}>{{ m.user.get_full_name|default:m.user.email }} — {{ m.get_role_display }}</option>{% endfor %}</select></div>
+    <div class="field ooo-wide"><label for="ooo-msg">Note for your team (optional)</label><input id="ooo-msg" name="ooo_message" maxlength="240" value="{{ profile.ooo_message }}" placeholder="On leave — Ana is covering approvals"></div>
+    <div class="ooo-wide"><button class="btn btn-dark">{% icon "calendar" %} Save out of office</button></div>
+  </form>
+  {% else %}<p class="muted">Invite a teammate first — someone has to cover for you.</p>{% endif %}
+</div>
+
+{% if covering %}
+<div class="card card-pad">
+  <h3 style="margin-bottom:8px">You're covering for</h3>
+  {% for c in covering %}<p>{{ c.user.get_full_name|default:c.user.email }} — until {{ c.ooo_until|date:"M j" }}{% if c.ooo_message %} · <span class="muted">“{{ c.ooo_message }}”</span>{% endif %}</p>{% endfor %}
+  <p class="muted small">Their new steps and their share of group steps appear in your Inbox.</p>
+</div>
+{% endif %}
+{% endblock %}

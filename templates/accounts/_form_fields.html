@@ -1,0 +1,17 @@
+{% for f in form %}
+  {% if f.is_hidden %}{{ f }}{% elif f.widget_type == 'checkbox' %}
+  <div class="field"><label class="check">{{ f }} {{ f.label }}</label>
+    {% if f.help_text %}<div class="help">{{ f.help_text }}</div>{% endif %}{{ f.errors }}</div>
+  {% elif f.widget_type == 'checkboxselectmultiple' or f.widget_type == 'radioselect' %}
+  <div class="field"><label>{{ f.label }}</label>
+    <div class="check-grid">{% for o in f %}<label class="check">{{ o.tag }} {{ o.choice_label }}</label>{% endfor %}</div>
+    {% if f.help_text %}<div class="help">{{ f.help_text }}</div>{% endif %}{{ f.errors }}</div>
+  {% else %}
+  <div class="field">
+    <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+    {{ f }}
+    {% if f.help_text %}<div class="help">{{ f.help_text }}</div>{% endif %}
+    {{ f.errors }}
+  </div>{% endif %}
+{% endfor %}
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}

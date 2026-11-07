@@ -1,0 +1,9 @@
+<form method="post" action="{% url 'accounts:contacts_import' %}" enctype="multipart/form-data">{% csrf_token %}
+  <div class="modal-head"><h2>Import contacts</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <p class="muted">Upload a CSV with columns <code>name</code>, <code>email</code>, <code>phone</code>, <code>company</code> (or <code>first name</code>/<code>last name</code>). Existing emails are updated.</p>
+    <div class="field"><input type="file" name="file" accept=".csv,text/csv"></div>
+    <div class="field"><label>…or paste CSV</label><textarea name="text" rows="5" placeholder="name,email,company&#10;Jane Doe,jane@example.com,Acme"></textarea></div>
+  </div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Import</button></div>
+</form>

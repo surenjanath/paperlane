@@ -1,0 +1,55 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Thank you page{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block head %}{% with workspace=request.workspace %}{% include "flows/_fill_theme.html" %}{% endwith %}{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">Thank you page</h1>
+<p class="muted" style="margin-bottom:14px">What recipients see after they submit. A step can override the title and text in its own settings.</p>
+<div class="th-layout" style="grid-template-columns:400px minmax(0,1fr)">
+<form method="post" class="card card-pad" id="ty-form">{% csrf_token %}
+  <div class="field"><label>Icon</label><div class="ty-icons">{% for i in icons %}<label class="ty-ic"><input type="radio" name="icon" value="{{ i }}" {% if ty.icon == i %}checked{% endif %}><span {% if i == "logo" or i == "none" %}class="txt"{% endif %}>{% if i == "logo" %}Logo{% elif i == "none" %}None{% else %}{{ i }}{% endif %}</span></label>{% endfor %}</div></div>
+  <div class="field"><label>Title</label><input type="text" name="title" value="{{ ty.title }}" maxlength="120" data-live></div>
+  <div class="field"><label>Message</label><textarea name="body" rows="3" data-live>{{ ty.body }}</textarea></div>
+  <div class="field"><label>What happens next <small class="muted">(one step per line, optional)</small></label><textarea name="next_steps" rows="3" placeholder="We review your request within 2 business days&#10;You get an email when the payment is ready" data-live>{{ ty.next_steps }}</textarea></div>
+  <div class="field"><label>Contact line</label><input type="text" name="contact" value="{{ ty.contact }}" maxlength="300" placeholder="Questions? Call 868-555-0100 or reply to your email." data-live></div>
+  <div class="help" style="margin:-6px 0 12px">Placeholders: <code>{document_name}</code> <code>{reference}</code> <code>{workflow_name}</code> <code>{step_name}</code> <code>{workspace_name}</code> <code>{field:Field name}</code></div>
+  <label class="check"><input type="checkbox" name="show_reference" {% if ty.show_reference %}checked{% endif %} data-live> Show the reference number</label>
+  <label class="check"><input type="checkbox" name="confetti" {% if ty.confetti %}checked{% endif %}> Celebrate with confetti</label>
+  <h3 style="margin:14px 0 8px">Button and redirect</h3>
+  <div class="grid-2"><div class="field"><label>Button label</label><input type="text" name="button_label" value="{{ ty.button_label }}" maxlength="60" placeholder="Back to our website" data-live></div>
+    <div class="field"><label>Button link</label><input type="text" name="button_url" value="{{ ty.button_url }}" placeholder="https://" data-live></div></div>
+  <div class="grid-2"><div class="field"><label>Send people to</label><input type="text" name="redirect_url" value="{{ ty.redirect_url }}" placeholder="https:// (optional)"></div>
+    <div class="field"><label>after (seconds)</label><input type="number" name="redirect_seconds" min="0" max="120" value="{{ ty.redirect_seconds|default:0 }}"></div></div>
+  <div class="row" style="gap:8px;margin-top:6px"><button class="btn" name="action" value="reset" formnovalidate data-confirm="Go back to the default thank you page?">Reset</button><span class="grow"></span><button class="btn btn-dark" name="action" value="save">Save</button></div>
+</form>
+<div class="fill-page center-screen ty-preview" id="ty-preview" style="min-height:460px;border-radius:14px;border:1px solid var(--line)">
+  {% with workspace=request.workspace preview=True %}{% include "flows/_thank_you_box.html" %}{% endwith %}
+</div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+(function () {
+  const f = document.getElementById("ty-form"), box = document.getElementById("ty-preview");
+  const sample = { "{document_name}": "Jordan Sample – POL-200102", "{reference}": "#1042", "{workflow_name}": "Partial withdrawal",
+                   "{step_name}": "Request form", "{workspace_name}": {{ request.workspace.name|jsonify }} };
+  const fill = (t) => t.replace(/\{[a-z_]+\}/g, (m) => sample[m] ?? m).replace(/\{field:([^}]+)\}/g, "[$1]");
+  const q = (k) => box.querySelector(`[data-ty=${k}]`);
+  const logo = {% if request.workspace.logo %}'<img src="{{ request.workspace.logo.url }}" alt="" style="height:56px">'{% else %}"✅"{% endif %};
+  const upd = () => {
+    const icon = f.querySelector("[name=icon]:checked")?.value || "🎉";
+    q("icon").innerHTML = icon === "logo" ? logo : icon === "none" ? "" : icon;
+    q("title").textContent = fill(f.elements.title.value) || "Thank you!";
+    q("body").textContent = fill(f.elements.body.value);
+    const steps = f.elements.next_steps.value.split("\n").map((s) => s.replace(/^[\s\-•*]+/, "").trim()).filter(Boolean);
+    q("steps").hidden = !steps.length;
+    q("steps").querySelector("ol").innerHTML = "";
+    steps.forEach((s) => { const li = document.createElement("li"); li.textContent = fill(s); q("steps").querySelector("ol").appendChild(li); });
+    q("contact").hidden = !f.elements.contact.value.trim(); q("contact").textContent = fill(f.elements.contact.value);
+    q("ref").hidden = !f.elements.show_reference.checked;
+    const b = q("button"); if (b) { b.hidden = !(f.elements.button_label.value && f.elements.button_url.value); b.textContent = f.elements.button_label.value; }
+  };
+  f.addEventListener("input", upd); f.addEventListener("change", upd); upd();
+})();
+</script>{% endblock %}

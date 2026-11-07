@@ -1,0 +1,29 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Set up your workspace{% endblock %}
+{% block card %}
+{% if invites %}
+<h3>Pending invitations</h3>
+{% for inv in invites %}
+<div class="row" style="margin:8px 0"><span class="grow">{{ inv.workspace.name }} <small class="muted">as {{ inv.get_role_display }}</small></span><a class="btn btn-sm btn-dark" href="{% url 'accept_invite' inv.token %}">Accept</a></div>
+{% endfor %}<hr>
+{% endif %}
+{% if joinable %}
+<h3>Join your team</h3>
+{% for w in joinable %}
+<form method="post" class="row" style="margin:8px 0">{% csrf_token %}<span class="grow">{{ w.name }}</span><button class="btn btn-sm btn-dark" name="join" value="{{ w.pk }}">Join</button></form>
+{% endfor %}<hr>
+{% endif %}
+{% if can_create %}
+<h2 style="margin-bottom:4px">Create a workspace</h2>
+<p class="muted">Tell us about your company.</p>
+<form method="post" style="margin-top:16px">{% csrf_token %}
+  {% include "accounts/_form_fields.html" %}
+  <button class="btn btn-dark btn-block btn-lg">Create workspace</button>
+</form>
+{% elif not invites and not joinable %}
+<h2 style="margin-bottom:4px">Waiting for an invitation</h2>
+<p class="muted">Your account is ready, but new workspaces are created by your administrator. Ask them to invite <b>{{ request.user.email }}</b>{% if platform.support_email %} or write to <a class="link" href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a>{% endif %}.</p>
+{% endif %}
+{% if request.membership %}<p style="margin-top:12px;text-align:center"><a class="link" href="{% url 'core:dashboard' %}">Back to dashboard</a></p>{% endif %}
+<p style="margin-top:12px;text-align:center"><form method="post" action="{% url 'accounts:logout' %}" style="display:inline">{% csrf_token %}<button class="link" style="background:none;border:0;cursor:pointer;font:inherit">Log out</button></form></p>
+{% endblock %}

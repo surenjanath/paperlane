@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Inbox{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}Inbox{% endblock %}
+{% block subheading %}View incoming and completed documents{% endblock %}
+{% block actions %}<form class="pk-search">{% icon "search" 18 %}<input type="search" name="q" value="{{ q }}" placeholder="Search" aria-label="Search inbox"><input type="hidden" name="tab" value="{{ tab }}"></form>{% endblock %}
+{% block tabs %}<nav class="tabs"><a href="?tab=all" class="{% if tab == 'all' %}active{% endif %}">All</a><a href="?tab=waiting" class="{% if tab == 'waiting' %}active{% endif %}">Waiting for me {% if waiting %}<span class="pill-count">{{ waiting }}</span>{% endif %}</a><a href="?tab=completed" class="{% if tab == 'completed' %}active{% endif %}">Completed</a></nav>{% endblock %}
+{% block content %}
+<div class="pk-toolbar">{% if list_view == 'compact' %}<span class="pk-count">{{ page.paginator.count }} document{{ page.paginator.count|pluralize }}</span>{% else %}<label class="pk-selectall"><input type="checkbox" data-select-all=".row-check" aria-label="Select all documents on this page"> <span class="pk-count">{{ page.paginator.count }} document{{ page.paginator.count|pluralize }}</span></label>{% endif %}<span class="grow"></span>{% include "flows/_view_toggle.html" %}</div>
+<div class="pk-list {% if list_view == 'compact' %}dl-list{% endif %}">
+{% if packets and list_view == 'compact' %}{% include "flows/_packet_head.html" with selectable=True %}{% endif %}
+{% for p in packets %}{% if list_view == 'compact' %}{% include "flows/_packet_row.html" with selectable=True show_wf=True %}{% else %}{% include "flows/_packet_card.html" with selectable=True show_wf=True %}{% endif %}
+{% empty %}<div class="empty"><div class="ico">📥</div><h3>{% if tab == 'waiting' %}Nothing is waiting for you{% else %}Your inbox is empty{% endif %}</h3><p>Documents sent to {{ request.user.email }} appear here.</p></div>{% endfor %}
+</div>
+{% if page.has_other_pages %}<nav class="row" style="justify-content:center;margin-top:16px" aria-label="Pages">
+  {% if page.has_previous %}<a class="btn btn-sm" href="?tab={{ tab }}&q={{ q|urlencode }}&page={{ page.previous_page_number }}">‹ Previous</a>{% endif %}
+  <span class="muted small">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn btn-sm" href="?tab={{ tab }}&q={{ q|urlencode }}&page={{ page.next_page_number }}">Next ›</a>{% endif %}
+</nav>{% endif %}
+{% include "flows/partials/packet_modals.html" %}
+{% endblock %}

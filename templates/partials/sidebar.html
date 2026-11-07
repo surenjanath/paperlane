@@ -1,0 +1,61 @@
+{% load ui %}
+<aside class="sidebar">
+  <div class="menu-wrap" style="display:block">
+    <div class="ws-switch" data-menu="#ws-menu">
+      <div class="name">{{ request.workspace.name }} <span class="muted">⌄</span></div>
+      <a class="role" href="{% url 'accounts:team' %}">{{ request.membership.get_role_display }}</a>
+    </div>
+    <div class="menu left" id="ws-menu" style="min-width:230px">
+      {% for m in my_workspaces %}
+      <form method="post" action="{% url 'accounts:switch' m.workspace.pk %}">{% csrf_token %}
+        <button>{% if m.workspace == request.workspace %}{% icon "check" %}{% else %}<span style="width:15px"></span>{% endif %}<span class="grow">{{ m.workspace.name }}<br><small class="muted">{{ m.get_role_display }}</small></span></button>
+      </form>
+      {% endfor %}
+      <div class="sep"></div>
+      <a href="{% url 'accounts:onboarding' %}">{% icon "plus" %} Create or join a workspace</a>
+      {% if request.membership.can_manage %}<a href="{% url 'accounts:workspace_info' %}">{% icon "gear" %} Workspace settings</a>{% endif %}
+    </div>
+  </div>
+
+  <div class="sidebar-scroll">
+  {% if request.membership.can_create %}
+  <div class="menu-wrap" style="display:block;margin:4px 0 12px">
+    <button class="btn btn-dark btn-block" data-menu="#create-menu">Create</button>
+    <div class="menu left create-menu" id="create-menu">
+      <a href="{% url 'flows:document_new' %}"><span class="ico ico-doc">{% include "partials/_create_icon.html" with kind="doc" %}</span><span><b>Document</b><small>Send a one-time request to fill out or sign a document.</small></span></a>
+      <form method="post" action="{% url 'flows:create' 'template' %}">{% csrf_token %}<button><span class="ico ico-tpl">{% include "partials/_create_icon.html" with kind="tpl" %}</span><span><b>Template</b><small>Create a reusable template with predefined fields.</small></span></button></form>
+      <form method="post" action="{% url 'flows:create' 'workflow' %}">{% csrf_token %}<button><span class="ico ico-wf">{% include "partials/_create_icon.html" with kind="wf" %}</span><span><b>Workflow</b><small>Automate document processes, simple or complex.</small></span></button></form>
+      <a href="{% url 'flows:ai_describe' %}"><span class="ico ico-ai">{% icon "sparkle" %}</span><span><b>Describe it</b><small>Write the process in plain words — get a complete workflow.</small></span></a>
+    </div>
+  </div>
+  {% endif %}
+
+  <a class="nav-item {% if nav == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">{% icon "dashboard" %} Dashboard</a>
+  <div class="nav-sep"></div>
+  <a class="nav-item {% if nav == 'inbox' %}active{% endif %}" href="{% url 'core:inbox' %}" data-live-count="waiting">{% icon "inbox" %} Inbox <span class="count" data-count {% if not waiting_count %}hidden{% endif %}>{{ waiting_count|default:"0" }}</span></a>
+  <a class="nav-item {% if nav == 'approvals' %}active{% endif %}" href="{% url 'flows:approvals' %}">{% icon "check" %} Approvals</a>
+  <a class="nav-item {% if nav == 'documents' %}active{% endif %}" href="{% url 'flows:documents' %}">{% icon "documents" %} Documents</a>
+  <a class="nav-item {% if nav == 'templates' %}active{% endif %}" href="{% url 'flows:templates' %}">{% icon "folder" %} Templates</a>
+  <a class="nav-item {% if nav == 'workflows' %}active{% endif %}" href="{% url 'flows:workflows' %}">{% icon "workflow" %} Workflows</a>
+  <a class="nav-item {% if nav == 'forms' %}active{% endif %}" href="{% url 'flows:forms' %}">{% icon "edit" %} Forms</a>
+  {% if request.membership.can_view_all %}<a class="nav-item {% if nav == 'workload' %}active{% endif %}" href="{% url 'flows:workload' %}">{% icon "team" %} Team workload</a>{% endif %}
+  <a class="nav-item {% if nav == 'tickets' %}active{% endif %}" href="{% url 'flows:tickets' %}" data-live-count="tickets">{% icon "comment" %} Support tickets <span class="count" data-count {% if open_tickets_urgent %}urgent{% endif %} {% if not open_tickets %}hidden{% endif %}>{{ open_tickets|default:"0" }}</span></a>
+  {% if recents %}
+  <div class="nav-sep"></div>
+  <div class="nav-label" data-collapse="#recents-list">Recents ⌃</div>
+  <div id="recents-list">
+    {% for r in recents %}
+    <a class="nav-item nav-recent {% if wf.pk == r.workflow.pk %}active{% endif %}" href="{{ r.workflow.get_absolute_url }}" {% if forloop.counter > 5 %}hidden data-more-recent{% endif %} title="{{ r.workflow.name }}">{% icon "workflow" %} <span style="overflow:hidden;text-overflow:ellipsis">{{ r.workflow.name }}</span></a>
+    {% endfor %}
+    {% if recents|length > 5 %}<a href="#" class="link" style="font-size:12px;padding:4px 8px;display:block" data-show-more="[data-more-recent]">Show more</a>{% endif %}
+  </div>
+  {% endif %}
+  <div class="grow"></div>
+  <a class="nav-item {% if nav == 'archive' %}active{% endif %}" href="{% url 'core:archive' %}">{% icon "archive" %} Archive</a>
+  <a class="nav-item {% if nav == 'trash' %}active{% endif %}" href="{% url 'core:trash' %}">{% icon "trash" %} Trash</a>
+  </div>
+  <div class="plan-box">
+    <b>{{ request.workspace.plan }}</b>
+    <span class="muted">{% if request.workspace.plan_expires %}Active until {{ request.workspace.plan_expires|date:"F j, Y" }}{% else %}Active{% endif %}</span>
+  </div>
+</aside>

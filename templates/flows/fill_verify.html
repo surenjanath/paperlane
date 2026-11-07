@@ -1,0 +1,29 @@
+{% extends "base_bare.html" %}
+{% block title %}Verify it's you · {{ packet.name }}{% endblock %}
+{% block body %}
+<div class="portal-wrap">
+  <div class="portal-card">
+    {% if workspace.logo %}<img class="portal-logo" src="{{ workspace.logo.url }}" alt="{{ workspace.name }}">{% endif %}
+    <h1>Verify it's you</h1>
+    <p class="muted">{{ workspace.name }} asks you to confirm your identity before opening “{{ packet.name }}”.</p>
+    {% if locked %}<div class="alert alert-error" role="alert">Too many wrong attempts. Try again in 15 minutes.</div>
+    {% else %}
+      {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+      {% if note %}<div class="alert {% if sent %}alert-success{% else %}alert-error{% endif %}" role="status">{{ note }}</div>{% endif %}
+      {% if method == 'code' or sent %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="idv" value="check">
+          <div class="field"><label for="idv-code">{% if method == 'code' %}Access code{% else %}Code{% endif %}</label>
+            <input type="text" id="idv-code" name="code" required autocomplete="one-time-code" {% if method != 'code' %}inputmode="numeric"{% endif %} autofocus></div>
+          <button class="btn btn-dark btn-block">Continue</button>
+        </form>
+        {% if method == 'code' %}<p class="muted small" style="margin-top:10px">The sender gave you this code, or it's a detail only you know (for example your policy number).</p>{% endif %}
+      {% endif %}
+      {% if method != 'code' %}
+        <form method="post" style="margin-top:10px">{% csrf_token %}<input type="hidden" name="idv" value="send">
+          <button class="btn {% if sent %}btn-ghost{% else %}btn-dark{% endif %} btn-block">{% if sent %}Send a new code{% else %}Send a code {% if method == 'email' %}by email{% else %}by text{% endif %}{% if dest %} to {{ dest }}{% endif %}{% endif %}</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

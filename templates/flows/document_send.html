@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Send {{ wf.name }}{% endblock %}
+{% block heading %}Ready to send “{{ wf.name }}”{% endblock %}
+{% block content %}
+<form method="post" class="card card-pad" style="max-width:620px">{% csrf_token %}
+  <h3 style="margin-bottom:10px">Recipients</h3>
+  {% for s in steps %}<div class="row" style="margin-bottom:6px"><span class="avatar">{{ forloop.counter }}</span><span class="grow"><b>{{ s.name }}</b><br><small class="muted">{{ s.recipient_label }}</small></span></div>{% endfor %}
+  <div class="row" style="justify-content:flex-end;margin-top:12px">
+    <a class="btn" href="{% url 'flows:editor' wf.pk wf.documents.first.pk %}">Back to editor</a>
+    <button class="btn btn-dark">{% icon "send" %} Send</button>
+  </div>
+</form>
+{% endblock %}

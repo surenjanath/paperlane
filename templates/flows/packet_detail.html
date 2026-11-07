@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ packet.name }}{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}<span style="font-size:13px;font-weight:400" class="muted">{% if packet.workflow_id|wf_visible:request %}<a class="link" href="{{ packet.workflow.get_absolute_url }}">{{ packet.workflow.name }}</a>{% else %}{{ packet.workflow.name }}{% endif %} ›</span><br>{{ packet.name }}{% endblock %}
+{% block subheading %}{% badge packet.status %}<span class="badge badge-outline">Version {{ packet.version }}</span>{% if packet.locked %}<span class="badge badge-gray">Locked</span>{% endif %}{% if packet.is_test %}<span class="badge badge-purple">Test</span>{% endif %}{% if packet.trashed_at %}<span class="badge badge-red">In Trash</span>{% elif packet.archived_at %}<span class="badge badge-gray">Archived</span>{% endif %}
+<span class="sep"></span><span>Created {{ packet.created_at|date:"M d, Y H:i" }} by {{ packet.created_by|display_name|default:packet.get_source_display }}</span>
+{% if packet.completed_at %}<span class="sep"></span><span>Completed {{ packet.completed_at|date:"M d, Y H:i" }}</span>{% endif %}
+<span class="sep"></span>{% for t in packet.tags.all %}<span class="tag">{{ t.name }}</span>{% endfor %}<button class="link" style="background:none;border:0;font-size:12px;padding:6px 4px;cursor:pointer" data-modal-template="#packet-tags-modal" data-action="{% url 'flows:packet_action' packet.pk 'tags' %}" data-set-tags="{% for t in packet.tags.all %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">Edit tags</button>
+{% endblock %}
+{% block actions %}
+<a class="btn" href="{% url 'flows:packet_download' packet.pk %}">{% icon "download" %} Download</a>
+<div class="menu-wrap"><button class="btn" data-menu>{% icon "dots" %} More</button>
+  <div class="menu">
+    <a href="{% url 'flows:packet_download' packet.pk %}?format=html" target="_blank">{% icon "eye" %} Printable view</a>
+    <a href="{% url 'flows:packet_export' packet.pk %}">{% icon "upload" %} Export metadata (CSV)</a>
+    <a href="{% url 'flows:packet_export' packet.pk %}?kind=audit">{% icon "audit" %} Export audit trail (CSV)</a>
+    {% if can_manage %}
+    <button data-modal-template="#send-copy-modal" data-action="{% url 'flows:packet_action' packet.pk 'save_and_send' %}">{% icon "send" %} Save and send</button>
+    <button data-modal-template="#rename-packet">{% icon "edit" %} Rename</button>
+    <form method="post" action="{% url 'flows:packet_action' packet.pk 'lock' %}">{% csrf_token %}<button>{% icon "lock" %} {{ packet.locked|yesno:"Unlock,Lock" }}</button></form>
+    <div class="sep"></div>
+    {% if packet.status == 'in_progress' %}<form method="post" action="{% url 'flows:packet_action' packet.pk 'cancel' %}" data-confirm="Cancel this document? Open links stop working." data-danger data-confirm-ok="Cancel document">{% csrf_token %}<button>{% icon "hide" %} Cancel document</button></form>{% endif %}
+    {% if packet.trashed_at or packet.archived_at %}<form method="post" action="{% url 'flows:packet_action' packet.pk 'restore' %}">{% csrf_token %}<button>{% icon "restore" %} Restore</button></form>
+    {% else %}<form method="post" action="{% url 'flows:packet_action' packet.pk 'archive' %}">{% csrf_token %}<button>{% icon "archive" %} Archive</button></form>
+    <form method="post" action="{% url 'flows:packet_action' packet.pk 'trash' %}" data-confirm="Move this document to Trash?" data-danger data-confirm-ok="Delete">{% csrf_token %}<button class="danger">{% icon "trash" %} Delete</button></form>{% endif %}
+    {% if packet.trashed_at %}<form method="post" action="{% url 'flows:packet_action' packet.pk 'delete' %}" data-confirm="Delete permanently? This can't be undone." data-danger data-confirm-ok="Delete forever">{% csrf_token %}<button class="danger">Delete forever</button></form>{% endif %}
+    {% endif %}
+  </div></div>
+{% endblock %}
+{% block tabs %}
+<nav class="tabs">
+  <a href="?tab=status" class="{% if tab == 'status' %}active{% endif %}">Status</a>
+  <a href="?tab=path" class="{% if tab == 'path' %}active{% endif %}">Path</a>
+  <a href="?tab=data" class="{% if tab == 'data' %}active{% endif %}">Documents</a>
+  <a href="?tab=revisions" class="{% if tab == 'revisions' %}active{% endif %}">Revisions</a>
+  <a href="?tab=comments" class="{% if tab == 'comments' %}active{% endif %}">Comments {% if packet.comments.count %}<span class="pill-count">{{ packet.comments.count }}</span>{% endif %}</a>
+  {% if ask_ai %}<a href="?tab=ai" class="{% if tab == 'ai' %}active{% endif %}">✦ Ask AI</a>{% endif %}
+  <a href="?tab=files" class="{% if tab == 'files' %}active{% endif %}">Files</a>
+  <a href="?tab=history" class="{% if tab == 'history' %}active{% endif %}">History</a>
+  <a href="?tab=audit" class="{% if tab == 'audit' %}active{% endif %}">Audit trail</a>
+  <a href="?tab=bots" class="{% if tab == 'bots' %}active{% endif %}">Bots log</a>
+  <a href="?tab=emails" class="{% if tab == 'emails' %}active{% endif %}">Emails</a>
+</nav>
+{% endblock %}
+{% block content %}
+{% if packet.flags.duplicates %}<div class="dup-banner" role="status">⚠️ <b>Possible duplicate.</b>
+  {% for d in packet.flags.duplicates %}Same {{ d.field }} (<code>{{ d.value }}</code>) as <a class="link" href="{% url 'flows:packet_detail' d.id %}">#{{ d.id }} {{ d.name }}</a> — {{ d.status|lower }}{% if not forloop.last %}; {% endif %}{% endfor %}.</div>{% endif %}
+{% include tab_template %}
+{% include "flows/partials/packet_modals.html" %}
+<template id="rename-packet"><form method="post" action="{% url 'flows:packet_action' packet.pk 'rename' %}">{% csrf_token %}
+  <div class="modal-head"><h2>Rename document</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><input type="text" name="name" value="{{ packet.name }}" required></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div></form></template>
+<template id="reassign-modal"><form method="post" action="{% url 'flows:packet_action' packet.pk 'reassign' %}">{% csrf_token %}<input type="hidden" name="run">
+  <div class="modal-head"><h2>Reassign step</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><div class="field"><label>Email</label><input type="email" name="email" required></div><div class="field"><label>Name</label><input type="text" name="name"></div></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Reassign & send</button></div></form></template>
+{% endblock %}

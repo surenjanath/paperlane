@@ -1,0 +1,46 @@
+{% load ui %}
+{% with cur=p.current_step run=p.latest_run prog=p.progress manage=p|can_manage_doc:request tags=p.tags.all %}
+<article class="dl-row {% if p.is_overdue %}is-overdue{% endif %} st-{{ p.status }}">
+  {% if selectable %}<input type="checkbox" class="row-check" value="{{ p.pk }}" aria-label="Select {{ p.name }}">{% else %}<span></span>{% endif %}
+
+  <span class="dl-ico" title="{{ p.get_status_display }}">{% if p.status == 'completed' %}{% icon "check" 15 %}{% elif p.status == 'declined' %}✕{% elif p.status == 'cancelled' %}–{% elif run.status == 'opened' %}{% icon "edit" 15 %}{% else %}{% icon "send" 15 %}{% endif %}</span>
+
+  <div class="dl-main">
+    <a href="{{ p.get_absolute_url }}" class="dl-name" title="{{ p.name }}">{{ p.name }}</a>
+    <div class="dl-meta">
+      {% if show_wf %}{% if p.workflow_id|wf_visible:request %}<a href="{{ p.workflow.get_absolute_url }}" title="{{ p.workflow.name }}">{{ p.workflow.name|truncatechars:46 }}</a>{% else %}<span title="{{ p.workflow.name }}">{{ p.workflow.name|truncatechars:46 }}</span>{% endif %}<span class="dot">·</span>{% endif %}
+      <span>v{{ p.version }}</span><span class="dot">·</span><span>#{{ p.pk }}</span>
+      {% if p.is_test %}<span class="dl-pill purple">Test</span>{% endif %}{% if p.locked %}<span class="dl-pill">Locked</span>{% endif %}
+      {% for t in tags|slice:":2" %}<a class="dl-tag" href="{% url 'flows:documents' %}?tag={{ t.name|urlencode }}" title="#{{ t.name|cut:'#' }}">#{{ t.name|cut:"#"|truncatechars:22 }}</a>{% endfor %}
+      {% if tags|length > 2 %}<button class="dl-tag more" data-modal-template="#packet-tags-modal" data-action="{% url 'flows:packet_action' p.pk 'tags' %}" data-set-tags="{% for t in tags %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}" title="{% for t in tags %}#{{ t.name|cut:'#' }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">+{{ tags|length|add:"-2" }}</button>{% endif %}
+    </div>
+  </div>
+
+  <div class="dl-step">
+    {% if p.status == 'completed' %}<b>Completed</b> <a class="dl-sub link" href="{% url 'flows:packet_download' p.pk %}">Download</a>
+    {% elif p.status == 'declined' %}<b>Declined{% if run %} at {{ run.step_name|truncatechars:34 }}{% endif %}</b>{% if run.decline_reason %}<span class="dl-sub" title="{{ run.decline_reason }}">{{ run.decline_reason|truncatechars:50 }}</span>{% endif %}
+    {% elif p.status == 'cancelled' %}<b>Cancelled</b>
+    {% else %}
+      <b title="{{ cur.name|default:run.step_name }}">{% if run.status == 'opened' %}In use · {% endif %}{{ cur.name|default:run.step_name|truncatechars:44 }}</b>
+      <div class="menu-wrap"><button class="dl-sub dl-who" data-menu>{{ run.assignee_group.name|default:run.assignee_name|default:run.assignee_email|default:"Anyone with the link"|truncatechars:32 }}{% if run.claimed_by_id %} · ✋ {{ run.claimed_by.get_full_name|default:run.claimed_by.email|truncatechars:20 }}{% endif %} ▾</button>
+        <div class="menu left">
+          {% for r in p.runs.all %}{% if r.is_open %}<div style="padding:6px 10px;font-size:12.5px"><b>{{ r.assignee_group.name|default:r.assignee_name|default:"—" }}</b>{% if r.assignee_email %}<br><span class="muted">{{ r.assignee_email }}</span>{% endif %}</div>{% endif %}{% endfor %}
+          <div class="sep"></div>
+          <button data-copy="{{ run.fill_url }}">{% icon "link" %} Copy link</button>
+          <a href="{{ p.get_absolute_url }}">{% icon "user" %} Reassign or remind</a>
+        </div></div>
+    {% endif %}
+  </div>
+
+  <a class="dl-prog" href="{{ p.get_absolute_url }}" title="{{ prog.0 }} of {{ prog.1 }} steps done — view all">
+    <span class="dl-bar"><span style="width:{{ p.progress_pct }}%"></span></span><small>{{ prog.0 }}/{{ prog.1 }}</small>
+  </a>
+
+  <div class="dl-when">
+    {% if p.status == 'in_progress' and p.next_due %}{% if p.is_overdue %}<span class="dl-pill red" title="Was due {{ p.next_due|date:'M j, H:i' }}">Overdue</span>{% else %}<span class="dl-pill amber" title="Next deadline">Due {{ p.next_due|date:"M j" }}</span>{% endif %}{% endif %}
+    <small title="{{ p.last_activity_at|date:'M j, Y H:i' }}">{% if p.status == 'completed' %}{{ p.completed_at|timesince|upto:"," }}{% else %}{{ p.last_activity_at|timesince|upto:"," }}{% endif %} ago</small>
+  </div>
+
+  {% include "flows/_packet_menu.html" with kebab="dl-kebab" %}
+</article>
+{% endwith %}

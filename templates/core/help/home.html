@@ -1,0 +1,50 @@
+{% extends "core/help/_frame.html" %}
+{% load ui %}
+{% block title %}Help center{% endblock %}
+{% block topsearch %}{% endblock %}
+{% block hc %}
+<section class="hc-hero">
+  <h1>How can we help?</h1>
+  <p>Search the help center or ask the assistant — it answers from these articles.</p>
+  <div class="hc-search hc-search-lg" data-hc-search data-ask-on-enter>
+    {% icon "search" 20 %}<input type="search" placeholder="Search for answers, e.g. “reject branch” or “reminders”" aria-label="Search help" autocomplete="off" autofocus>
+    <button type="button" class="hc-search-ai" data-chat-from-search title="Ask the AI assistant">{% icon "sparkle" 16 %} Ask AI</button>
+    <div class="hc-results" hidden role="listbox"></div>
+  </div>
+  <div class="hc-quick">
+    <span>Popular:</span>
+    {% for a in popular|slice:":5" %}<a href="{{ a.url }}">{{ a.title }}</a>{% endfor %}
+  </div>
+</section>
+
+<div class="hc-wrap">
+  <section class="hc-cats" aria-label="Topics">
+    {% for c in categories %}
+    <article class="hc-cat">
+      <a class="hc-cat-head" href="{% url 'core:help_category' c.slug %}"><span class="hc-cat-ico">{% icon c.icon 20 %}</span>
+        <span><b>{{ c.title }}</b><small>{{ c.articles|length }} article{{ c.articles|length|pluralize }}</small></span></a>
+      <p>{{ c.desc }}</p>
+      <ul>{% for a in c.articles|slice:":3" %}<li><a href="{{ a.url }}">{{ a.title }}</a></li>{% endfor %}</ul>
+      {% if c.articles|length > 3 %}<a class="hc-more" href="{% url 'core:help_category' c.slug %}">All {{ c.articles|length }} articles →</a>{% endif %}
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="hc-stuck">
+    <span class="chat-avatar lg">{% icon "sparkle" 24 %}</span>
+    <div class="grow"><h2>Still stuck?</h2><p>Describe what you're trying to do and the assistant will walk you through it step by step.</p></div>
+    <button type="button" class="btn btn-dark" data-chat-open>{% icon "sparkle" 16 %} Chat with the assistant</button>
+    {% if platform.support_email %}<a class="btn" href="mailto:{{ platform.support_email }}">{% icon "mail" 16 %} Email support</a>{% endif %}
+  </section>
+
+  <section class="hc-kbd">
+    <h2>Keyboard shortcuts</h2>
+    <div class="hc-kbd-grid">
+      <div><span><kbd>⌘</kbd><kbd>K</kbd></span>Search everything</div>
+      <div><span><kbd>⌘</kbd><kbd>↵</kbd></span>Send to the AI assistant (builder)</div>
+      <div><span><kbd>↵</kbd></span>Send a chat message</div>
+      <div><span><kbd>⇧</kbd><kbd>↵</kbd></span>New line in chat</div>
+    </div>
+  </section>
+</div>
+{% endblock %}

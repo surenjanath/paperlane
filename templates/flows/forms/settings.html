@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ form.name }} · Form{% endblock %}
+{% block heading %}{{ form.name }}{% endblock %}
+{% block subheading %}
+{% if form.is_live %}<span class="badge badge-green">Published</span>{% elif form.status == 'published' %}<span class="badge badge-amber">Closed</span>{% else %}<span class="badge badge-gray">Draft</span>{% endif %}
+<span class="sep"></span><span>{{ fields|length }} field{{ fields|length|pluralize }}</span>
+<span class="sep"></span>{% if request.membership.can_create or request.membership.can_view_all %}<a class="link" href="{% url 'flows:form_submissions' form.pk %}">{{ n_subs }} submission{{ n_subs|pluralize }}</a>{% else %}<span>{{ n_subs }} submission{{ n_subs|pluralize }}</span>{% endif %}
+{% if form.workflow %}<span class="sep"></span><span>Starts {% if form.workflow_id|wf_visible:request and request.membership.can_create %}<a class="link" href="{% url 'flows:builder' form.workflow.pk %}">{{ form.workflow.name }}</a>{% else %}{{ form.workflow.name }}{% endif %}</span>{% endif %}
+{% endblock %}
+{% block actions %}
+<a class="btn" href="{% url 'flows:forms' %}">All forms</a>
+<a class="btn" href="{% url 'flows:form_public' form.token %}?preview=1" target="_blank">{% icon "eye" %} Preview</a>
+{% if can_edit %}
+<a class="btn" href="{% url 'flows:form_edit' form.pk %}">{% icon "edit" %} Edit fields</a>
+<form method="post" action="{% url 'flows:form_action' form.pk form.is_live|yesno:'unpublish,publish' %}" style="display:inline">{% csrf_token %}
+  <button class="btn {% if not form.is_live %}btn-dark{% endif %}">{% if form.is_live %}Unpublish{% else %}Publish{% endif %}</button></form>
+{% endif %}
+{% endblock %}
+{% block tabs %}
+<div class="tabs">
+  <a href="#general" class="active" data-tab-link>General</a>
+  <a href="#lookups" data-tab-link>In-form bots ({{ lookups|length }})</a>
+  <a href="#payment" data-tab-link>Payment</a>
+  <a href="#mapping" data-tab-link>Field mapping</a>
+  <a href="#share" data-tab-link>Share &amp; embed</a>
+</div>
+{% endblock %}
+{% block content %}
+<div style="max-width:880px">
+{% if not form.workflow %}<div class="alert alert-warning">No workflow selected — submissions are saved (and can go to a spreadsheet) but no workflow starts. Pick one under General.</div>{% endif %}
+{% if form.workflow and not form.workflow.is_published %}<div class="alert alert-warning">“{{ form.workflow.name }}” is not published yet — submissions are saved but the workflow only starts once it is published.</div>{% endif %}
+
+<!-- General -->
+<section id="general" class="card card-pad" data-tab-panel style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px">General</h3>
+  <form method="post">{% csrf_token %}<input type="hidden" name="section" value="general">
+  <fieldset {% if not can_edit %}disabled{% endif %} style="border:0;padding:0;margin:0">
+    <div class="grid-2">
+      <div class="field"><label>Form name</label><input type="text" name="name" value="{{ form.name }}" required></div>
+      <div class="field"><label>Starts workflow</label><select name="workflow"><option value="">— None (just save submissions) —</option>
+        {% for w in workflows %}<option value="{{ w.pk }}" {% if form.workflow_id == w.pk %}selected{% endif %}>{{ w.name }}{% if not w.is_published %} (unpublished){% endif %}</option>{% endfor %}</select></div>
+    </div>
+    <div class="field"><label>Description (shown under the title)</label><input type="text" name="description" value="{{ form.description }}"></div>
+    <div class="grid-2">
+      <div class="field"><label>Who receives the first step</label><select name="recipient_email_field"><option value="">The step's own recipient</option>
+        {% for f in email_fields %}<option value="{{ f.id }}" {% if o.recipient_email_field == f.id %}selected{% endif %}>Email in “{{ f.label }}”</option>{% endfor %}</select>
+        <div class="help">Send the workflow's first step to the email typed into the form.</div></div>
+      <div class="field"><label>Their name comes from</label><select name="recipient_name_field"><option value="">—</option>
+        {% for f in fields %}<option value="{{ f.id }}" {% if o.recipient_name_field == f.id %}selected{% endif %}>{{ f.label }}</option>{% endfor %}</select></div>
+    </div>
+    <label class="check"><input type="checkbox" name="complete_first_step" {% if o.complete_first_step %}checked{% endif %}>
+      <span><b>The form is the first step</b><br><small class="muted">Submitting counts as completing the workflow's first step, so it moves straight on to the next step (e.g. the first approver).</small></span></label>
+    <div class="grid-2" style="margin-top:12px">
+      <div class="field"><label>Document name</label><input type="text" name="document_name" value="{{ o.document_name|default:'' }}" placeholder="Request – {field:PolicyNumber}"><div class="help">Use <code>{field:Field name}</code>.</div></div>
+      <div class="field"><label>Also log submissions to spreadsheet</label><input type="text" name="sheet" value="{{ o.sheet|default:'' }}" list="sheet-names" placeholder="e.g. Form submissions">
+        <datalist id="sheet-names">{% for s in sheets %}<option value="{{ s.name }}">{% endfor %}</datalist><div class="help">Replaces the old “form → Google Sheet” step.</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Submit button text</label><input type="text" name="submit_label" value="{{ o.submit_label|default:'Submit' }}"></div>
+      <div class="field"><label>Notify these emails on each submission</label><input type="text" name="notify_emails" value="{{ o.notify_emails|default:'' }}" placeholder="team@company.com"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Thank-you title</label><input type="text" name="success_title" value="{{ o.success_title|default:'' }}" placeholder="Thank you!"></div>
+      <div class="field"><label>Or redirect to a website</label><input type="url" name="redirect_url" value="{{ o.redirect_url|default:'' }}" placeholder="https://"></div>
+    </div>
+    <div class="field"><label>Thank-you message</label><textarea name="success_body" rows="2">{{ o.success_body|default:'' }}</textarea></div>
+    <div class="row" style="gap:20px">
+      <label class="check"><input type="checkbox" name="require_login" {% if o.require_login %}checked{% endif %}> Only signed-in teammates can submit</label>
+      <label class="check"><input type="checkbox" name="closed" {% if o.closed %}checked{% endif %}> Stop accepting submissions</label>
+    </div>
+    <div class="field" style="margin-top:8px"><label>Message when closed</label><input type="text" name="closed_message" value="{{ o.closed_message|default:'' }}" placeholder="This form is not accepting responses."></div>
+    {% if can_edit %}<button class="btn btn-dark">Save</button>{% endif %}
+  </fieldset></form>
+</section>
+
+<!-- In-form bots -->
+<section id="lookups" class="card card-pad" data-tab-panel hidden style="margin-bottom:16px">
+  <h3>In-form bots</h3>
+  <p class="muted" style="margin:4px 0 12px">Run while the person is filling the form: when the trigger field is filled, the bot looks the value up and fills other fields before they submit. Fields filled by a bot are re-checked on the server when the form is submitted.</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="section" value="lookups"><input type="hidden" name="lookup_count" value="{{ lookups|length }}">
+  <fieldset {% if not can_edit %}disabled{% endif %} style="border:0;padding:0;margin:0">
+  {% for lk in lookups %}
+  <div class="lk-card">
+    <input type="hidden" name="lk{{ lk.idx }}_id" value="{{ lk.id }}">
+    <div class="grid-2">
+      <div class="field"><label>Bot name</label><input type="text" name="lk{{ lk.idx }}_name" value="{{ lk.name }}"></div>
+      <div class="field"><label>When this field is filled</label><select name="lk{{ lk.idx }}_trigger">{% for f in fields %}<option value="{{ f.id }}" {% if lk.trigger == f.id %}selected{% endif %}>{{ f.label }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Look it up in</label><select name="lk{{ lk.idx }}_source">{% for k, l in sources %}<option value="{{ k }}" {% if lk.source == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Start after this many characters</label><input type="number" min="1" name="lk{{ lk.idx }}_min_length" value="{{ lk.min_length|default:3 }}"></div>
+    </div>
+    <div class="grid-2" data-show-when="lk{{ lk.idx }}_source=sheet">
+      <div class="field"><label>Spreadsheet</label><select name="lk{{ lk.idx }}_sheet"><option value="">Choose…</option>{% for s in sheets %}<option {% if lk.sheet == s.name %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Match column</label><input type="text" name="lk{{ lk.idx }}_key_column" value="{{ lk.key_column|default:'' }}" placeholder="PolicyNumber"></div>
+    </div>
+    <div class="grid-2" data-show-when="lk{{ lk.idx }}_source=documents">
+      <div class="field"><label>Workflow</label><select name="lk{{ lk.idx }}_workflow_id"><option value="">Choose…</option>{% for w in workflows %}<option value="{{ w.pk }}" {% if lk.workflow_id == w.pk %}selected{% endif %}>{{ w.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Match field (name)</label><input type="text" name="lk{{ lk.idx }}_key_field" value="{{ lk.key_field|default:'' }}" placeholder="PolicyNumber"></div>
+    </div>
+    <div class="grid-2" data-show-when="lk{{ lk.idx }}_source=connector">
+      <div class="field"><label>Connector</label><select name="lk{{ lk.idx }}_connector"><option value="">Choose…</option>{% for c in connectors %}<option value="{{ c.pk }}" {% if lk.connector == c.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+        {% if not connectors %}<div class="help">No connectors yet{% if request.membership.can_manage %} — <a class="link" href="{% url 'flows:connectors' %}">create one</a>{% endif %}.</div>{% endif %}</div>
+      <div class="field"><label>Action key</label><input type="text" name="lk{{ lk.idx }}_action" value="{{ lk.action|default:'' }}" placeholder="lookup_policy">
+        <div class="help">Use <code>{value}</code> in the action's path or query for what was typed. Map JSON keys (dots for nested, e.g. <code>policy.holder</code>) below.</div></div>
+    </div>
+    <div data-show-when="lk{{ lk.idx }}_source=webhook">
+      <div class="field"><label>API URL</label><input type="url" name="lk{{ lk.idx }}_url" value="{{ lk.url|default:'' }}" placeholder="https://api.example.com/policies/{value}">
+        <div class="help"><code>{value}</code> is replaced by what was typed. The API should return a JSON object (or <code>{"data": {…}}</code>).</div></div>
+      <div class="grid-2">
+        <div class="field"><label>Method</label><select name="lk{{ lk.idx }}_method"><option {% if lk.method != 'POST' %}selected{% endif %}>GET</option><option {% if lk.method == 'POST' %}selected{% endif %}>POST</option></select></div>
+        <div class="field"><label>Authorization header (optional)</label><input type="text" name="lk{{ lk.idx }}_auth_header" value="{{ lk.auth_header|default:'' }}" placeholder="Bearer …"></div>
+      </div>
+    </div>
+    <label>Fill these fields</label>
+    <div class="help" style="margin-bottom:6px">Left: column / field / JSON key from the result. Right: the form field to fill.</div>
+    {% for m in lk.map %}
+    <div class="map-row"><input type="text" name="lk{{ lk.idx }}_from" value="{{ m.from }}"><span class="muted">→</span>
+      <select name="lk{{ lk.idx }}_to">{% for f in all_fields %}{% if f.type != 'heading' and f.type != 'description' %}<option value="{{ f.id }}" {% if m.to == f.id %}selected{% endif %}>{{ f.label|default:f.id }}</option>{% endif %}{% endfor %}</select></div>
+    {% endfor %}
+    {% for _ in "12" %}
+    <div class="map-row"><input type="text" name="lk{{ lk.idx }}_from" placeholder="Column / key"><span class="muted">→</span>
+      <select name="lk{{ lk.idx }}_to"><option value="">—</option>{% for f in all_fields %}{% if f.type != 'heading' and f.type != 'description' %}<option value="{{ f.id }}">{{ f.label|default:f.id }}</option>{% endif %}{% endfor %}</select></div>
+    {% endfor %}
+    <div class="grid-2" style="margin-top:8px">
+      <div class="field"><label>Message when found</label><input type="text" name="lk{{ lk.idx }}_found" value="{{ lk.found_message|default:'' }}" placeholder="Details filled in."></div>
+      <div class="field"><label>Message when not found</label><input type="text" name="lk{{ lk.idx }}_notfound" value="{{ lk.not_found_message|default:'' }}" placeholder="No match found."></div>
+    </div>
+    <label class="check" style="color:var(--red)"><input type="checkbox" name="lk{{ lk.idx }}_delete"> Remove this bot</label>
+  </div>
+  {% empty %}<div class="empty" style="padding:24px"><p>No in-form bots yet. Add one to fill fields automatically — e.g. look up a policy number.</p></div>{% endfor %}
+  {% if can_edit %}<div class="row"><button class="btn" name="add_lookup" value="1">{% icon "plus" %} Add in-form bot</button>{% if lookups %}<button class="btn btn-dark">Save bots</button>{% endif %}</div>{% endif %}
+  </fieldset></form>
+</section>
+
+<!-- Mapping -->
+<section id="payment" class="card card-pad" data-tab-panel hidden style="margin-bottom:16px">
+  <h3>Payment</h3>
+  <p class="muted small">Ask for a payment before the workflow starts — for example an application or processing fee. Payers go to a secure Stripe page; card details never reach {{ app_name|default:"Paperlane" }}. The workflow starts once the payment is confirmed.</p>
+  {% if not payments_configured %}<div class="alert alert-warning">Payments aren't set up on this server yet: an administrator needs to set <code>PAPERLANE_STRIPE_SECRET_KEY</code> and <code>PAPERLANE_STRIPE_WEBHOOK_SECRET</code> (Stripe webhook URL: <code>/payments/stripe/webhook/</code>, event <code>checkout.session.completed</code>).</div>{% endif %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="section" value="payment">
+    <label class="check"><input type="checkbox" name="enabled" {% if pay.enabled %}checked{% endif %} {% if not can_edit %}disabled{% endif %}> Require a payment to submit this form</label>
+    <div class="grid-2" style="margin-top:8px">
+      <div class="field"><label>Fixed amount</label><input type="text" name="amount" value="{{ pay.amount|default:'' }}" placeholder="25.00"></div>
+      <div class="field"><label>…or take the amount from a field</label><select name="amount_field"><option value="">— fixed amount —</option>{% for f in amount_fields %}<option value="{{ f.name|default:f.label }}" {% if pay.amount_field == f.name|default:f.label %}selected{% endif %}>{{ f.label|default:f.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Currency</label><input type="text" name="currency" value="{{ pay.currency|default:'usd' }}" maxlength="3" placeholder="usd, ttd, eur…"></div>
+      <div class="field"><label>Shown on the payment page</label><input type="text" name="description_pay" value="{{ pay.description|default:'' }}" placeholder="{{ form.name }}"></div>
+    </div>
+    {% if can_edit %}<button class="btn btn-dark btn-sm">Save payment settings</button>{% endif %}
+  </form>
+</section>
+<section id="mapping" class="card card-pad" data-tab-panel hidden style="margin-bottom:16px">
+  <h3>Field mapping</h3>
+  {% if not form.workflow %}<p class="muted">Choose a workflow under General to map fields.</p>{% else %}
+  <p class="muted" style="margin:4px 0 12px">Form fields fill the workflow's fields with the same name automatically. Pick a form field to fill any other.</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="section" value="mapping">
+  <div class="table-wrap"><table class="table"><thead><tr><th>Workflow field</th><th>Document</th><th>Filled from form field</th></tr></thead><tbody>
+  {% for r in match %}<tr><td><b>{{ r.label }}</b>{% if r.key != r.label %} <small class="muted">{{ r.key }}</small>{% endif %}</td><td class="muted">{{ r.doc }}</td>
+    <td><select name="map:{{ r.key }}" {% if not can_edit %}disabled{% endif %}><option value="">{% if r.auto %}Automatic: {{ r.auto.label }}{% else %}— not filled —{% endif %}</option>
+      {% for f in fields %}<option value="{{ f.id }}" {% if r.explicit == f.id %}selected{% endif %}>{{ f.label }}</option>{% endfor %}</select></td></tr>
+  {% empty %}<tr><td colspan="3" class="muted">The workflow has no fillable fields.</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if can_edit and match %}<button class="btn btn-dark" style="margin-top:10px">Save mapping</button>{% endif %}
+  </form>{% endif %}
+</section>
+
+<!-- Share -->
+<section id="share" class="card card-pad" data-tab-panel hidden style="margin-bottom:16px">
+  <h3>Share &amp; embed</h3>
+  {% if not form.is_live %}<div class="alert alert-info">Publish the form to open the link.</div>{% endif %}
+  <div class="field"><label>Public link</label><div class="copy-row"><input id="pub-link" type="text" readonly value="{{ public_link }}"><button type="button" class="btn" data-copy="#pub-link">Copy</button></div></div>
+  <div class="field"><label>Embed on your website (e.g. WordPress — paste into a Custom HTML block)</label><div class="copy-row"><input id="embed-code" type="text" readonly value="{{ embed }}"><button type="button" class="btn" data-copy="#embed-code">Copy</button></div></div>
+  {% if can_edit %}
+  <div class="row">
+    <form method="post" action="{% url 'flows:form_action' form.pk 'regenerate_link' %}" data-confirm="Create a new link? The current link and embeds stop working." data-confirm-ok="New link">{% csrf_token %}<button class="btn">New link</button></form>
+    <form method="post" action="{% url 'flows:form_action' form.pk 'duplicate' %}">{% csrf_token %}<button class="btn">Duplicate form</button></form>
+    <form method="post" action="{% url 'flows:form_action' form.pk 'archive' %}">{% csrf_token %}<button class="btn">Archive</button></form>
+    <form method="post" action="{% url 'flows:form_action' form.pk 'delete' %}" data-confirm="Delete “{{ form.name }}” and its submissions?" data-danger data-confirm-ok="Delete">{% csrf_token %}<button class="btn btn-danger">Delete</button></form>
+  </div>{% endif %}
+</section>
+</div>
+<script>
+(function () {
+  const links = document.querySelectorAll("[data-tab-link]");
+  const panels = document.querySelectorAll("[data-tab-panel]");
+  function show(id) {
+    const pick = [...panels].some((p) => p.id === id) ? id : "general";
+    links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + pick));
+    panels.forEach((p) => { p.hidden = p.id !== pick; });
+    return pick;
+  }
+  links.forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault();
+    const id = show(a.getAttribute("href").slice(1));
+    history.replaceState(null, "", "#" + id);
+    window.scrollTo(0, 0);
+  }));
+  const id = show((location.hash || "#general").slice(1));
+  if (location.hash && location.hash !== "#" + id) history.replaceState(null, "", "#" + id);
+  if (location.hash) requestAnimationFrame(() => window.scrollTo(0, 0));
+})();
+</script>
+{% endblock %}

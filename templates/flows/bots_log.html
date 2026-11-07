@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
+{% block subheading %}<a class="link" href="{{ wf.get_absolute_url }}">Back to {{ wf.name }}</a>{% endblock %}
+{% block content %}{% include "flows/partials/bots_log_table.html" with logs=logs show_packet=True %}{% endblock %}

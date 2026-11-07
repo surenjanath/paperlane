@@ -1,0 +1,8 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block card %}
+<h2>{% if invite_only %}Sign-up is by invitation{% else %}Sign-up is closed{% endif %}</h2>
+<p class="muted">{% if invite_only %}Open the invitation link from your email to create your account.{% else %}New accounts are created by the administrator.{% endif %}
+{% if ps.support_email %} Questions? <a class="link" href="mailto:{{ ps.support_email }}">{{ ps.support_email }}</a>{% endif %}</p>
+<p class="muted auth2-switch">Already have an account? <a class="link" href="{% url 'accounts:login' %}">Log in</a></p>
+{% endblock %}

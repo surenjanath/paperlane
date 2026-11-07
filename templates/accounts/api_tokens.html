@@ -1,0 +1,60 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}API & AI access{% endblock %}
+{% block nav %}{% include "accounts/_account_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">API &amp; AI access</h1>
+<p class="muted" style="margin-bottom:18px">Personal tokens let scripts, other systems and AI assistants (Claude, ChatGPT, Cursor…) work in Paperlane as you, with your role's permissions, in one workspace.</p>
+
+{% if new_token %}
+<div class="card card-pad tok-new" style="margin-bottom:16px" role="region" aria-label="New token">
+  <b>Copy your new token now — it won't be shown again.</b>
+  <div class="copy-row" style="margin-top:8px"><input id="tok-raw" type="text" readonly value="{{ new_token.raw }}" aria-label="New API token" spellcheck="false"><button type="button" class="btn btn-dark" data-copy="#tok-raw" data-copy-toast="Token copied">Copy</button></div>
+  <p class="help">Connect Claude Code:</p>
+  <pre class="tok-code" id="tok-claude">claude mcp add --transport http paperlane {{ mcp_url }} --header "Authorization: Bearer {{ new_token.raw }}"</pre>
+  <button type="button" class="btn btn-sm" data-copy="#tok-claude" data-copy-toast="Command copied">{% icon "copy" %} Copy command</button>
+</div>
+{% endif %}
+
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:10px">Create a token</h3>
+  <form method="post" class="tok-form">{% csrf_token %}
+    <div class="field"><label for="tok-name">Name</label><input id="tok-name" name="name" maxlength="80" placeholder="e.g. Claude, CRM sync" required></div>
+    <div class="field"><label for="tok-scope">Access</label>
+      <select id="tok-scope" name="scope"><option value="full">Full access — build, publish and run</option><option value="read">Read only — look, don't change</option></select></div>
+    <div class="field"><label for="tok-days">Expires</label>
+      <select id="tok-days" name="days"><option value="30">In 30 days</option><option value="90" selected>In 90 days</option><option value="366">In a year</option><option value="">Never</option></select></div>
+    <button class="btn btn-dark">{% icon "key" %} Create token</button>
+  </form>
+  <p class="help">Workspace: <b>{{ request.workspace.name|default:"—" }}</b> — switch workspace to create a token for another one.</p>
+</div>
+
+<div class="card card-pad" style="margin-bottom:16px">
+  <h3 style="margin-bottom:10px">Your tokens</h3>
+  {% if tokens %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Name</th><th>Workspace</th><th>Access</th><th>Last used</th><th>Expires</th><th></th></tr></thead>
+    <tbody>{% for t in tokens %}
+    <tr {% if not t.is_active %}class="muted"{% endif %}>
+      <td><b>{{ t.name }}</b><br><code class="small">sd_{{ t.prefix }}_…</code></td>
+      <td>{{ t.workspace.name }}</td>
+      <td>{% if t.scope == "read" %}<span class="badge badge-blue">Read only</span>{% else %}<span class="badge badge-purple">Full</span>{% endif %}</td>
+      <td>{{ t.last_used_at|date:"M j, H:i"|default:"Never" }}</td>
+      <td>{% if t.revoked_at %}<span class="badge badge-gray">Revoked</span>{% elif not t.is_active %}<span class="badge badge-red">Expired</span>{% else %}{{ t.expires_at|date:"M j, Y"|default:"Never" }}{% endif %}</td>
+      <td style="text-align:right">{% if t.is_active %}<form method="post" data-confirm="Revoke “{{ t.name }}”? Anything using it stops working." data-danger data-confirm-ok="Revoke">{% csrf_token %}<input type="hidden" name="action" value="revoke"><input type="hidden" name="token" value="{{ t.pk }}"><button class="btn btn-ghost btn-sm">Revoke</button></form>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">No tokens yet.</p>{% endif %}
+</div>
+
+<div class="card card-pad">
+  <h3 style="margin-bottom:8px">How to connect</h3>
+  <div class="tok-how">
+    <div><b>{% icon "sparkle" %} AI assistants (MCP)</b>
+      <p class="muted">Remote MCP server (Streamable HTTP): <code>{{ mcp_url }}</code> with header <code>Authorization: Bearer &lt;token&gt;</code>. The assistant can build complete workflows and forms, publish, start and test them.</p></div>
+    <div><b>{% icon "code" %} REST API</b>
+      <p class="muted">JSON over HTTPS at <code>{{ base_url }}/api/v1/</code> with the same header. Start with <code>GET /api/v1/</code> for the list of endpoints.</p>
+      <pre class="tok-code">curl -H "Authorization: Bearer $PAPERLANE_TOKEN" {{ base_url }}/api/v1/workflows</pre></div>
+  </div>
+</div>
+{% endblock %}

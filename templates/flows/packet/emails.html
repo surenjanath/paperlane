@@ -1,0 +1,2 @@
+{% for e in emails %}<details class="acc"><summary>{{ e.subject }} <small class="muted" style="font-weight:400">→ {{ e.to }} · {{ e.created_at|date:"M d, H:i" }}</small></summary><div class="acc-body"><pre style="white-space:pre-wrap;font:inherit;font-size:13px">{{ e.body }}</pre></div></details>
+{% empty %}<p class="muted">No emails were sent for this document.</p>{% endfor %}

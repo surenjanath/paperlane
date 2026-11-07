@@ -1,0 +1,57 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>{{ packet.name }}</title>
+<style>
+  @page { size: A4; margin: 1.6cm; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; color: #222; }
+  h1 { font-size: 16pt; margin: 0 0 4px; }
+  h2 { font-size: 13pt; margin: 18px 0 6px; padding-bottom: 4px; border-bottom: 2px solid #c8461b; }
+  .muted { color: #777; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 5px 6px; border-bottom: 1px solid #e3e3e3; vertical-align: top; }
+  td.l { width: 38%; color: #555; }
+  td.h { font-weight: bold; color: #222; padding-top: 10px; }
+  .cert { page-break-before: always; }
+  .brand { font-weight: bold; font-size: 11pt; color: #c8461b; }
+  {% if printable %}body { max-width: 820px; margin: 30px auto; } .noprint { margin-bottom: 16px; } @media print { .noprint { display: none; } }{% endif %}
+</style></head>
+<body>
+{% if printable %}<div class="noprint"><button onclick="window.print()">Print / Save as PDF</button></div>{% endif %}
+<div class="brand">{{ packet.workspace.name }}</div>
+<h1>{{ packet.name }}</h1>
+<div class="muted">{{ packet.workflow.name }} · Version {{ packet.version }} · {{ packet.get_status_display }}{% if packet.completed_at %} · Completed {{ packet.completed_at|date:"M d, Y H:i" }}{% endif %} · Document #{{ packet.pk }}</div>
+{% if masked %}<p class="muted" style="border:1px solid #ddd;padding:6px 8px">🔒 Sensitive values are masked in this copy.</p>{% endif %}
+{% for d in documents %}
+<h2>{{ d.name }}</h2>
+<table>
+{% for f in d.fields %}
+  {% if f.heading %}{% if f.type == 'heading' %}<tr><td class="h" colspan="2">{{ f.label }}</td></tr>{% elif f.text %}<tr><td colspan="2" class="muted">{{ f.text }}</td></tr>{% endif %}
+  {% else %}<tr><td class="l">{{ f.label }}</td><td>{% if f.image %}<img src="{{ f.image }}" height="50">{% else %}{{ f.text|default:"—"|linebreaksbr }}{% endif %}</td></tr>{% endif %}
+{% endfor %}
+</table>
+{% endfor %}
+{% if certificate %}
+<div class="{% if documents %}cert{% endif %}">
+<h2>Certificate of completion</h2>
+<table>
+  <tr><td class="l">Document</td><td>{{ packet.name }} (#{{ packet.pk }})</td></tr>
+  <tr><td class="l">Workflow</td><td>{{ packet.workflow.name }}, version {{ packet.version }}</td></tr>
+  <tr><td class="l">Status</td><td>{{ packet.get_status_display }}</td></tr>
+  <tr><td class="l">Created</td><td>{{ packet.created_at|date:"M d, Y H:i:s T" }}</td></tr>
+  {% if packet.completed_at %}<tr><td class="l">Completed</td><td>{{ packet.completed_at|date:"M d, Y H:i:s T" }}</td></tr>{% endif %}
+</table>
+{% if seal %}<h2>Document seal</h2>
+<table>
+  <tr><td class="l">Verify code</td><td><b>{{ seal.code }}</b></td></tr>
+  <tr><td class="l">Fingerprint (SHA-256)</td><td style="font-family:monospace;font-size:8pt;word-break:break-all">{{ seal.content_hash }}</td></tr>
+  <tr><td class="l">Sealed</td><td>{{ seal.sealed_at|date:"M d, Y H:i:s T" }}{% if seal.number > 1 %} · seal {{ seal.number }} (after revision){% endif %}</td></tr>
+  <tr><td class="l">Verify at</td><td>{{ verify_url }}</td></tr>
+</table>
+<p class="muted">The fingerprint covers every field value and signature, the contents of every attached file and the signing timeline. Any change produces a different fingerprint.</p>
+{% endif %}
+<h2>Audit trail</h2>
+<table>
+{% for e in events %}<tr><td class="l">{{ e.created_at|date:"M d, Y H:i:s" }}</td><td><b>{{ e.actor_label }}</b> — {{ e.detail|default:e.action }}{% if e.ip %} <span class="muted">({{ e.ip }})</span>{% endif %}</td></tr>{% endfor %}
+</table>
+</div>
+{% endif %}
+</body></html>

@@ -1,0 +1,11 @@
+{% extends "base_bare.html" %}
+{% block title %}Workspace suspended{% endblock %}
+{% block body %}
+<div class="center-screen"><div class="art">⏸</div><h2>{{ ws.name }} is suspended</h2>
+<p class="muted" style="max-width:480px">{{ ws.suspended_reason|default:"This workspace has been suspended by the platform administrator." }}</p>
+{% if ps.support_email %}<p class="muted small">Contact <a class="link" href="mailto:{{ ps.support_email }}">{{ ps.support_email }}</a> to restore access.</p>{% endif %}
+<div class="done-actions">
+{% for m in my_workspaces %}{% if m.workspace_id != ws.pk and not m.workspace.suspended_at %}<form method="post" action="{% url 'accounts:switch' m.workspace_id %}">{% csrf_token %}<button class="btn">Switch to {{ m.workspace.name }}</button></form>{% endif %}{% endfor %}
+<form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="btn">Log out</button></form>
+</div></div>
+{% endblock %}

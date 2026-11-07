@@ -1,0 +1,21 @@
+{% extends "accounts/_auth_base.html" %}
+{% block title %}Two-factor sign-in{% endblock %}
+{% block card %}
+<h2>{% if use_recovery %}Use a recovery code{% else %}Enter your code{% endif %}</h2>
+<p class="muted">{% if use_recovery %}Enter one of the recovery codes you saved when you turned on two-factor sign-in. Each code works once.{% else %}Open your authenticator app and enter the 6-digit code for Paperlane ({{ email }}).{% endif %}</p>
+{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+<form method="post" novalidate>{% csrf_token %}
+  <div class="field">
+    <label for="id_code">{% if use_recovery %}Recovery code{% else %}Authentication code{% endif %}</label>
+    {% if use_recovery %}
+    <input id="id_code" name="code" type="text" autocomplete="off" placeholder="xxxxxx-xxxxxx" required autofocus spellcheck="false">
+    {% else %}
+    <input id="id_code" name="code" class="otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" placeholder="123 456" required autofocus>
+    {% endif %}
+  </div>
+  <button class="btn btn-dark btn-block btn-lg" style="margin-top:6px">Verify</button>
+</form>
+<p class="muted auth2-switch">
+  {% if use_recovery %}<a class="link" href="{% url 'accounts:login_verify' %}">Use your authenticator app</a>{% else %}Lost your phone? <a class="link" href="{% url 'accounts:login_verify' %}?recovery=1">Use a recovery code</a>{% endif %}
+  · <a class="link" href="{% url 'accounts:login' %}">Start over</a></p>
+{% endblock %}

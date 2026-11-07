@@ -1,0 +1,14 @@
+<template id="packet-tags-modal">
+<form method="post">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <div class="modal-head"><h2>Document tags</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><div class="field"><label>Tags (comma separated)</label><input type="text" name="tags" placeholder="#Approved, #Finance"></div></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form></template>
+<template id="send-copy-modal">
+<form method="post">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <div class="modal-head"><h2>Save and send</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><p class="muted">Email a PDF copy of the documents.</p>
+    <div class="field"><label>Email</label><input type="email" name="email" required></div>
+    <div class="field"><label>Message</label><textarea name="message" rows="3"></textarea></div></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Send</button></div>
+</form></template>

@@ -1,0 +1,27 @@
+# Python / Django
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3*
+staticfiles/
+media/
+*.log
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+.mcp.json
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+backups/
+
+# walkthrough video/PDF workspace (node_modules, venv, renders)
+walkthrough/

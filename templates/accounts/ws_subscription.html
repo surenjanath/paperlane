@@ -1,0 +1,15 @@
+{% extends "accounts/_settings_base.html" %}
+{% load humanize %}
+{% block title %}Subscription{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:18px">Subscription</h1>
+<div class="card card-pad" style="margin-bottom:16px"><div class="row"><div class="grow"><small class="muted">Your current plan</small><h2>{{ request.workspace.plan }}</h2>{% if request.workspace.plan_expires %}<small class="muted">Expires on: {{ request.workspace.plan_expires|date:"F j, Y" }}</small>{% endif %}</div><a class="btn" href="mailto:{{ request.workspace.email }}">Contact Sales</a></div></div>
+<div class="card card-pad">
+  <h3>Your usage</h3><small class="muted">{{ since|date:"M j, Y" }} – {{ request.workspace.plan_expires|date:"M j, Y" }}</small>
+  <div style="margin:14px 0 6px;font-size:22px;font-weight:700">{{ used|intcomma }}/{{ request.workspace.credits_limit|intcomma }} <small class="muted" style="font-size:13px;font-weight:400">Credits</small></div>
+  <div class="progress" style="height:8px"><span style="width:{{ pct }}%;background:var(--accent)"></span></div>
+  <p style="margin-top:12px">These credits were used for:<br><b>{{ sends }}</b> sends<br><b>{{ bots }}</b> bot executions</p>
+  <p class="muted">Need more details about your current usage? <a class="link" href="{% url 'accounts:usage' %}">View Usage log</a></p>
+</div>
+{% endblock %}

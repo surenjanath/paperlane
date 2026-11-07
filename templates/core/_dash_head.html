@@ -1,0 +1,6 @@
+{% load ui %}
+<div class="page-head">
+  <button class="btn btn-ghost btn-icon mobile-only" data-toggle-sidebar aria-label="Menu">{% icon "menu" %}</button>
+  <div class="titles"><h1>Welcome to the {{ request.workspace.name }} workspace</h1><div class="sub">Your workspace</div></div>
+</div>
+<nav class="tabs"><a href="{% url 'core:dashboard' %}" class="{% if tab == 'home' %}active{% endif %}">Home</a><a href="{% url 'core:analytics' %}" class="{% if tab == 'analytics' %}active{% endif %}">Analytics</a></nav>

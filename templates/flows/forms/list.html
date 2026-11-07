@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Forms{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}Forms{% endblock %}
+{% block subheading %}<span>{{ forms|length }} form{{ forms|length|pluralize }}</span><span class="sep"></span><span>Custom start forms that collect data, run in-form bots and start a workflow</span>{% endblock %}
+{% block actions %}
+<form class="input-icon">{% icon "search" %}<input class="search-input" type="search" name="q" value="{{ q }}" placeholder="Search" aria-label="Search forms"></form>
+{% if request.membership.can_create %}<button class="btn btn-dark" data-modal-url="{% url 'flows:form_new' %}">{% icon "plus" %} New form</button>{% endif %}
+{% endblock %}
+{% block content %}
+{% if forms %}
+{% if request.membership.can_create %}
+<div class="lib-bulk">
+  <label class="pk-selectall"><input type="checkbox" data-select-all=".row-check" aria-label="Select all forms"> Select all</label>
+  <span data-bulk-bar hidden class="row" style="gap:6px"><b class="small"><span data-bulk-count>0</span> selected</b>
+    <button type="button" class="btn btn-sm" data-bulk-submit="#bulk-forms" data-bulk-action="publish">Publish</button>
+    <button type="button" class="btn btn-sm" data-bulk-submit="#bulk-forms" data-bulk-action="unpublish">Unpublish</button>
+    <button type="button" class="btn btn-sm" data-bulk-submit="#bulk-forms" data-bulk-action="archive">{% icon "archive" %} Archive</button>
+    <button type="button" class="btn btn-sm btn-danger" data-bulk-submit="#bulk-forms" data-bulk-action="delete">{% icon "trash" %} Delete</button>
+  </span>
+</div>
+<form id="bulk-forms" method="post" action="{% url 'flows:forms_bulk' %}" hidden>{% csrf_token %}<input type="hidden" name="action"></form>
+{% endif %}
+<div class="wf-grid">
+  {% for f in forms %}
+  <div class="wf-card">
+    <div class="wf-card-top">{% if request.membership.can_create %}<input type="checkbox" class="row-check" value="{{ f.pk }}" aria-label="Select {{ f.name }}">{% endif %}
+    <a class="title" href="{% url 'flows:form_settings' f.pk %}" title="{{ f.name }}">{{ f.name }}</a></div>
+    <div class="meta">Starts: {% if f.workflow %}{% if request.membership.can_create and f.workflow_id|wf_visible:request %}<a class="link" href="{% url 'flows:builder' f.workflow.pk %}">{{ f.workflow.name }}</a>{% else %}{{ f.workflow.name }}{% endif %}{% else %}<span class="muted">no workflow (submissions are saved)</span>{% endif %}</div>
+    <div class="meta">{{ f.n_subs }} submission{{ f.n_subs|pluralize }} · {{ f.lookups|length }} in-form bot{{ f.lookups|length|pluralize }} · updated {{ f.updated_at|date:"M j, Y" }}</div>
+    <div class="foot">
+      {% if f.is_live %}<span class="badge badge-green">Published</span>{% elif f.status == 'published' %}<span class="badge badge-amber">Closed</span>{% else %}<span class="badge badge-gray">Draft</span>{% endif %}
+      <span class="grow"></span>
+      {% if f.is_live %}<button class="btn btn-ghost btn-sm btn-icon" data-copy="{{ f.link }}" title="Copy public link" aria-label="Copy public link">{% icon "link" %}</button>{% endif %}
+      <div class="menu-wrap"><button class="btn btn-ghost btn-sm btn-icon" data-menu aria-label="More actions" title="More actions">{% icon "dots" %}</button>
+        <div class="menu">
+          {% if request.membership.can_create %}<a href="{% url 'flows:form_edit' f.pk %}">{% icon "edit" %} Edit fields</a>{% endif %}
+          <a href="{% url 'flows:form_settings' f.pk %}">{% icon "gear" %} {% if request.membership.can_create %}Settings & bots{% else %}Details{% endif %}</a>
+          {% if request.membership.can_create or request.membership.can_view_all %}<a href="{% url 'flows:form_submissions' f.pk %}">{% icon "documents" %} Submissions</a>{% endif %}
+          <a href="{% url 'flows:form_public' f.token %}?preview=1" target="_blank">{% icon "eye" %} Preview</a>
+          {% if request.membership.can_create %}
+          <div class="sep"></div>
+          <form method="post" action="{% url 'flows:form_action' f.pk 'duplicate' %}">{% csrf_token %}<button>{% icon "copy" %} Duplicate</button></form>
+          <form method="post" action="{% url 'flows:form_action' f.pk 'archive' %}">{% csrf_token %}<button>{% icon "archive" %} Archive</button></form>
+          <form method="post" action="{% url 'flows:form_action' f.pk 'delete' %}" data-confirm="Delete “{{ f.name }}” and its submissions?" data-danger data-confirm-ok="Delete">{% csrf_token %}<button class="danger">{% icon "trash" %} Delete</button></form>
+          {% endif %}
+        </div></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty"><div class="ico">📝</div><h3>{% if q %}No forms match “{{ q }}”{% else %}Build your first start form{% endif %}</h3>
+  <p>Collect requests with a fully custom form, let bots fill in details as people type, then start a workflow on submit.</p>
+  {% if request.membership.can_create %}<button class="btn btn-dark" data-modal-url="{% url 'flows:form_new' %}">New form</button>{% endif %}</div>
+{% endif %}
+{% endblock %}

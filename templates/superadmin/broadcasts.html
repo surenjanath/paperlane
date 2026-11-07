@@ -1,0 +1,18 @@
+{% extends "superadmin/_base.html" %}
+{% load ui %}
+{% block title %}Broadcasts · Super admin{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">Broadcasts</h1>
+<p class="muted" style="margin-bottom:14px">Send a notification to everyone, one workspace or certain roles — for example planned downtime or a new procedure. For a banner on every page, use the announcement in <a class="link" href="{% url 'superadmin:settings' %}#operations">Platform settings</a>.</p>
+<div class="sa-grid">
+  <div class="card card-pad">
+    <h3 style="margin-bottom:10px">New broadcast</h3>
+    <form method="post" data-confirm="Send this broadcast now?">{% csrf_token %}{% include "accounts/_form_fields.html" %}<button class="btn btn-dark">{% icon "send" %} Send broadcast</button></form>
+  </div>
+  <div class="card card-pad">
+    <h3 style="margin-bottom:10px">Sent</h3>
+    {% for b in history %}<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>{{ b.title }}</b><br><small class="muted">{{ b.created_at|date:"M d, H:i" }} · {{ b.audience }} · {{ b.recipients }} people{% if b.emailed %} · emailed{% endif %} · by {{ b.sent_by.email|default:"—" }}</small>{% if b.body %}<p class="small" style="margin:4px 0 0;white-space:pre-wrap">{{ b.body|truncatechars:200 }}</p>{% endif %}</div>
+    {% empty %}<p class="muted">Nothing sent yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}

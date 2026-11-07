@@ -1,0 +1,21 @@
+{% extends "superadmin/_base.html" %}
+{% block title %}Sign-in log · Super admin{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">Sign-in log</h1>
+<p class="muted" style="margin-bottom:12px">Every sign-in, failed attempt and sign-out, with the address and device it came from.</p>
+{% if suspicious %}<div class="card card-pad sa-danger" style="margin-bottom:14px"><b>Repeated failures in the last 24 hours</b>
+  <ul style="margin:6px 0 0 18px">{% for s in suspicious %}<li><a class="link" href="?filter=failed&q={{ s.email|urlencode }}">{{ s.email|default:"(blank)" }}</a> — {{ s.n }} failed attempts, last {{ s.last|timesince }} ago</li>{% endfor %}</ul></div>{% endif %}
+<form class="sa-filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Email or IP address" style="max-width:240px">
+  {% for k, l in filters %}<a class="{% if flt == k %}on{% endif %}" href="?filter={{ k }}&q={{ q|urlencode }}">{{ l }}</a>{% endfor %}
+</form>
+<div class="card"><div class="table-wrap" style="border:0"><table class="table">
+  <thead><tr><th>When</th><th>Account</th><th>Result</th><th>IP address</th><th>Device</th></tr></thead>
+  <tbody>{% for e in page %}<tr>
+    <td style="white-space:nowrap"><small>{{ e.created_at|date:"M d, H:i:s" }}</small></td>
+    <td>{% if e.user %}<a class="link" href="{% url 'superadmin:user' e.user.pk %}">{{ e.email|default:e.user.email }}</a>{% else %}{{ e.email|default:"—" }}{% endif %}</td>
+    <td>{% if e.result == 'ok' %}<span class="badge badge-green">Signed in</span>{% elif e.result == 'failed' %}<span class="badge badge-red">Failed</span>{% else %}<span class="badge badge-gray">Signed out</span>{% endif %}</td>
+    <td><code>{{ e.ip|default:"—" }}</code></td><td><small class="muted">{{ e.device }}</small></td>
+  </tr>{% empty %}<tr><td colspan="5" class="muted">Nothing recorded yet.</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "superadmin/_pager.html" %}
+{% endblock %}

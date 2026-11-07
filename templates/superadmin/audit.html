@@ -1,0 +1,9 @@
+{% extends "superadmin/_base.html" %}
+{% block title %}Admin audit log · Super admin{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">Admin audit log</h1>
+<p class="muted" style="margin-bottom:12px">Every change made in the super admin console. Workspace activity is in each workspace's own audit trail.</p>
+<form class="sa-filters" method="get"><input type="search" name="q" value="{{ q }}" placeholder="Search action, target or person" style="max-width:300px"><button class="btn btn-sm">Search</button></form>
+<div class="card card-pad">{% include "superadmin/_events.html" with events=page %}</div>
+{% include "superadmin/_pager.html" %}
+{% endblock %}

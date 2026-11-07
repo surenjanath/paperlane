@@ -1,0 +1,27 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Connected accounts{% endblock %}
+{% block nav %}{% include "accounts/_account_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">Connected accounts</h1>
+<p class="muted">Bots that send data to other services (Salesforce, Google Drive, Slack, SMS gateways…) deliver it to the endpoint of a connection — for example a Zapier/Make/n8n webhook or your own API. The secret is sent as a Bearer token.</p>
+<div class="table-wrap" style="margin:14px 0"><table class="table"><thead><tr><th>Label</th><th>Type</th><th>Endpoint</th><th>Added</th><th></th></tr></thead><tbody>
+{% for c in items %}<tr><td><b>{{ c.label }}</b></td><td>{{ c.get_kind_display }}</td><td class="mono">{% if c.data.refresh_token %}Signed in{% else %}{{ c.endpoint|default:"—" }}{% endif %}</td><td>{{ c.created_at|date:"M d, Y" }}</td>
+<td class="num">{% if c.user == request.user %}<form method="post" data-confirm="Disconnect “{{ c.label }}”? Bots using it will fail.">{% csrf_token %}<button class="btn btn-sm btn-danger" name="delete" value="{{ c.pk }}">Disconnect</button></form>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="5" class="muted">No connected accounts yet.</td></tr>{% endfor %}</tbody></table></div>
+<div class="card card-pad" style="max-width:620px;margin-bottom:14px">
+  <h3 style="margin-bottom:6px">Cloud storage</h3>
+  <p class="muted small" style="margin-bottom:10px">Sign in once; the <b>Save to cloud drive</b> bot then files finished documents in folders you choose.</p>
+  <div class="row" style="gap:8px;flex-wrap:wrap">
+  {% for p, label, ready in oauth %}{% if ready %}<a class="btn" href="{% url 'accounts:oauth_start' p %}">{% icon "link" 14 %} Connect {{ label }}</a>
+  {% else %}<span class="btn" aria-disabled="true" title="Your administrator needs to add the {{ label }} app keys to the server first (see docs/DEPLOYMENT.md)" style="opacity:.55;cursor:not-allowed">Connect {{ label }}</span>{% endif %}{% endfor %}
+  </div>
+</div>
+<form method="post" class="card card-pad" style="max-width:620px">{% csrf_token %}
+  <h3 style="margin-bottom:10px">Connect an account by webhook or API key</h3>
+  <div class="grid-2"><div class="field"><label>Type</label><select name="kind">{% for k, l in kinds %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div><div class="field"><label>Label</label><input type="text" name="label" placeholder="e.g. Salesforce production"></div></div>
+  <div class="field"><label>Endpoint URL</label><input type="url" name="endpoint" placeholder="https://hooks.zapier.com/…"></div>
+  <div class="field"><label>Secret / API key (optional)</label><input type="password" name="secret" autocomplete="new-password"></div>
+  <button class="btn btn-dark">Connect</button>
+</form>
+{% endblock %}

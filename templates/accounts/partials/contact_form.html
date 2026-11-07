@@ -1,0 +1,5 @@
+<form method="post" action="{% if contact %}{% url 'accounts:contact_edit' contact.pk %}{% else %}{% url 'accounts:contact_new' %}{% endif %}">{% csrf_token %}
+  <div class="modal-head"><h2>{% if contact %}Edit contact{% else %}Add contact{% endif %}</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body">{% include "accounts/_form_fields.html" %}</div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form>

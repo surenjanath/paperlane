@@ -1,0 +1,45 @@
+{% extends "core/help/_frame.html" %}
+{% load ui %}
+{% block title %}{{ a.title }} · Help{% endblock %}
+{% block hc %}
+<div class="hc-doc">
+  <nav class="hc-nav" aria-label="Help topics">
+    {% for c in categories %}
+    <details {% if c.slug == cat.slug %}open{% endif %}>
+      <summary>{% icon c.icon 16 %}<span>{{ c.title }}</span></summary>
+      <ul>{% for x in c.articles %}<li><a href="{{ x.url }}" {% if x.url == a.url %}class="on" aria-current="page"{% endif %}>{{ x.title }}</a></li>{% endfor %}</ul>
+    </details>
+    {% endfor %}
+  </nav>
+
+  <article class="hc-article">
+    <div class="hc-crumbs"><a href="{% url 'core:help' %}">Help</a><span>›</span><a href="{% url 'core:help_category' cat.slug %}">{{ cat.title }}</a></div>
+    <h1>{{ a.title }}</h1>
+    <p class="hc-lead">{{ a.summary }}</p>
+    <div class="hc-body" data-hc-body>{{ a.body|safe }}</div>
+
+    <div class="hc-helpful" data-helpful data-article="{{ a.cat }}/{{ a.slug }}" data-url="{% url 'core:help_feedback' %}">
+      <span>Was this helpful?</span>
+      <button type="button" data-helpful-yes>👍 Yes</button><button type="button" data-helpful-no>👎 No</button>
+      <span class="hc-helpful-thanks" hidden data-helpful-thanks>Thanks for letting us know!</span>
+      <span class="hc-helpful-thanks" hidden data-helpful-ask>Sorry about that — <button type="button" class="link" data-chat-ask="I read “{{ a.title }}” but I still need help: ">ask the assistant</button> and it'll walk you through it.</span>
+    </div>
+
+    <div class="hc-pager">
+      {% if prev %}<a href="{{ prev.url }}"><small>← Previous</small><b>{{ prev.title }}</b></a>{% else %}<span></span>{% endif %}
+      {% if next %}<a href="{{ next.url }}" class="next"><small>Next →</small><b>{{ next.title }}</b></a>{% endif %}
+    </div>
+  </article>
+
+  <aside class="hc-aside">
+    <div class="hc-toc" data-hc-toc hidden><b>On this page</b><ul></ul></div>
+    <div class="hc-askcard">
+      <span class="chat-avatar">{% icon "sparkle" 16 %}</span>
+      <b>Ask about this</b>
+      <p>Get step-by-step help with “{{ a.title }}”.</p>
+      <button type="button" class="btn btn-sm btn-block" data-chat-ask="Walk me through “{{ a.title }}” step by step." data-chat-page="{{ a.title }}">{% icon "sparkle" 14 %} Walk me through it</button>
+    </div>
+    {% if related %}<div class="hc-related"><b>Related</b><ul>{% for r in related %}<li><a href="{{ r.url }}">{{ r.title }}</a><small>{{ r.cat_title }}</small></li>{% endfor %}</ul></div>{% endif %}
+  </aside>
+</div>
+{% endblock %}

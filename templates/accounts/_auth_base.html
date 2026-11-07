@@ -1,0 +1,22 @@
+{% extends "base_bare.html" %}
+{% load ui %}{% load static %}
+{% block site_css %}{% include "partials/site_css.html" %}{% endblock %}
+{% block body_class %}ax-body{% endblock %}
+{% block body %}
+<div class="ax">
+  <main class="ax-main">
+    <a class="ax-logo" href="{% url 'core:landing' %}"><span class="ax-mark">{% logo_mark 28 %}</span>{{ app_name|default:"Paperlane" }}</a>
+    <div class="ax-form">
+      {% block card %}{% endblock %}
+    </div>
+    <footer class="ax-foot"><a href="{% url 'core:page' 'terms' %}">Terms</a><a href="{% url 'core:page' 'privacy' %}">Privacy</a><a href="{% url 'core:help' %}">Help</a></footer>
+  </main>
+  <aside class="ax-side" aria-hidden="true">
+    <div>
+      <h1>Forms, approvals and signatures in one workflow.</h1>
+      <p>Every request, its current step and who has it, in one list.</p>
+    </div>
+    <figure><img src="{% static 'img/landing/documents.webp' %}" width="1800" height="1125" alt=""></figure>
+  </aside>
+</div>
+{% endblock %}

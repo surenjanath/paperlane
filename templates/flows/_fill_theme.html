@@ -1,0 +1,18 @@
+{% with t=workspace.theme %}{% if t.font and t.font != 'Plus Jakarta Sans' %}<link href="https://fonts.googleapis.com/css2?family={{ t.font|urlencode }}:wght@400;600;700&display=swap" rel="stylesheet">{% endif %}
+<style>
+  .fill-page { --fill-accent: {{ t.accent|default:'#c8461b' }}; --fill-btn-text: {{ t.button_text|default:'#fff' }}; --fill-bg: {{ t.page_bg|default:'#f3f3f6' }};
+    --fill-radius: {% if t.radius == 'sharp' %}2px{% elif t.radius == 'pill' %}22px{% else %}8px{% endif %};
+    {% if t.font %}font-family: "{{ t.font }}", Inter, system-ui, sans-serif;{% endif %} }
+  .fill-btn { background: {{ t.primary|default:'#1f1f1f' }}; border-color: {{ t.primary|default:'#1f1f1f' }}; color: {{ t.button_text|default:'#fff' }}; }
+  .fill-page .btn { border-radius: var(--fill-radius); }
+  .fill-page .fill-doc { border-radius: {% if t.radius == 'sharp' %}2px{% else %}10px{% endif %}; }
+  .fill-top { background: {{ t.header_bg|default:'#fff' }}; color: {{ t.header_text|default:'#1f1f1f' }}; }
+  .fill-top .muted { color: inherit; opacity: .75; }
+  {% if t.show_logo is False %}.fill-top .brand img { display: none; }{% endif %}
+  {% if t.show_name is False %}.fill-top .brand .brand-name { display: none; }{% endif %}
+  .fill-page .ff input:not([type=checkbox]):not([type=radio]):not([type=file]), .fill-page .ff textarea, .fill-page .ff select {
+    border-radius: {% if t.radius == 'sharp' %}2px{% elif t.radius == 'pill' %}18px{% else %}6px{% endif %};
+    {% if t.field_style == 'filled' %}background: #f1f1f5; border-color: transparent;{% elif t.field_style == 'underline' %}border-width: 0 0 2px; border-radius: 0; background: transparent; padding-left: 2px;{% endif %} }
+  .fill-page .ff input:focus, .fill-page .ff textarea:focus, .fill-page .ff select:focus { border-color: var(--fill-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill-accent) 18%, transparent); outline: none; }
+  .fill-page input[type=checkbox], .fill-page input[type=radio] { accent-color: var(--fill-accent); }
+</style>{% endwith %}

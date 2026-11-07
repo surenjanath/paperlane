@@ -1,0 +1,9 @@
+{% extends "accounts/_settings_base.html" %}
+{% block title %}Email log{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">Email log</h1>
+<p class="muted">Every email Paperlane sent from this workspace (latest 300).</p>
+{% for e in emails %}<details class="acc"><summary>{{ e.subject }} <small class="muted" style="font-weight:400">→ {{ e.to }} · {{ e.created_at|date:"M d, H:i" }} · {{ e.kind }}</small></summary><div class="acc-body">{% if e.packet %}<a class="link" href="{{ e.packet.get_absolute_url }}">{{ e.packet.name }}</a>{% endif %}<pre style="white-space:pre-wrap;font:inherit;font-size:13px">{{ e.body }}</pre></div></details>
+{% empty %}<p class="muted">No emails sent yet.</p>{% endfor %}
+{% endblock %}

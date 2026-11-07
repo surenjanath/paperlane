@@ -1,0 +1,27 @@
+{% extends "superadmin/_base.html" %}
+{% load ui %}
+{% block title %}Users · Super admin{% endblock %}
+{% block content %}
+<div class="row" style="margin-bottom:12px;gap:8px"><h1 class="grow">Users</h1><a class="btn" href="{% url 'superadmin:export' 'users' %}">{% icon "download" %} CSV</a><button class="btn btn-dark" type="button" onclick="document.getElementById('new-user').open=true;document.getElementById('new-user').scrollIntoView({behavior:'smooth'})">{% icon "plus" %} New user</button></div>
+<form class="sa-filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search name or email" style="max-width:240px">
+  {% for k, l in filters %}<a class="{% if flt == k %}on{% endif %}" href="?filter={{ k }}&q={{ q|urlencode }}">{{ l }}</a>{% endfor %}
+</form>
+<div class="card" style="margin-bottom:16px"><div class="table-wrap" style="border:0"><table class="table">
+  <thead><tr><th>User</th><th class="num">Workspaces</th><th>Two-step</th><th>Last sign-in</th><th>Status</th><th></th></tr></thead>
+  <tbody>{% for u in page %}
+  <tr {% if not u.is_active %}style="opacity:.6"{% endif %}>
+    <td><a class="link" href="{% url 'superadmin:user' u.pk %}"><b>{{ u.get_full_name|default:u.username }}</b></a>{% if u.is_superuser %} <span class="badge badge-purple">Super admin</span>{% endif %}<br><small class="muted">{{ u.email }}</small></td>
+    <td class="num">{{ u.spaces }}</td>
+    <td>{% if u.profile.two_factor_on %}<span class="badge badge-green">On</span>{% else %}<span class="badge badge-gray">Off</span>{% endif %}</td>
+    <td><small class="muted">{% if u.last_login %}{{ u.last_login|timesince }} ago{% else %}never{% endif %}</small></td>
+    <td>{% if u.is_active %}<small>Active</small>{% else %}<span class="badge badge-red">Deactivated</span>{% endif %}</td>
+    <td style="text-align:right"><a class="btn btn-sm" href="{% url 'superadmin:user' u.pk %}">Manage</a></td>
+  </tr>{% empty %}<tr><td colspan="6" class="muted">No users match.</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "superadmin/_pager.html" %}
+<details class="card card-pad" id="new-user" {% if form.errors %}open{% endif %}>
+  <summary style="cursor:pointer"><b>{% icon "plus" %} Create a user</b></summary>
+  <p class="muted small" style="margin-top:8px">They get an email with a link to choose their own password.</p>
+  <form method="post" style="margin-top:8px">{% csrf_token %}{% include "accounts/_form_fields.html" %}<button class="btn btn-dark">Create user</button></form>
+</details>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "accounts/_settings_base.html" %}
+{% block title %}Workspace info{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:18px">Workspace information</h1>
+<form method="post" enctype="multipart/form-data" class="form-rows">{% csrf_token %}
+  <h3 style="margin-bottom:12px">Company profile</h3>
+  <div class="frow"><label>Company name</label><div>{{ form.name }}{{ form.name.errors }}</div></div>
+  <div class="frow top"><label>Company description</label>{{ form.description }}</div>
+  <div class="frow"><label>Industry</label>{{ form.industry }}</div>
+  <div class="frow"><label>Department</label>{{ form.department }}</div>
+  <div class="frow"><label>Company size</label>{{ form.size }}</div>
+  <div class="frow"><label>Workspace domain name</label><div>{{ form.slug }}{{ form.slug.errors }}<div class="help">Used in links and as your workspace identifier.</div></div></div>
+  <div class="frow top"><label>Workspace logo</label><div class="row">{% if request.workspace.logo %}<img src="{{ request.workspace.logo.url }}" alt="" style="height:64px;border:1px solid var(--line);border-radius:6px;padding:4px">{% endif %}<div>{{ form.logo }}<div class="help">Maximum upload file size: 5 MB. Supported formats: JPG, JPEG, PNG.</div></div></div></div>
+  <hr><h3 style="margin-bottom:12px">Company address</h3>
+  <div class="frow"><label>Country</label>{{ form.country }}</div>
+  <div class="frow"><label>Address line 1</label>{{ form.address1 }}</div>
+  <div class="frow"><label>Address line 2</label>{{ form.address2 }}</div>
+  <div class="frow"><label>City</label>{{ form.city }}</div>
+  <div class="frow"><label>ZIP code</label>{{ form.zip_code }}</div>
+  <hr><h3 style="margin-bottom:12px">Contact information</h3>
+  <div class="frow"><label>Phone number</label>{{ form.phone }}</div>
+  <div class="frow"><label>Email address</label><div>{{ form.email }}{{ form.email.errors }}</div></div>
+  <div class="frow"><label>Website URL</label><div>{{ form.website }}{{ form.website.errors }}</div></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn btn-dark">Save changes</button></div>
+</form>
+<hr>
+<div class="card card-pad" style="border-color:#f1c4c4">
+  <h3 style="margin-bottom:6px">Leave workspace</h3>
+  <p class="muted">By leaving, you'll lose access to this workspace. Your teammates will still be able to access it. If you change your mind, you'll be able to rejoin the workspace as a teammate.</p>
+  <form method="post" action="{% url 'accounts:leave_workspace' %}" data-confirm="Leave {{ request.workspace.name }}?" data-danger data-confirm-ok="Leave workspace">{% csrf_token %}<button class="btn btn-danger">Leave workspace</button></form>
+</div>
+{% endblock %}

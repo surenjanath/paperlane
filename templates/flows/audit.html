@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
+{% block subheading %}<a class="link" href="{{ wf.get_absolute_url }}">Back to {{ wf.name }}</a>{% endblock %}
+{% block actions %}<a class="btn" href="?format=csv">Export CSV</a>{% endblock %}
+{% block content %}{% include "flows/partials/audit_table.html" with events=events show_packet=True %}{% endblock %}

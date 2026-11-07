@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if mode == 'trash' %}Trash{% else %}Archive{% endif %}{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}{% if mode == 'trash' %}Trash{% else %}Archive{% endif %}{% endblock %}
+{% block subheading %}{% if mode == 'trash' %}Restore items or delete them permanently.{% else %}Archived workflows and documents. Restore them at any time.{% endif %}{% endblock %}
+{% block actions %}{% if mode == 'trash' and request.membership.can_manage %}{% if workflows or packets %}<form method="post" action="{% url 'core:empty_trash' %}" data-confirm="Everything in the Trash will be deleted permanently. This can't be undone." data-danger data-confirm-ok="Empty Trash">{% csrf_token %}<button class="btn btn-danger">{% icon "trash" %} Empty Trash</button></form>{% endif %}{% endif %}{% endblock %}
+{% block content %}
+<h3 class="section-title">Workflows & templates ({{ workflows|length }})</h3>
+{% if workflows %}
+<div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Type</th><th>{% if mode == 'trash' %}Deleted{% else %}Archived{% endif %}</th><th></th></tr></thead><tbody>
+{% for wf in workflows %}<tr><td><b>{{ wf.name }}</b></td><td>{{ wf.get_kind_display }}</td><td>{% if mode == 'trash' %}{{ wf.trashed_at|date:"M d, Y" }}{% else %}{{ wf.archived_at|date:"M d, Y" }}{% endif %}</td>
+<td class="num"><form method="post" action="{% url 'flows:workflow_action' wf.pk 'restore' %}" style="display:inline">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm">{% icon "restore" %} Restore</button></form>
+{% if mode == 'trash' %}<form method="post" action="{% url 'flows:workflow_action' wf.pk 'delete' %}" style="display:inline" data-confirm="Delete “{{ wf.name }}” and all its documents permanently?" data-danger data-confirm-ok="Delete forever">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm btn-danger">Delete forever</button></form>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>
+{% else %}<p class="muted">Nothing here.</p>{% endif %}
+<h3 class="section-title">Documents ({{ packets|length }})</h3>
+{% if packets %}
+<div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Workflow</th><th>Status</th><th></th></tr></thead><tbody>
+{% for p in packets %}<tr><td><a href="{{ p.get_absolute_url }}"><b>{{ p.name }}</b></a></td><td>{{ p.workflow.name }}</td><td>{% badge p.status %}</td>
+<td class="num"><form method="post" action="{% url 'flows:packet_action' p.pk 'restore' %}" style="display:inline">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm">{% icon "restore" %} Restore</button></form>
+{% if mode == 'trash' %}<form method="post" action="{% url 'flows:packet_action' p.pk 'delete' %}" style="display:inline" data-confirm="Delete this document permanently?" data-danger data-confirm-ok="Delete forever">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm btn-danger">Delete forever</button></form>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>
+{% else %}<p class="muted">Nothing here.</p>{% endif %}
+{% endblock %}

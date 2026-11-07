@@ -1,0 +1,85 @@
+{% extends "superadmin/_base.html" %}
+{% load ui humanize %}
+{% block title %}{{ ws.name }} · Super admin{% endblock %}
+{% block content %}
+<p><a class="link" href="{% url 'superadmin:workspaces' %}">← Workspaces</a></p>
+<div class="row" style="margin:6px 0 4px;gap:10px;align-items:center">
+  <h1 class="grow">{{ ws.name }} {% if ws.suspended_at %}<span class="badge badge-red">Suspended</span>{% endif %}{% if expired %} <span class="badge badge-amber">Plan expired</span>{% endif %}</h1>
+  <form method="post">{% csrf_token %}<input type="hidden" name="op" value="join"><button class="btn" data-confirm="Join {{ ws.name }} and switch to it? You'll be added as a member (logged in the admin audit log).">{% icon "back" %} Open as member</button></form>
+</div>
+<p class="muted" style="margin-bottom:12px">ID <code>{{ ws.slug }}</code> · created {{ ws.created_at|date:"M j, Y" }}{% if ws.email %} · {{ ws.email }}{% endif %}{% if ws.industry %} · {{ ws.industry }}{% endif %}</p>
+{% if ws.suspended_at %}<div class="card card-pad sa-danger" style="margin-bottom:14px"><b>Suspended {{ ws.suspended_at|timesince }} ago.</b> {{ ws.suspended_reason }}</div>{% endif %}
+<div class="sa-meta" style="margin-bottom:16px">
+  <div><small>Members</small><b>{{ members|length }}</b></div>
+  <div><small>Workflows</small><b>{{ usage.published }}</b> <small style="display:inline">/ {{ usage.workflows }} published</small></div>
+  <div><small>Documents</small><b>{{ usage.documents|intcomma }}</b></div>
+  <div><small>In progress</small><b>{{ usage.in_progress|intcomma }}</b></div>
+  <div><small>Started in 30 d</small><b>{{ usage.docs_30|intcomma }}</b></div>
+  <div><small>File storage</small><b>{{ usage.storage|filesizeformat }}</b></div>
+  <div><small>Active API tokens</small><b>{{ usage.tokens }}</b></div>
+</div>
+
+<div class="sa-grid">
+<div>
+  <div class="card card-pad" style="margin-bottom:16px">
+    <h3 style="margin-bottom:10px">Members</h3>
+    <div class="table-wrap" style="border:0"><table class="table"><tbody>
+    {% for m in members %}<tr {% if not m.active %}style="opacity:.55"{% endif %}>
+      <td><a class="link" href="{% url 'superadmin:user' m.user.pk %}">{{ m.user.get_full_name|default:m.user.email }}</a><br><small class="muted">{{ m.user.email }}{% if not m.active %} · removed{% endif %}</small></td>
+      <td><form method="post" class="row" style="gap:6px">{% csrf_token %}<input type="hidden" name="op" value="member_role"><input type="hidden" name="member" value="{{ m.pk }}">
+        <select name="role" onchange="this.form.requestSubmit()" aria-label="Role">{% for k, l in roles %}<option value="{{ k }}" {% if m.role == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></form></td>
+      <td style="text-align:right"><form method="post">{% csrf_token %}<input type="hidden" name="member" value="{{ m.pk }}">
+        {% if m.active %}<button class="btn btn-sm" name="op" value="member_deactivate">Remove</button>{% else %}<button class="btn btn-sm" name="op" value="member_activate">Restore</button>{% endif %}</form></td>
+    </tr>{% empty %}<tr><td class="muted">No members.</td></tr>{% endfor %}
+    {% for i in invites %}<tr><td><small>{{ i.email }}</small><br><small class="muted">invited {{ i.created_at|timesince }} ago</small></td><td><small>{{ i.get_role_display }}</small></td><td></td></tr>{% endfor %}
+    </tbody></table></div>
+    <form method="post" class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">{% csrf_token %}<input type="hidden" name="op" value="member_add">
+      <input type="email" name="email" placeholder="person@company.com" required style="flex:1;min-width:200px">
+      <select name="role" style="width:auto">{% for k, l in roles %}<option value="{{ k }}" {% if k == 'creator' %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      <button class="btn">Add / invite</button>
+    </form>
+  </div>
+
+  <div class="card card-pad" style="margin-bottom:16px">
+    <h3 style="margin-bottom:4px">Features</h3>
+    <p class="muted small" style="margin-bottom:6px">“Platform default” follows Platform settings; a feature switched off there stays off everywhere.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="op" value="features">
+    {% for f in feats %}<div class="sa-feat"><div class="grow"><b>{{ f.label }}</b>{% if not f.platform %} <span class="badge badge-gray">Off platform-wide</span>{% endif %}<br><small class="muted">{{ f.help }}</small></div>
+      <select name="feat_{{ f.key }}" {% if not f.platform %}disabled{% endif %}><option value="inherit" {% if f.override is None %}selected{% endif %}>Platform default</option><option value="on" {% if f.override == True %}selected{% endif %}>On</option><option value="off" {% if f.override == False %}selected{% endif %}>Off</option></select></div>{% endfor %}
+    <button class="btn btn-dark" style="margin-top:10px">Save features</button></form>
+  </div>
+</div>
+<div>
+  <div class="card card-pad" style="margin-bottom:16px">
+    <h3 style="margin-bottom:10px">Plan</h3>
+    <form method="post">{% csrf_token %}<input type="hidden" name="op" value="plan">
+      <div class="field"><label>Plan name</label><input type="text" name="plan" value="{{ ws.plan }}" maxlength="40"></div>
+      <div class="grid-2">
+        <div class="field"><label>Active until</label><input type="date" name="plan_expires" value="{{ ws.plan_expires|date:'Y-m-d' }}"></div>
+        <div class="field"><label>Credits per month</label><input type="number" name="credits_limit" min="0" value="{{ ws.credits_limit }}"></div>
+      </div>
+      <div class="field"><label>Admin notes (only super admins see these)</label><textarea name="admin_notes" rows="3">{{ ws.admin_notes }}</textarea></div>
+      <button class="btn btn-dark">Save plan</button>
+    </form>
+  </div>
+  <div class="card card-pad" style="margin-bottom:16px">
+    <h3 style="margin-bottom:6px">Admin activity</h3>
+    {% include "superadmin/_events.html" with events=events %}
+  </div>
+  <div class="card card-pad sa-danger">
+    <h3 style="margin-bottom:8px">Danger zone</h3>
+    {% if ws.suspended_at %}
+    <form method="post">{% csrf_token %}<input type="hidden" name="op" value="restore"><button class="btn">Restore workspace</button></form>
+    {% else %}
+    <form method="post" data-confirm="Suspend {{ ws.name }}? Its members won't be able to open it, its public forms stop and its API tokens stop working." data-danger>{% csrf_token %}<input type="hidden" name="op" value="suspend">
+      <div class="field"><label>Reason (shown to members)</label><input type="text" name="reason" maxlength="300" placeholder="Subscription ended"></div>
+      <button class="btn btn-danger">Suspend workspace</button></form>
+    {% endif %}
+    <hr style="margin:14px 0">
+    <form method="post" data-confirm="Permanently delete {{ ws.name }} with every workflow, document and file? This can't be undone." data-danger>{% csrf_token %}<input type="hidden" name="op" value="delete">
+      <div class="field"><label>Type <code>{{ ws.slug }}</code> to delete permanently</label><input type="text" name="confirm" autocomplete="off" required></div>
+      <button class="btn btn-danger">Delete workspace</button></form>
+  </div>
+</div>
+</div>
+{% endblock %}

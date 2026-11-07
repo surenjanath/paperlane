@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Simulate · {{ wf.name }}{% endblock %}
+{% block heading %}Simulate {{ wf.name }}{% endblock %}
+{% block subheading %}<span>Test documents run through every branch of the current draft. Nothing is kept, and no emails or outside bots are sent.</span>{% endblock %}
+{% block actions %}
+<a class="btn" href="{% url 'flows:builder' wf.pk %}">Back to builder</a>
+<form method="post" style="display:contents">{% csrf_token %}<button class="btn btn-dark" {% if st.status == 'running' %}disabled{% endif %}>{% if st.status == 'done' %}Run again{% else %}Run simulation{% endif %}</button></form>
+{% endblock %}
+{% block content %}
+{% if st.status == 'running' %}
+<div class="sim-live card card-pad" data-sim="{% url 'flows:simulate_status' wf.pk %}" aria-live="polite">
+  <b>Simulating…</b> <span data-sim-text>starting</span>
+  <div class="sim-bar"><i data-sim-bar style="width:0"></i></div>
+</div>
+<script>
+(function () {
+  const box = document.querySelector("[data-sim]");
+  const t = setInterval(async () => {
+    const j = await (await fetch(box.dataset.sim)).json();
+    if (j.status !== "running") { clearInterval(t); location.reload(); return; }
+    box.querySelector("[data-sim-text]").textContent = `${j.runs} runs, ${j.reached} of ${j.total || "?"} steps reached`;
+    box.querySelector("[data-sim-bar]").style.width = (j.total ? Math.round(100 * j.reached / j.total) : 0) + "%";
+  }, 1200);
+})();
+</script>
+{% elif st.status == 'failed' %}
+<div class="alert alert-error">The simulation stopped: {{ st.error }}</div>
+{% elif result %}
+<div class="sim-sum">
+  <div><b>{{ result.steps_reached }} of {{ result.steps_total }}</b><small>steps reached</small></div>
+  <div><b>{{ routes|length }}</b><small>distinct route{{ routes|length|pluralize }}</small></div>
+  <div><b>{{ result.runs }}</b><small>test run{{ result.runs|pluralize }}</small></div>
+  <div class="{% if problems %}warn{% else %}ok{% endif %}"><b>{{ problems|length }}</b><small>problem{{ problems|length|pluralize }}</small></div>
+</div>
+<p class="muted small" style="margin:6px 0 16px">Ran {{ result.ran_at|iso_dt|date:"M j, H:i" }}{% if result.exhausted %} · stopped at the run limit before trying every combination{% endif %}.</p>
+
+{% if problems %}
+<h3 class="sim-h">Problems</h3>
+<ul class="sim-problems">{% for p in problems %}<li><span class="dx-badge sev-{{ p.severity }}">{{ p.severity|title }}</span><span>{{ p.text }}</span></li>{% endfor %}</ul>
+{% else %}
+<div class="alert alert-success">Every step was reached and every run finished. No problems found.</div>
+{% endif %}
+
+<h3 class="sim-h">Routes</h3>
+<div class="sim-routes">
+{% for g in routes %}
+  <details class="sim-route {% if g.outcome != 'completed' %}bad{% endif %}" {% if forloop.counter <= 3 %}open{% endif %}>
+    <summary>
+      <span class="sim-out o-{{ g.outcome }}">{% if g.outcome == 'completed' %}Completes{% elif g.outcome == 'loop' %}Loops{% elif g.outcome == 'stuck' %}Gets stuck{% else %}Error{% endif %}</span>
+      <span class="sim-steps">{% for p in g.path %}<span class="sim-step" title="Goes to {{ p.to }}">{{ p.step }}</span>{% if not forloop.last %}<i aria-hidden="true">→</i>{% endif %}{% empty %}<span class="muted">No steps</span>{% endfor %}</span>
+      <small>{{ g.labels|length }} scenario{{ g.labels|length|pluralize }}</small>
+    </summary>
+    <div class="sim-detail">
+      <dl>
+        <dt>Reached by</dt><dd>{% for l in g.labels|slice:":4" %}<div>{{ l }}</div>{% endfor %}{% if g.labels|length > 4 %}<div class="muted">and {{ g.labels|length|add:"-4" }} more</div>{% endif %}</dd>
+        <dt>Recipients</dt><dd>{% for p in g.path %}<div><b>{{ p.step }}</b>: {{ p.to }}</div>{% endfor %}</dd>
+        {% if g.bots %}<dt>Would run</dt><dd>{{ g.bots|join:", " }}</dd>{% endif %}
+        <dt>Emails</dt><dd>{{ g.emails }} would be sent</dd>
+        {% if g.required_empty %}<dt>Left empty</dt><dd class="sim-warn">Required but nobody filled: {{ g.required_empty|join:", " }}</dd>{% endif %}
+      </dl>
+    </div>
+  </details>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty"><h3>Try every branch before you publish</h3><p>The simulator fills the draft with sample answers, then varies the answers your conditions check, so each lane, jump and loop gets a test run. It reports steps nobody reaches, groups with no members and routes that loop or stop.</p>
+<form method="post">{% csrf_token %}<button class="btn btn-dark">Run simulation</button></form></div>
+{% endif %}
+{% endblock %}

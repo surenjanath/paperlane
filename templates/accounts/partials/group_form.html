@@ -1,0 +1,9 @@
+<form method="post">{% csrf_token %}{% if g %}<input type="hidden" name="id" value="{{ g.pk }}">{% endif %}
+  <div class="modal-head"><h2>{% if g %}Edit group{% else %}Create group{% endif %}</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <div class="field"><label>Name</label><input type="text" name="name" value="{{ g.name|default:'' }}" required></div>
+    <div class="field"><label>Description</label><input type="text" name="description" value="{{ g.description|default:'' }}"></div>
+    <div class="field"><label>Members</label><div style="max-height:240px;overflow-y:auto">{% for m in members %}<label class="check"><input type="checkbox" name="members" value="{{ m.pk }}" {% if g and m in g.members.all %}checked{% endif %}> {{ m.user.get_full_name|default:m.user.email }} <small class="muted">{{ m.user.email }}</small></label>{% endfor %}</div></div>
+  </div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form>

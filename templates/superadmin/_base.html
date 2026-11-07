@@ -1,0 +1,22 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block content_class %}wide{% endblock %}
+{% block nav %}
+<a class="nav-item" href="{% url 'core:dashboard' %}">{% icon "back" %} Back to app</a>
+<h2>Super admin</h2>
+<div class="grp">Platform</div>
+<a class="nav-item {% if section == 'overview' %}active{% endif %}" href="{% url 'superadmin:overview' %}">{% icon "chart" %} Overview</a>
+<a class="nav-item {% if section == 'workspaces' %}active{% endif %}" href="{% url 'superadmin:workspaces' %}">{% icon "building" %} Workspaces</a>
+<a class="nav-item {% if section == 'users' %}active{% endif %}" href="{% url 'superadmin:users' %}">{% icon "team" %} Users</a>
+<a class="nav-item {% if section == 'tickets' %}active{% endif %}" href="{% url 'superadmin:tickets' %}">{% icon "comment" %} Support tickets</a>
+<a class="nav-item {% if section == 'broadcasts' %}active{% endif %}" href="{% url 'superadmin:broadcasts' %}">{% icon "bell" %} Broadcasts</a>
+<div class="grp">Configuration</div>
+<a class="nav-item {% if section == 'settings' %}active{% endif %}" href="{% url 'superadmin:settings' %}">{% icon "gear" %} Platform settings</a>
+<a class="nav-item {% if section == 'sso' %}active{% endif %}" href="{% url 'superadmin:sso' %}">{% icon "key" %} Single sign-on</a>
+<div class="grp">Operations</div>
+<a class="nav-item {% if section == 'jobs' %}active{% endif %}" href="{% url 'superadmin:jobs' %}">{% icon "bolt" %} Background jobs</a>
+<a class="nav-item {% if section == 'signins' %}active{% endif %}" href="{% url 'superadmin:signins' %}">{% icon "lock" %} Sign-in log</a>
+<a class="nav-item {% if section == 'audit' %}active{% endif %}" href="{% url 'superadmin:audit' %}">{% icon "audit" %} Admin audit log</a>
+<a class="nav-item {% if section == 'system' %}active{% endif %}" href="{% url 'superadmin:system' %}">{% icon "server" %} System &amp; health</a>
+<a class="nav-item" href="/admin/">{% icon "code" %} Django admin</a>
+{% endblock %}

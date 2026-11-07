@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Compare versions · {{ wf.name }}{% endblock %}
+{% block heading %}Compare versions{% endblock %}
+{% block subheading %}<span><a class="link" href="{{ wf.get_absolute_url }}">{{ wf.name }}</a></span>{% endblock %}
+{% block content %}
+{% if not versions %}<div class="empty"><div class="ico">🗂</div><h3>Nothing to compare yet</h3><p>Publish the workflow — every publish becomes a version you can compare.</p></div>
+{% else %}
+<form class="cmp-pick">
+  <select name="a" data-autosubmit aria-label="From">{% for v in versions %}<option value="{{ v.number }}" {% if a_ref == v.number|to_str %}selected{% endif %}>Version {{ v.number }} · {{ v.created_at|date:"M j" }}</option>{% endfor %}</select>
+  <span>→</span>
+  <select name="b" data-autosubmit aria-label="To"><option value="draft" {% if b_ref == 'draft' %}selected{% endif %}>Current draft</option>{% for v in versions %}<option value="{{ v.number }}" {% if b_ref == v.number|to_str %}selected{% endif %}>Version {{ v.number }} · {{ v.created_at|date:"M j" }}</option>{% endfor %}</select>
+  <span class="grow"></span>
+  <span class="cmp-count added">{{ counts.added }} added</span><span class="cmp-count changed">{{ counts.changed }} changed</span><span class="cmp-count removed">{{ counts.removed }} removed</span>
+</form>
+<div class="cmp-head"><b>{{ a_label }}</b> → <b>{{ b_label }}</b></div>
+<ul class="ai-diff cmp-list">
+  {% for d in rows %}<li class="d-{{ d.op }}"><span class="d-op">{{ d.op }}</span> <span><span class="muted">{{ d.what }}</span> {{ d.name }}{% if d.props %} <small class="muted">— {{ d.props|join:", " }}</small>{% endif %}</span></li>
+  {% empty %}<li class="muted">These versions are identical.</li>{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,6 @@
+<form method="post" action="{% url 'flows:doc_action' wf.pk doc.pk 'condition' %}">{% csrf_token %}
+<div class="modal-head"><h2>Make “{{ doc.name }}” conditional</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="modal-body"><p class="muted">Show this document to recipients only when the rules match. Leave empty to always show it.</p>
+{% include "flows/partials/rules.html" with prefix="rule" %}</div>
+<div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form>

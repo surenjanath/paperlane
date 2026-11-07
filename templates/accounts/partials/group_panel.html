@@ -1,0 +1,26 @@
+{% load ui %}<form method="post" action="{% url 'accounts:groups' %}" class="drawer-form" data-group-form>{% csrf_token %}{% if g %}<input type="hidden" name="id" value="{{ g.pk }}">{% endif %}
+<div class="drawer-head"><h2>{% if g %}Edit group{% else %}Create group{% endif %}</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="drawer-body">
+  <div class="field"><label>Name</label><input type="text" name="name" value="{{ g.name|default:'' }}" required maxlength="120" placeholder="e.g. Finance team"></div>
+  <div class="field"><label>Description <small class="muted">(optional)</small></label><input type="text" name="description" value="{{ g.description|default:'' }}" maxlength="255" placeholder="What this group handles"></div>
+  {% if g %}<div class="gp-usage">
+    {% if usage.steps %}<b>Used in {{ usage.steps|length }} workflow step{{ usage.steps|length|pluralize }}</b>
+      <ul>{% for w, s, wid in usage.steps|slice:":6" %}<li><a class="link" href="{% url 'flows:builder' wid %}">{{ w }}</a> › {{ s }}</li>{% endfor %}{% if usage.steps|length > 6 %}<li class="muted">and {{ usage.steps|length|add:"-6" }} more</li>{% endif %}</ul>
+    {% else %}<span class="muted">Not used in any workflow step yet.</span>{% endif %}
+    {% if usage.queue %}<div><span class="ppl-work">{{ usage.queue }} step{{ usage.queue|pluralize }} waiting in the queue</span></div>{% endif %}
+  </div>{% endif %}
+  <div class="field">
+    <div class="row" style="align-items:center"><label class="grow" style="margin:0">Members <small class="muted" data-gp-count>({{ chosen|length }} selected)</small></label>
+      <button type="button" class="link small" data-gp-all>Select all</button><button type="button" class="link small" data-gp-none>Clear</button></div>
+    <div class="ppl-search" style="margin:6px 0">{% icon "search" 14 %}<input type="search" placeholder="Find a teammate" data-gp-find aria-label="Find a teammate"></div>
+    <div class="gp-list">{% for m in members %}
+      <label class="gp-item" data-gp-item data-text="{{ m.user|display_name|lower }} {{ m.user.email|lower }} {{ m.position|lower }}">
+        <input type="checkbox" name="members" value="{{ m.pk }}" {% if m.pk in chosen %}checked{% endif %}>
+        <span class="avatar">{% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" alt="">{% else %}{{ m.user|initials }}{% endif %}</span>
+        <span class="gp-name"><b>{{ m.user|display_name }}</b><small>{{ m.user.email }}{% if m.position %} · {{ m.position }}{% endif %}</small></span>
+        <span class="role-pill role-{{ m.role }} sm">{{ m.get_role_display }}</span>
+      </label>{% empty %}<p class="muted small">No active teammates.</p>{% endfor %}</div>
+  </div>
+</div>
+<div class="drawer-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">{% if g %}Save changes{% else %}Create group{% endif %}</button></div>
+</form>

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Ask your documents{% endblock %}
+{% block heading %}✦ Ask your documents{% endblock %}
+{% block subheading %}Find documents by what they say, and get an answer that points to them{% endblock %}
+{% block content %}
+<form class="askd-form" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="e.g. claims over 10,000 still waiting for a decision" aria-label="Ask a question about your documents" autofocus>
+  <button class="btn btn-dark">✦ Ask</button>
+</form>
+{% if not q %}
+  <div class="askd-examples">{% for ex in examples %}<a class="ai-example" href="?q={{ ex|urlencode }}">{{ ex }}</a>{% endfor %}</div>
+  <p class="muted small" style="margin-top:14px">Searches the documents you can see — names, workflows, statuses, tags and field values. Sensitive fields, signatures and files are never searched or sent to AI.</p>
+{% elif result %}
+  {% if result.answer %}<div class="askd-answer" data-askd-answer>{{ result.answer|linebreaksbr }}</div>
+  {% elif result.error %}<div class="alert alert-warning">{{ result.error }} Showing the best matches instead.</div>
+  {% elif not result.hits %}<div class="alert alert-info">No documents match that. Try other words.</div>{% endif %}
+  {% if result.hits %}
+  <h3 class="askd-h">Matching documents <small class="muted">{% if search_model %}by meaning and words · {{ search_model }}{% else %}by words{% endif %}</small></h3>
+  {% for h in result.hits %}
+  <a class="askd-hit{% if h.cited %} cited{% endif %}" href="{% url 'flows:packet_detail' h.packet.pk %}">
+    <span class="askd-id">#{{ h.packet.pk }}</span>
+    <span class="grow"><b>{{ h.packet.name }}</b><span class="muted small">{{ h.packet.workflow.name }} · {{ h.packet.get_status_display }}</span>
+      {% if h.snippet %}<span class="askd-snip">{{ h.snippet }}</span>{% endif %}</span>
+    {% if h.cited %}<span class="badge badge-blue">Cited</span>{% endif %}
+  </a>
+  {% endfor %}
+  {% endif %}
+{% endif %}
+<script>
+(function () {  // turn [#123] in the answer into links to the documents
+  const a = document.querySelector("[data-askd-answer]");
+  if (a) a.innerHTML = a.innerHTML.replace(/\[#(\d+)\]/g, '<a class="askd-cite" href="/documents/$1/">#$1</a>');
+})();
+</script>
+{% endblock %}

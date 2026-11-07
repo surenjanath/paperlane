@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Approvals{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}Approvals{% endblock %}
+{% block subheading %}<span>Decisions waiting for you — one tap each.</span>{% if others %}<span class="sep"></span><a class="link" href="{% url 'core:inbox' %}?tab=waiting">{{ others }} other step{{ others|pluralize }} in your Inbox</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="ap-list">
+{% for c in cards %}{% with r=c.run p=c.run.packet pl=c.plan %}
+  <article class="ap-card {% if r.is_overdue %}late{% endif %}">
+    <header><div><b>{{ p.name }}</b><small>{{ p.workflow.name }} · {{ r.step_name }}{% if r.assignee_group_id %} · {{ r.assignee_group.name }}{% endif %}</small></div>
+      {% if r.due_at %}<span class="dl-pill {% if r.is_overdue %}red{% else %}amber{% endif %}">{% if r.is_overdue %}Overdue{% else %}Due {{ r.due_at|date:"M j" }}{% endif %}</span>{% endif %}</header>
+    {% if c.summary %}<p class="ap-sum">✦ {{ c.summary|truncatechars:240 }}</p>{% endif %}
+    {% if pl.facts %}<dl class="ap-facts">{% for k, v in pl.facts %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl>{% endif %}
+    {% if pl.blocking %}
+      <p class="ap-block">Also needs: {{ pl.blocking|join:", " }}</p>
+      <a class="btn btn-block" href="{% url 'flows:fill' r.token %}">Open to complete</a>
+    {% else %}
+    <form method="post" action="{% url 'flows:decide' r.token %}" class="ap-form" data-confirm-choice>{% csrf_token %}
+      {% if pl.comment %}<textarea name="comment" rows="2" placeholder="{{ pl.comment.field.label }}{% if pl.comment.required %} (required){% else %} (optional){% endif %}"></textarea>{% endif %}
+      <div class="ap-btns">{% for o, tone in c.options %}<button name="decision" value="{{ o }}" class="ap-btn {{ tone }}">{% if tone == 'good' %}✓ {% elif tone == 'bad' %}✕ {% endif %}{{ o }}</button>{% endfor %}</div>
+    </form>
+    <a class="ap-open" href="{% url 'flows:fill' r.token %}">Open the full document →</a>
+    {% endif %}
+  </article>
+{% endwith %}{% empty %}
+  <div class="empty"><div class="ico">✅</div><h3>No decisions waiting</h3><p>Steps that only need your approve/reject show up here.{% if others %} You have {{ others }} other step{{ others|pluralize }} in your <a class="link" href="{% url 'core:inbox' %}?tab=waiting">Inbox</a>.{% endif %}</p></div>
+{% endfor %}
+</div>
+<script>
+document.querySelectorAll("[data-confirm-choice]").forEach((f) => f.addEventListener("submit", (e) => {
+  const b = e.submitter; if (!b) return;
+  if (b.classList.contains("bad") && !confirm(`${b.value} this document?`)) { e.preventDefault(); return; }
+  setTimeout(() => f.querySelectorAll("button").forEach((x) => (x.disabled = true)), 0);
+}));
+</script>
+{% endblock %}

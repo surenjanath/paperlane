@@ -1,0 +1,20 @@
+{% extends layout %}
+{% load ui static %}
+{% block shell_class %}no-sidebar{% endblock %}
+{% block sidebar %}{% endblock %}
+{% block main %}
+<div class="hc" id="hc">
+  <header class="hc-top">
+    <a class="hc-brand" href="{% url 'core:help' %}"><span class="hc-logo">{% logo_mark 28 %}</span><span><b>{{ app_name|default:"Paperlane" }} Help</b></span></a>
+    {% block topsearch %}<div class="hc-search hc-search-sm" data-hc-search>{% icon "search" 16 %}<input type="search" placeholder="Search help…" aria-label="Search help" autocomplete="off"><div class="hc-results" hidden role="listbox"></div></div>{% endblock %}
+    <span class="grow"></span>
+    <button type="button" class="hc-ask-btn" data-chat-open>{% icon "sparkle" 16 %}<span>Ask AI</span></button>
+    {% if request.membership %}<a class="btn btn-sm btn-ghost" href="{% url 'flows:tickets' %}">{% icon "comment" 16 %} My tickets</a>{% endif %}
+    {% if request.user.is_authenticated %}<a class="btn btn-sm btn-ghost hc-back" href="{% url 'core:dashboard' %}">{% icon "back" 16 %} Back to app</a>{% endif %}
+  </header>
+  {% block hc %}{% endblock %}
+</div>
+{{ index|json_script:"hc-index" }}
+{% if layout != "base.html" %}{% include "core/help/_chat.html" %}
+<script src="{% static 'js/help.js' %}?v={{ asset_v }}"></script>{% endif %}
+{% endblock %}

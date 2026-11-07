@@ -1,0 +1,159 @@
+{% load ui %}
+<form method="post" action="{% url 'flows:step_settings' wf.pk step.pk %}" style="display:contents">{% csrf_token %}
+<div class="drawer-head">
+  <span class="avatar" style="background:{% if step.kind == 'branch' %}var(--amber-soft){% else %}var(--blue-soft){% endif %}">{% if step.kind == 'branch' %}{% icon "branch" 14 %}{% else %}{% icon "step" 14 %}{% endif %}</span>
+  <input type="text" name="name" value="{{ step.name }}" style="border:0;font-weight:600;font-size:16px;padding:0;height:28px;box-shadow:none">
+  <button type="button" class="modal-close" data-close>×</button>
+</div>
+<div class="drawer-body">
+{% if step.kind == 'branch' %}
+  <p class="muted">Each branch is a separate path. Branches are checked from top to bottom; the first whose rules match is taken (a branch with no rules is always taken). If none match, the workflow continues after the branches.</p>
+  <input type="hidden" name="branch_count" value="{{ branch_view|length }}">
+  {% for b in branch_view %}
+  <details class="acc" open><summary>⑂ {{ b.label }}{% if b.lane_steps %} <span class="badge badge-gray">{{ b.lane_steps }} step{{ b.lane_steps|pluralize }}</span>{% endif %}</summary><div class="acc-body">
+    <input type="hidden" name="b{{ forloop.counter0 }}_id" value="{{ b.id }}">
+    <div class="field"><label>Branch name</label><input type="text" name="b{{ forloop.counter0 }}_label" value="{{ b.label }}"></div>
+    <label>When</label>
+    {% include "flows/partials/rules.html" with prefix=b.prefix rules=b.rules_or_blank logic=b.logic %}
+    <div style="margin-top:10px">
+      <div class="field"><label>When taken</label><select name="b{{ forloop.counter0 }}_target">
+        <option value="lane" {% if b.target == 'lane' %}selected{% endif %}>Run this branch's steps</option>
+        <option value="next" {% if b.target == 'next' or b.target == 'merge' %}selected{% endif %}>Continue after the branches</option>
+        <optgroup label="Go to step">{% for o in all_steps %}<option value="{{ o.key }}" {% if b.target == o.key %}selected{% endif %}>{{ o.name }}</option>{% endfor %}</optgroup>
+        <option value="end" {% if b.target == 'end' %}selected{% endif %}>Complete the workflow</option></select></div>
+      <div class="field" data-show-when="b{{ forloop.counter0 }}_target=lane"><label>After its steps</label><select name="b{{ forloop.counter0 }}_then">
+        <option value="merge" {% if b.then|default:'merge' == 'merge' %}selected{% endif %}>Continue after the branches</option>
+        <optgroup label="Go to step">{% for o in all_steps %}<option value="{{ o.key }}" {% if b.then == o.key %}selected{% endif %}>{{ o.name }}</option>{% endfor %}</optgroup>
+        <option value="end" {% if b.then == 'end' %}selected{% endif %}>Complete the workflow</option></select></div>
+    </div>
+    <label class="check" style="margin-top:8px;color:var(--red)"><input type="checkbox" name="b{{ forloop.counter0 }}_delete"> Delete this branch{% if b.lane_steps %} and its {{ b.lane_steps }} step{{ b.lane_steps|pluralize }}{% endif %}</label>
+  </div></details>
+  {% endfor %}
+  <button class="btn btn-block" name="add_branch" value="1">{% icon "plus" %} Add branch</button>
+{% else %}
+  <details class="acc" open><summary>{% icon "user" 16 %} Recipient</summary><div class="acc-body">
+    <label>Send documents to</label>
+    <div class="seg" style="margin:6px 0 12px;flex-wrap:wrap">
+      {% for k, l in step.RECIPIENT_TYPES %}<input type="radio" id="rt-{{ k }}" name="recipient_type" value="{{ k }}" {% if step.recipient_type == k %}checked{% endif %}><label for="rt-{{ k }}">{{ l }}</label>{% endfor %}
+    </div>
+    <div data-show-when="recipient_type=email">
+      <div class="field"><label>Email or phone number</label><input type="text" name="recipient_email" value="{{ step.recipient_email }}" placeholder="name@company.com, or {field:Email}">
+        <div class="help">Separate several emails with commas (the first to submit completes the step). Use <code>{field:Field name}</code> to send to an address entered earlier.</div></div>
+      <div class="field"><label>Recipient name (optional)</label><input type="text" name="recipient_name" value="{{ step.recipient_name }}"></div>
+    </div>
+    <div data-show-when="recipient_type=current_user"><p class="muted">The person who runs the workflow fills out this step.</p></div>
+    <div data-show-when="recipient_type=contact" class="field"><label>Contact</label><select name="recipient_contact"><option value="">Select a contact</option>{% for c in contacts %}<option value="{{ c.pk }}" {% if step.recipient_contact_id == c.pk %}selected{% endif %}>{{ c.name }} — {{ c.email }}</option>{% endfor %}</select>
+      <div class="help"><a class="link" href="{% url 'accounts:contacts' %}" target="_blank">Manage contacts</a></div></div>
+    <div data-show-when="recipient_type=group" class="field"><label>Group</label><select name="recipient_group"><option value="">Select a group</option>{% for g in groups %}<option value="{{ g.pk }}" {% if step.recipient_group_id == g.pk %}selected{% endif %}>{{ g.name }}</option>{% endfor %}</select><div class="help">Any member of the group can complete the step.</div></div>
+    <div data-show-when="recipient_type=anyone"><p class="muted">Use with Distribute › Via link. Only valid for the first step.</p></div>
+    <div class="field"><label>Email subject</label><input type="text" name="message_subject" value="{{ step.message_subject }}"></div>
+    <div class="field"><label>Customize message <span class="muted">(Optional)</span></label><textarea name="message_body" rows="4">{{ step.message_body }}</textarea>
+      <div class="help">Tokens: {user_name}, {workflow_name}, {sender_name}, {field:Field name}</div>
+      {% if ai_enabled %}<div class="ai-write" data-ai-write="{% url 'flows:ai_step_email' wf.pk step.pk %}">
+        <select data-tone aria-label="Tone"><option value="friendly">Friendly</option><option value="formal">Formal</option><option value="short">Short and direct</option></select>
+        <button type="button" class="btn btn-sm ai-toggle-btn" data-ai-write-go>✦ Write with AI</button><span class="muted small" data-ai-write-msg></span></div>{% endif %}</div>
+    <div class="row" style="justify-content:space-between"><a class="link" href="#" data-modal-url="{% url 'flows:preview_email' wf.pk step.pk %}">Preview email</a><a class="link" href="{% url 'accounts:email_templates' %}?key=invite" target="_blank">Edit full message</a></div>
+    <label class="row" style="margin-top:10px;gap:8px"><span class="switch"><input type="checkbox" name="attach_documents" {% if step.attach_documents %}checked{% endif %}><span></span></span> Attach documents to email</label>
+  </div></details>
+
+  <details class="acc"><summary>{% icon "documents" 16 %} Documents and forms</summary><div class="acc-body">
+    {% for d in docs %}
+    <div style="border-top:1px solid var(--line);padding:10px 0">
+      <div class="row"><b class="grow">{{ d.name }}</b>
+        <select name="access_{{ d.key }}" style="width:auto;height:28px">
+          <option value="fill" {% if step.document_access|get:d.key == 'fill' or not step.document_access|get:d.key %}selected{% endif %}>Recipient can fill out</option>
+          <option value="view" {% if step.document_access|get:d.key == 'view' %}selected{% endif %}>Recipient can view</option>
+          <option value="hidden" {% if step.document_access|get:d.key == 'hidden' %}selected{% endif %}>Hidden</option></select></div>
+      <input type="hidden" name="fields_present_{{ d.key }}" value="1">
+      <details style="margin-top:6px"><summary class="link" style="font-size:12px">Reassign fields</summary>
+        <div style="margin-top:6px">{% for f in d.input_fields %}<label class="check"><input type="checkbox" name="fields_{{ d.key }}" value="{{ f.id }}" {% if f.role == step.key %}checked{% endif %}> {{ f.label|default:f.type }} <small class="muted">{% if f.role == step.key %}this step{% elif f.role == 'anyone' or not f.role %}anyone{% else %}other step{% endif %}</small></label>{% empty %}<small class="muted">No fields</small>{% endfor %}</div>
+        <div class="help">Checked fields are filled by this step only. Unchecked fields assigned to “anyone” can be filled by every step with fill access.</div>
+      </details>
+    </div>
+    {% endfor %}
+    <label class="row" style="margin-top:8px;gap:8px"><span class="switch"><input type="checkbox" name="revoke_on_complete" {% if step.revoke_on_complete %}checked{% endif %}><span></span></span> Revoke access on documents completion</label>
+  </div></details>
+
+  <details class="acc"><summary>{% icon "palette" 16 %} Customization</summary><div class="acc-body">
+    <p class="muted">Customize the Thank you page text. Changes apply to this step only.</p>
+    <div class="field"><label>Title</label><input type="text" name="ty_title" value="{{ step.thank_you.title|default:'' }}" placeholder="{{ wf.workspace.thank_you.title }}"></div>
+    <div class="field"><label>Text</label><textarea name="ty_body" rows="3" placeholder="{{ wf.workspace.thank_you.body }}">{{ step.thank_you.body|default:'' }}</textarea></div>
+  </div></details>
+
+  <details class="acc" {% if step.condition.rules %}open{% endif %}><summary>{% icon "branch" 16 %} Conditions</summary><div class="acc-body">
+    <p class="muted">The step occurs when…</p>
+    {% include "flows/partials/rules.html" with prefix="rule" %}
+  </div></details>
+
+  <details class="acc"><summary>{% icon "gear" 16 %} Advanced settings</summary><div class="acc-body">
+    <div class="setting-row"><div class="grow"><div class="title">Redirect to website</div><div class="desc">Send recipients to the specified URL when they complete the documents.</div>
+      <div class="extra" data-show-when="redirect_on"><input type="url" name="redirect_url" value="{{ s.redirect_url|default:'' }}" placeholder="https://"></div></div>
+      <label class="switch"><input type="checkbox" name="redirect_on" {% if s.redirect_url %}checked{% endif %}><span></span></label></div>
+    <div class="setting-row"><div class="grow"><div class="title">Custom tags</div><div class="desc">Add tags to find completed documents faster.</div>
+      <div class="extra" data-show-when="tags_on"><input type="text" name="tags" value="{{ s.tags|join:', ' }}" placeholder="#Signed, #Finance"></div></div>
+      <label class="switch"><input type="checkbox" name="tags_on" {% if s.tags %}checked{% endif %}><span></span></label></div>
+    <div class="setting-row"><div class="grow"><div class="title">Reminder</div><div class="desc">Remind a recipient to complete the documents.</div>
+      <div class="extra grid-2" data-show-when="reminder_on"><label>Every (days)<input type="number" min="0.1" step="0.1" name="reminder_days" value="{{ s.reminder.every_days|default:1 }}"></label><label>Max reminders<input type="number" min="1" name="reminder_max" value="{{ s.reminder.max|default:3 }}"></label></div></div>
+      <label class="switch"><input type="checkbox" name="reminder_on" {% if s.reminder.enabled %}checked{% endif %}><span></span></label></div>
+    <div class="setting-row"><div class="grow"><div class="title">Deadline (SLA)</div><div class="desc">Give the recipient a due date. When it passes, the document is flagged overdue and someone is told or takes over.</div>
+      <div class="extra" data-show-when="sla_on">
+        <div class="grid-2"><label>Complete within<input type="number" min="0.25" step="0.25" name="sla_amount" value="{{ s.sla.amount|default:2 }}"></label>
+          <label>Unit<select name="sla_unit">{% for v, l in sla_units %}<option value="{{ v }}" {% if s.sla.unit|default:"business_days" == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label></div>
+        <div class="grid-2" style="margin-top:8px"><label>When overdue<select name="sla_escalate">{% for v, l in sla_escalations %}<option value="{{ v }}" {% if s.sla.escalate|default:"notify" == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+          <label>Notify / reassign to<input type="text" name="sla_escalate_to" value="{{ s.sla.escalate_to|default:'' }}" placeholder="lead@company.com or a group name" list="sla-groups"></label></div>
+        <datalist id="sla-groups">{% for g in groups %}<option value="{{ g.name }}">{% endfor %}</datalist>
+        <label style="margin-top:8px;display:block">Tag overdue documents<input type="text" name="sla_tag" value="{{ s.sla.tag|default:'' }}" placeholder="#Overdue"></label>
+        <p class="help">The recipient and the workflow owner are always told. Reassigning gives the new holder a fresh deadline.</p>
+      </div></div>
+      <label class="switch"><input type="checkbox" name="sla_on" {% if s.sla.amount %}checked{% endif %}><span></span></label></div>
+    <div class="setting-row"><div class="grow"><div class="title">Access expiration</div><div class="desc">Revoke access to documents for a recipient after a delay.</div>
+      <div class="extra" data-show-when="expiration_on"><label>Expire after (days)<input type="number" min="0.01" step="0.01" name="expiration_days" value="{{ s.expiration.days|default:7 }}"></label></div></div>
+      <label class="switch"><input type="checkbox" name="expiration_on" {% if s.expiration.enabled %}checked{% endif %}><span></span></label></div>
+    <div class="setting-row"><div class="grow"><div class="title">Verify the recipient</div><div class="desc">Ask for a code before the documents open.</div>
+      <div class="extra">
+        <select name="verify_method" aria-label="Verification method">
+          <option value="">No check</option>
+          <option value="email" {% if s.verify.method == 'email' %}selected{% endif %}>Code by email</option>
+          <option value="sms" {% if s.verify.method == 'sms' %}selected{% endif %}>Code by text message</option>
+          <option value="code" {% if s.verify.method == 'code' %}selected{% endif %}>Access code they already know</option>
+        </select>
+        <div data-show-when="verify_method=sms" style="margin-top:6px"><label>Phone number<input type="text" name="verify_phone" value="{{ s.verify.phone|default:'' }}" placeholder="{field:Phone}"></label>
+          <label>SMS gateway<select name="verify_connection"><option value="">Choose a connected account</option>{% for c in connections %}<option value="{{ c.pk }}" {% if s.verify.connection|stringformat:'s' == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.label }}</option>{% endfor %}</select></label></div>
+        <div data-show-when="verify_method=code" style="margin-top:6px"><label>Access code<input type="text" name="verify_code" value="{{ s.verify.code|default:'' }}" placeholder="{field:Policy number}"></label>
+          <p class="help">A fixed code you share separately, or a field the recipient should know (e.g. their policy number).</p></div>
+      </div></div></div>
+    <div class="setting-row"><div class="grow"><div class="title">Email notifications</div><div class="desc">Send emails when a recipient completes the documents.</div>
+      <div class="extra" data-show-when="notify_on"><input type="text" name="notify_emails" value="{{ s.notify_emails|default:'' }}" placeholder="manager@company.com"></div></div>
+      <label class="switch"><input type="checkbox" name="notify_on" {% if s.notify_emails %}checked{% endif %}><span></span></label></div>
+    <div class="setting-row"><div class="grow"><div class="title">Signing process</div><div class="desc">Customize the signing experience for a recipient.</div>
+      <div class="extra">
+        <label class="check"><input type="hidden" name="one_tap_present" value="1"><input type="checkbox" name="one_tap" {% if s.one_tap is not False %}checked{% endif %}> <span>One-tap decision in the email<br><small class="muted">When choosing Approve / Reject is all this step needs, the invitation has buttons for each choice.</small></span></label>
+        <label class="check"><input type="checkbox" name="forbid_decline" {% if s.forbid_decline %}checked{% endif %}> <span>Forbid recipient to decline revision<br><small class="muted">Hide the Decline option.</small></span></label>
+        <label class="check"><input type="checkbox" name="forbid_discard" {% if s.forbid_discard %}checked{% endif %}> <span>Forbid recipient to discard changes<br><small class="muted">Hide the Discard option.</small></span></label>
+        <label class="check"><input type="checkbox" name="forbid_draft" {% if s.forbid_draft %}checked{% endif %}> <span>Forbid recipient to save as draft<br><small class="muted">Hide the Save as draft option.</small></span></label>
+      </div></div></div>
+    <div class="setting-row"><div class="grow"><div class="title">Automated step</div><div class="desc">Nobody fills this step: it runs its bots and completes itself.</div></div>
+      <label class="switch"><input type="checkbox" name="auto_complete" {% if s.auto_complete %}checked{% endif %}><span></span></label></div>
+    <div class="setting-row"><div class="grow"><div class="title">Role aliases</div><div class="desc">Imported role IDs that bot conditions may use for this step (comma separated).</div>
+      <div class="extra"><input type="text" name="aliases" value="{{ s.aliases|join:', ' }}" style="font-family:monospace;font-size:12px"></div></div></div>
+    <div class="setting-row"><div class="grow"><div class="title">Recurrence</div><div class="desc">Allow this step to run more than once (e.g. when a branch loops back to it).</div></div>
+      <label class="switch"><input type="checkbox" name="recurrence" {% if s.recurrence %}checked{% endif %}><span></span></label></div>
+  </div></details>
+  <details class="acc" {% if jump_view %}open{% endif %}><summary>↪ Jump from this step{% if jump_view %} <span class="badge badge-gray">{{ jump_view|length }}</span>{% endif %}</summary><div class="acc-body">
+    <p class="muted" style="font-size:12px">When this step is completed and a jump's rules match, the workflow goes straight to its target (the target's own conditions are skipped). Otherwise it continues normally.</p>
+    <input type="hidden" name="jump_count" value="{{ jump_view|length }}">
+    {% for j in jump_view %}
+    <div class="card card-pad" style="margin-bottom:10px">
+      <div class="field"><label>Jump to</label><select name="j{{ forloop.counter0 }}_to"><option value="">Select a step</option>
+        {% for o in all_steps %}<option value="{{ o.key }}" {% if j.to == o.key %}selected{% endif %}>{{ o.name }}</option>{% endfor %}</select></div>
+      <label>When</label>
+      {% include "flows/partials/rules.html" with prefix=j.prefix rules=j.rules_or_blank logic=j.logic %}
+      <label class="check" style="margin-top:8px;color:var(--red)"><input type="checkbox" name="j{{ forloop.counter0 }}_delete"> Remove this jump</label>
+    </div>
+    {% endfor %}
+    <button class="btn btn-block" name="add_jump" value="1">{% icon "plus" %} Add jump</button>
+  </div></details>
+{% endif %}
+</div>
+<div class="drawer-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Apply</button></div>
+</form>

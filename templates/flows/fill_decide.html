@@ -1,0 +1,17 @@
+{% extends "base_bare.html" %}
+{% block title %}{{ choice }} · {{ packet.name }}{% endblock %}
+{% block body %}
+<div class="portal-wrap">
+  <div class="portal-card">
+    {% if workspace.logo %}<img class="portal-logo" src="{{ workspace.logo.url }}" alt="{{ workspace.name }}">{% endif %}
+    <h1>{{ choice }} “{{ packet.name }}”?</h1>
+    <p class="muted">{{ run.step_name }} · {{ workspace.name }}</p>
+    {% if plan.facts %}<dl class="dec-facts">{% for k, v in plan.facts %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl>{% endif %}
+    <form method="post">{% csrf_token %}
+      {% if plan.comment %}<div class="field"><label for="dec-c">{{ plan.comment.field.label|default:"Comment" }} <span class="muted">(optional)</span></label><textarea id="dec-c" name="comment" rows="3"></textarea></div>{% endif %}
+      <button class="btn btn-block {% if tone == 'bad' %}btn-danger{% else %}btn-dark{% endif %}">Confirm: {{ choice }}</button>
+    </form>
+    <p class="muted small" style="margin-top:12px">{% for i, o in others %}<a class="link" href="{% url 'flows:fill_decide' run.token i %}">{{ o }} instead</a> · {% endfor %}<a class="link" href="{{ full }}">Open the documents</a></p>
+  </div>
+</div>
+{% endblock %}

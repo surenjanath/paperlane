@@ -1,0 +1,67 @@
+{% load ui %}<div class="aip-head" data-engine="{{ engine_label }}"><b>✦ AI assistant</b>{% if engine_label %}<a class="aip-model" href="{% url 'flows:ai_settings' %}" title="Model used for every AI feature — change it in AI &amp; models">{{ engine_label|truncatechars:34 }}</a>{% endif %}<button type="button" class="aip-x" data-ai-toggle title="Close" aria-label="Close AI assistant">×</button></div>
+<div class="aip-body">
+  {% if undo %}<div class="aip-undo">
+    <div><small class="muted">Last AI change</small><div>{{ undo.request|default:"(no description)" }}</div></div>
+    <form method="post" action="{% url 'flows:ai_workflow' wf.pk %}">{% csrf_token %}<input type="hidden" name="do" value="undo"><button class="btn btn-sm" data-confirm="Restore the workflow as it was before this AI change?">Undo</button></form>
+  </div>{% endif %}
+  {% if not ai_on %}<div class="alert alert-warning">AI is turned off for this workspace.</div>
+  {% elif not has_models %}<div class="alert alert-warning">No AI model is available — connect one in <a class="link" href="{% url 'flows:ai_settings' %}">AI &amp; models</a>.</div>{% endif %}
+  {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+
+  {% if plan %}
+  <section class="aip-plan" data-ai-plan>
+    <div class="aip-plan-head"><b>Proposed change</b><small class="muted">{{ plan.counts.0 }} steps · {{ plan.counts.1 }} fields · {{ plan.counts.2 }} bots · {{ plan.engine_label }}{% if plan.seconds > 1 %} · {{ plan.seconds }} s{% endif %}</small></div>
+    <blockquote>{{ plan.text }}</blockquote>
+    <p class="aip-hint">Use <b>Before / After</b> on the canvas to compare. Changed steps are outlined.</p>
+    {% if plan.changes %}<ul class="ai-changes">{% for c in plan.changes %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+    <ul class="ai-diff">
+      {% for d in plan.diff %}<li class="d-{{ d.op }}" {% if d.key %}data-goto="{{ d.key }}" data-goto-side="{% if d.op == 'removed' %}before{% else %}after{% endif %}" title="Show on the canvas"{% endif %}><span class="d-op">{{ d.op }}</span> <span><span class="muted">{{ d.what }}</span> {{ d.name }}{% if d.props %} <small class="muted">— {{ d.props|join:", " }}</small>{% endif %}</span></li>
+      {% empty %}<li class="muted">No differences — the model returned the same workflow. Try rephrasing the request.</li>{% endfor %}
+    </ul>
+    {% for p in plan.problems %}<div class="alert alert-warning">{{ p }}</div>{% endfor %}
+    {% if plan.new_warnings %}<div class="aip-newwarn"><b>Checks after this change</b>{% for w in plan.new_warnings %}<div>• {{ w }}</div>{% endfor %}<small class="muted">You can apply it and fix these, or ask again.</small></div>{% endif %}
+    <div class="aip-actions">
+      <form method="post" action="{% url 'flows:ai_workflow' wf.pk %}" data-ai-fetch>{% csrf_token %}<input type="hidden" name="do" value="discard"><button class="btn btn-sm">Discard</button></form>
+      <form method="post" action="{% url 'flows:ai_workflow' wf.pk %}">{% csrf_token %}<input type="hidden" name="do" value="apply"><button class="btn btn-sm btn-dark" {% if not plan.diff %}disabled{% endif %}>{% icon "check" %} Apply to workflow</button></form>
+    </div>
+  </section>
+  {% endif %}
+
+  <form method="post" action="{% url 'flows:ai_workflow' wf.pk %}" data-ai-fetch class="aip-ask">{% csrf_token %}<input type="hidden" name="do" value="plan">
+    <label for="aip-text"><b>{% if plan %}Adjust the proposal, or ask for something new{% else %}What should change?{% endif %}</b></label>
+    <textarea id="aip-text" name="text" rows="4" maxlength="4000" required placeholder="e.g. Add a Finance approval after the manager when the amount is over 10,000.">{{ text|default:'' }}</textarea>
+    <div class="aip-chips">{% for ex in examples %}<button type="button" class="ai-example" data-example="{{ ex }}">{{ ex }}</button>{% endfor %}</div>
+    <div class="aip-foot">
+      {% if plan %}<button class="btn btn-sm btn-dark" name="do" value="refine" data-busy="Working…" title="Change the proposal above (e.g. “make it 5,000 instead”)" {% if not ai_on or not has_models %}disabled{% endif %}>{% icon "sparkle" %} Refine proposal</button>
+      <button class="btn btn-sm" name="do" value="plan" data-busy="Working…" title="Start over from the saved workflow" {% if not ai_on or not has_models %}disabled{% endif %}>New request</button>
+      {% else %}<button class="btn btn-sm btn-dark" data-busy="Working…" {% if not ai_on or not has_models %}disabled{% endif %}>{% icon "sparkle" %} Propose</button>{% endif %}
+    </div>
+  </form>
+
+  <section class="aip-explain">
+    <div class="row" style="align-items:center"><b class="grow">Explain this workflow</b>
+      <form method="post" action="{% url 'flows:ai_workflow' wf.pk %}" data-ai-fetch>{% csrf_token %}<input type="hidden" name="do" value="explain">{% if explanation %}<input type="hidden" name="refresh" value="1">{% endif %}
+        <button class="btn btn-sm btn-ghost" data-busy="Explaining…" {% if not ai_on or not has_models %}disabled{% endif %}>{% icon "sparkle" %} {% if explanation %}Rewrite{% else %}Explain{% endif %}</button></form></div>
+    {% if explanation %}
+    <div class="aip-ex">
+      {% if explanation.summary %}<p>{{ explanation.summary }}</p>{% endif %}
+      {% if explanation.steps %}<h5>Who does what</h5><ol>{% for st in explanation.steps %}<li><b>{{ st.who }}</b> {{ st.does }}</li>{% endfor %}</ol>{% endif %}
+      {% if explanation.decisions %}<h5>Decisions</h5><ul>{% for x in explanation.decisions %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      {% if explanation.automatic %}<h5>Automatic</h5><ul>{% for x in explanation.automatic %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      {% if explanation.deadlines %}<h5>Deadlines</h5><ul>{% for x in explanation.deadlines %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      <textarea id="aip-ex-text" hidden readonly>{{ explanation_text }}</textarea>
+      <div class="row" style="gap:8px;align-items:center"><button type="button" class="btn btn-sm" data-copy="#aip-ex-text" data-copy-toast="Explanation copied">{% icon "copy" 14 %} Copy as text</button><small class="muted">{{ explanation.engine }}</small></div>
+    </div>
+    {% else %}<p class="muted small">A plain-English summary of who does what, the decisions and the automatic steps, to share with people who don't use the builder.</p>{% endif %}
+  </section>
+
+  <section class="aip-sugg">
+    <div class="row" style="align-items:center"><b class="grow">Suggestions</b>
+      <form method="post" action="{% url 'flows:ai_workflow' wf.pk %}" data-ai-fetch>{% csrf_token %}<input type="hidden" name="do" value="suggest">
+        <button class="btn btn-sm btn-ghost" data-busy="Reviewing…" {% if not ai_on or not has_models %}disabled{% endif %}>{% icon "sparkle" %} {% if suggestions %}Again{% else %}Review my workflow{% endif %}</button></form></div>
+    {% for s in suggestions %}<div class="ai-sugg"><div class="grow"><b>{{ s.title }}</b>{% if s.why %}<div class="muted small">{{ s.why }}</div>{% endif %}
+      <div class="ai-sugg-actions"><button type="button" class="link small" data-example="{{ s.request }}" title="Put this request in the box to edit it first">Edit request</button>
+        <form method="post" action="{% url 'flows:ai_workflow' wf.pk %}" data-ai-fetch>{% csrf_token %}<input type="hidden" name="do" value="plan"><input type="hidden" name="text" value="{{ s.request }}"><button class="link small" data-busy="Working…">✦ Propose this</button></form></div></div></div>
+    {% empty %}<p class="muted small">The AI reads the steps, fields, conditions and bots and points out gaps.</p>{% endfor %}
+  </section>
+</div>

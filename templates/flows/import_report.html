@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Import report{% endblock %}
+{% block heading %}Imported “{{ wf.name }}”{% endblock %}
+{% block subheading %}<span>{{ wf.source_ref }}</span><span class="sep"></span><span>Routing: {{ wf.get_routing_mode_display }}</span>{% endblock %}
+{% block actions %}<a class="btn" href="{{ wf.get_absolute_url }}">Open workflow</a><a class="btn btn-dark" href="{% url 'flows:builder' wf.pk %}">Review in builder</a>{% endblock %}
+{% block content %}
+<div class="grid-2" style="align-items:start">
+<div class="card card-pad"><h3>Documents</h3><ul>{% for x in report.documents %}<li>{{ x }}</li>{% empty %}<li class="muted">—</li>{% endfor %}</ul>
+<h3>Steps</h3><ol>{% for x in report.steps %}<li>{{ x }}</li>{% endfor %}</ol>
+<h3>Groups created</h3><ul>{% for x in report.groups %}<li>{{ x }} <span class="muted">— add members in <a class="link" href="{% url 'accounts:groups' %}">Groups</a></span></li>{% empty %}<li class="muted">None</li>{% endfor %}</ul></div>
+<div class="card card-pad"><h3>Bots ({{ report.bots|length }})</h3><ul style="max-height:420px;overflow:auto">{% for x in report.bots %}<li>{{ x }}</li>{% endfor %}</ul>
+{% if report.warnings %}<h3 style="margin-top:12px">Notes</h3>{% for w in report.warnings %}<div class="alert alert-warning">{{ w }}</div>{% endfor %}{% endif %}</div>
+</div>
+{% endblock %}

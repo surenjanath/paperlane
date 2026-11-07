@@ -1,0 +1,46 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Webhook{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<p><a class="link" href="{% url 'flows:webhooks' %}">← Webhooks</a></p>
+<div class="sec-head" style="margin:6px 0 16px"><div><h1>{{ ep.description|default:"Webhook" }}</h1><p class="muted">{{ ep.url }}</p></div>
+  <div class="row">
+    <form method="post" action="{% url 'flows:webhook_action' ep.pk 'test' %}">{% csrf_token %}<button class="btn btn-dark">{% icon "send" %} Send test</button></form>
+    <form method="post" action="{% url 'flows:webhook_action' ep.pk 'toggle' %}">{% csrf_token %}<button class="btn">{% if ep.active %}Pause{% else %}Resume{% endif %}</button></form>
+  </div></div>
+
+<div class="grid-2" style="align-items:start;gap:16px">
+  <div class="card card-pad">
+    <h3 style="margin-bottom:12px">Settings</h3>
+    <form method="post">{% csrf_token %}{% include "flows/_webhook_form.html" %}<button class="btn btn-dark" style="margin-top:12px">Save</button></form>
+    <form method="post" action="{% url 'flows:webhook_action' ep.pk 'delete' %}" data-confirm="Delete this webhook and its delivery log?" data-danger data-confirm-ok="Delete" style="margin-top:10px">{% csrf_token %}<button class="btn btn-danger btn-sm">{% icon "trash" %} Delete webhook</button></form>
+  </div>
+  <div class="card card-pad">
+    <h3 style="margin-bottom:8px">Verify requests</h3>
+    <p class="muted small">Each request carries <code>X-Paperlane-Event</code>, <code>X-Paperlane-Delivery</code> (unique id — use it to ignore duplicates), <code>X-Paperlane-Timestamp</code> and <code>X-Paperlane-Signature: sha256=…</code>, the HMAC-SHA256 of <code>timestamp + "." + raw body</code> with this secret.</p>
+    <label class="small" for="wh-secret">Signing secret</label>
+    <div class="copy-row"><input id="wh-secret" type="password" readonly value="{{ ep.secret }}" spellcheck="false" aria-label="Signing secret"><button type="button" class="btn" data-pw-toggle aria-label="Show secret">Show</button><button type="button" class="btn" data-copy="#wh-secret" data-copy-toast="Secret copied">Copy</button></div>
+    <form method="post" action="{% url 'flows:webhook_action' ep.pk 'rotate' %}" data-confirm="Create a new secret? Requests signed with the old one stop verifying." data-confirm-ok="Rotate" style="margin-top:8px">{% csrf_token %}<button class="link small" style="background:none;border:0;padding:0;cursor:pointer">Rotate secret</button></form>
+    <pre class="tok-code"># Python
+import hmac, hashlib
+expected = hmac.new(SECRET.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
+ok = hmac.compare_digest(expected, signature.removeprefix("sha256="))</pre>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="sec-head card-pad" style="padding-bottom:6px"><h3>Recent deliveries</h3>
+    <div class="pk-chips" style="margin:0">{% for k, l in "|All,ok|Delivered,pending|Retrying,failed|Failed"|split_pairs %}<a class="pk-chip {% if status == k %}on{% endif %}" href="?status={{ k }}">{{ l }}</a>{% endfor %}</div></div>
+  <div class="table-wrap" style="border:0"><table class="table">
+    <thead><tr><th>Event</th><th>Status</th><th>Attempts</th><th>Time</th><th></th></tr></thead>
+    <tbody>{% for d in deliveries %}
+      <tr><td><code>{{ d.event }}</code>{% if d.payload.document %}<br><small class="muted">{{ d.payload.document.name|truncatechars:50 }}</small>{% endif %}</td>
+        <td>{% if d.status == "ok" %}<span class="badge badge-green">{{ d.response_code }}</span>{% elif d.status == "failed" %}<span class="badge badge-red">Failed</span>{% else %}<span class="badge badge-amber">Retry {{ d.next_attempt_at|timeuntil }}</span>{% endif %}{% if d.error %}<br><small class="muted">{{ d.error|truncatechars:80 }}</small>{% endif %}</td>
+        <td>{{ d.attempts }}</td><td><small>{{ d.created_at|date:"M j, H:i:s" }}</small></td>
+        <td style="text-align:right;white-space:nowrap"><details class="wh-payload"><summary class="link small">Payload</summary><pre class="tok-code">{{ d.payload|pretty_json }}</pre>{% if d.response_body %}<p class="small muted">Response</p><pre class="tok-code">{{ d.response_body|truncatechars:600 }}</pre>{% endif %}</details>
+          {% if d.event != "ping" %}<form method="post" action="{% url 'flows:webhook_action' ep.pk 'redeliver' %}" style="display:inline">{% csrf_token %}<input type="hidden" name="delivery" value="{{ d.pk }}"><button class="btn btn-ghost btn-sm">Redeliver</button></form>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">No deliveries yet. Click “Send test”, or run the workflow.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

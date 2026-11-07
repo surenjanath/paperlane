@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Describe a workflow{% endblock %}
+{% block heading %}Describe your workflow{% endblock %}
+{% block subheading %}<span>Write the process in plain words. Paperlane drafts the form fields, steps, approvals, conditions and bots — you review before anything is created.</span>{% endblock %}
+{% block content %}
+<div class="ai-wrap">
+  <section class="card card-pad ai-input">
+    <form method="post" id="ai-form">{% csrf_token %}<input type="hidden" name="action" value="plan">
+      <label for="ai-text" class="ai-label">What should happen, step by step?</label>
+      <textarea id="ai-text" name="text" rows="7" maxlength="4000" required placeholder="e.g. Purchase approval: an employee submits a request with item, amount and reason. Their manager approves. If amount is over 5,000, finance approves. Then procurement enters the PO number. Email the requester when done.">{{ text }}</textarea>
+      <div class="ai-tips">
+        <span class="muted">Try:</span>
+        {% for title, ex in examples %}<button type="button" class="ai-example" data-example="{{ ex }}">{{ title }}</button>{% endfor %}
+      </div>
+      <div class="ai-foot">
+        <p class="muted small" style="margin:0">Uses the model from <a class="link" href="{% url 'flows:ai_settings' %}">AI &amp; models</a>.</p>
+        <button class="btn btn-dark" data-busy="Building workflow…">{% icon "sparkle" %} {% if result %}Draft again{% else %}Draft workflow{% endif %}</button>
+      </div>
+      <div class="ai-building" id="ai-building" hidden>
+        <b><span class="ai-pulse" aria-hidden="true"></span> Building workflow</b>
+        <ul class="ai-build-steps">
+          <li>Reading the description</li>
+          <li>Drafting steps</li>
+          <li>Checking the draft</li>
+        </ul>
+      </div>
+    </form>
+    <details class="ai-help"><summary>Writing tips</summary>
+      <p class="muted small">The model is the one chosen in <b>My workspace › AI &amp; models</b>. With no model set, the built-in planner drafts the workflow instantly and offline. A local model can take a minute.</p>
+      <ul>
+        <li>Start with a name and a colon: <i>“Leave request: …”</i></li>
+        <li>One sentence per step: <i>“Manager approves.”</i>, <i>“HR records the leave balance.”</i></li>
+        <li>List what the first person fills in: <i>“…submits a request with item, amount and reason.”</i></li>
+        <li>Conditions: <i>“If amount is over 5,000, finance approves.”</i></li>
+        <li>Reviews can send work back; approvals can reject. Add <i>“Email the requester when done.”</i> for a confirmation.</li>
+      </ul>
+    </details>
+  </section>
+
+  {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+
+  {% if preview %}
+  <section class="card ai-preview" aria-label="Preview">
+    <div class="ai-prev-head">
+      <div><h2>{{ preview.name }}</h2>
+        <p class="muted">{{ preview.step_count }} step{{ preview.step_count|pluralize }} · {{ preview.field_count }} field{{ preview.field_count|pluralize }} · {{ preview.bots|length }} bot{{ preview.bots|length|pluralize }}· drafted by {{ result.engine_label }}{% if result.seconds > 1 %} in {{ result.seconds }} s{% endif %}</p></div>
+      <form method="post" class="row" id="ai-create">{% csrf_token %}
+        <input type="hidden" name="action" value="create"><input type="hidden" name="text" value="{{ text }}">
+        <textarea name="blueprint" id="ai-bp-hidden" hidden>{{ blueprint_json }}</textarea>
+        <button class="btn" name="publish" value="0">Create as draft</button>
+        <button class="btn btn-dark" name="publish" value="1"{% if preview.problems %} disabled title="Fix the issues below first"{% endif %}>Create and publish</button>
+      </form>
+    </div>
+    {% for n in result.notes %}<div class="alert alert-info">{{ n }}</div>{% endfor %}
+    {% for p in preview.problems %}<div class="alert alert-warning">{{ p }}</div>{% endfor %}
+    {% for h in preview.hints %}<div class="alert alert-info">{{ h }}</div>{% endfor %}
+    <div class="ai-prev-body">
+      <ol class="ai-steps ai-root">
+        <li class="ai-step"><div class="ai-node ai-start"><span class="ai-ico">{% icon "play" %}</span><div><b>Start</b><div class="muted small">Shareable link, start form or a teammate starts it</div></div></div></li>
+        {% include "flows/partials/ai_step.html" with steps=preview.steps %}
+        <li class="ai-step"><div class="ai-node ai-end"><span class="ai-ico">{% icon "check" %}</span><b>Complete</b></div></li>
+      </ol>
+      <aside class="ai-side">
+        <h3>Bots</h3>
+        {% for b in preview.bots %}<div class="ai-bot">{% icon "bot" %} <span>{{ b.name }}{% if b.when %}<small class="muted"> — when {{ b.when }}</small>{% endif %}</span></div>{% empty %}<p class="muted small">None</p>{% endfor %}
+        <h3>Documents</h3>
+        {% for d in preview.documents %}<div class="ai-bot">{% icon "documents" %} <span>{{ d.name }} <small class="muted">— {{ d.count }} fields</small></span></div>{% endfor %}
+        <p class="muted small" style="margin-top:12px">Everything stays editable in the builder: rename steps, change approvers, adjust fields in the document editor.</p>
+      </aside>
+    </div>
+    <details class="ai-json"><summary>{% icon "code" %} Blueprint JSON (advanced — edit, then Create)</summary>
+      <textarea id="ai-bp" spellcheck="false" rows="18" aria-label="Blueprint JSON">{{ blueprint_json }}</textarea>
+      <p class="help">The same format the API and MCP server use. Changes here are used when you click Create.</p>
+    </details>
+  </section>
+  {% elif blueprint_json %}
+  <section class="card card-pad">
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="create"><input type="hidden" name="text" value="{{ text }}">
+      <label class="ai-label" for="ai-bp2">Blueprint JSON</label>
+      <textarea id="ai-bp2" name="blueprint" rows="18" spellcheck="false" class="mono">{{ blueprint_json }}</textarea>
+      <div class="row" style="margin-top:10px"><button class="btn" name="publish" value="0">Create as draft</button></div></form>
+  </section>
+  {% endif %}
+</div>
+<script>
+(function () {
+  const t = document.getElementById("ai-text");
+  document.querySelectorAll("[data-example]").forEach((b) => b.addEventListener("click", () => { t.value = b.dataset.example; t.focus(); }));
+  const bp = document.getElementById("ai-bp"), hidden = document.getElementById("ai-bp-hidden");
+  if (bp && hidden) bp.addEventListener("input", () => { hidden.value = bp.value; });
+  document.querySelectorAll("form").forEach((f) => f.addEventListener("submit", (e) => {
+    const b = e.submitter && e.submitter.dataset.busy ? e.submitter : null;
+    if (b) { b.disabled = true; b.textContent = b.dataset.busy; }
+    if (f.id !== "ai-form") return;
+    const box = document.getElementById("ai-building");
+    if (!box) return;
+    box.hidden = false;
+    const lines = [...box.querySelectorAll("li")];
+    let i = 0;
+    const tick = () => { lines.forEach((el, n) => el.classList.toggle("on", n === i)); i = (i + 1) % lines.length; };
+    tick();
+    setInterval(tick, 1600);
+  }));
+  t && t.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") document.getElementById("ai-form").requestSubmit(); });
+})();
+</script>
+{% endblock %}

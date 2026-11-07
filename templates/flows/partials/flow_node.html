@@ -1,0 +1,34 @@
+{% load ui %}        {% if s.kind == 'recipient' %}
+        <div data-step="{{ s.key }}" class="node {% if s.path_state %}path-{{ s.path_state }} {% endif %}{% if s.issue_level and not readonly %}has-{{ s.issue_level }} {% endif %}{% if s.condition.rules %}open-cond{% endif %}">
+          <div class="nh">{% if s.path_state %}<span class="path-dot" aria-hidden="true"></span>{% elif not readonly %}{% include "flows/partials/node_issue.html" %}{% endif %}<span class="ico">{% icon "step" 16 %}</span>
+            <div class="t"><b title="{{ s.name }}">{{ s.name }}</b><small class="muted">Fills out <b>{{ s.docs_to_fill|length }}</b> document{{ s.docs_to_fill|length|pluralize }}{% if s.condition.rules %} · conditional{% endif %}</small></div>
+            <button class="btn btn-ghost btn-sm btn-icon" data-drawer-url="{% url 'flows:step_settings' wf.pk s.pk %}" {% if request.GET.open == s.pk|to_str %}data-auto-open{% endif %} title="Settings">{% icon "gear" %}</button>
+            {% include "flows/partials/step_menu.html" %}
+          </div>
+          <div class="nb">
+            <div class="recipient-pill"><span class="avatar" style="width:22px;height:22px;font-size:9px">{% icon "user" 12 %}</span>
+              {% if s.settings.auto_complete %}<span class="muted">Paperlane bot</span>{% elif s.recipient_label %}<span>{{ s.recipient_label }}</span>{% elif wf.routing_mode == 'bots' %}<span class="muted">Recipient set by routing bots</span>{% else %}<a class="link" href="#" data-drawer-url="{% url 'flows:step_settings' wf.pk s.pk %}">Set recipient</a>{% endif %}</div>
+            {% if s.settings.auto_complete %}<div style="margin-top:6px"><span class="badge badge-purple">Automated step — completes itself after its bots</span></div>{% endif %}
+            {% if s.path_info %}<div class="path-pill">{{ s.path_info }}</div>{% endif %}
+            {% if s.live and not readonly %}<div class="live-pill">{% if s.live.waiting %}<a href="{% url 'flows:workflow_detail' wf.pk %}?step={{ s.key }}" title="Documents waiting at this step"><b>{{ s.live.waiting }}</b> waiting</a>{% if s.live.overdue %} · <span class="late">{{ s.live.overdue }} overdue</span>{% endif %}{% endif %}{% if s.live.typical %}<span class="muted" title="Median time to complete this step">{% if s.live.waiting %} · {% endif %}usually {{ s.live.typical }}</span>{% endif %}</div>{% endif %}
+            {% if s.sla_text %}<div class="sla-pill" title="Deadline (SLA){% if s.settings.sla.escalate_to %} · escalates to {{ s.settings.sla.escalate_to }}{% endif %}">⏱ {{ s.sla_text }}{% if s.settings.sla.escalate == "reassign" and s.settings.sla.escalate_to %} → then {{ s.settings.sla.escalate_to }}{% endif %}</div>{% endif %}
+            {% for j in s.jump_view %}<div class="jump-pill">↪ Jump to <b>{{ j.target }}</b>{% if j.rules %} when {{ j.rules|truncatechars:80 }}{% endif %}</div>{% endfor %}
+            {% if s.attached_bots %}<div style="margin-top:6px">{% for b in s.attached_bots %}<span class="tag">🤖 {{ b.name }}</span>{% endfor %}</div>{% endif %}
+            {% if s.step_bots %}<details style="margin-top:6px"><summary class="muted" style="font-size:12px;cursor:pointer">{{ s.step_bots|length }} bot{{ s.step_bots|length|pluralize }} on this step</summary>{% for b in s.step_bots %}<a class="tag" href="{% url 'flows:bot_edit' wf.pk b.pk %}">🤖 {{ b.name }}</a>{% endfor %}</details>{% endif %}
+            {% if s.routes %}<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">{% for r in s.routes %}<a class="branch-card" style="display:block" href="{% url 'flows:bot_edit' wf.pk r.bot.pk %}">→ <b>{{ r.target }}</b>{% if r.rules %}<br><span class="muted">when {{ r.rules|truncatechars:110 }}</span>{% endif %}</a>{% endfor %}</div>{% endif %}
+          </div>
+        </div>
+        {% elif s.kind == 'branch' %}
+        <div data-step="{{ s.key }}" class="node {% if s.path_state %}path-{{ s.path_state }} {% endif %}{% if s.issue_level and not readonly %}has-{{ s.issue_level }} {% endif %}branch">
+          <div class="nh">{% if s.path_state %}<span class="path-dot" aria-hidden="true"></span>{% elif not readonly %}{% include "flows/partials/node_issue.html" %}{% endif %}<span class="ico">{% icon "branch" 16 %}</span><div class="t"><b title="{{ s.name }}">{{ s.name }}</b><small class="muted">{{ s.branch_view|length }} branch{{ s.branch_view|length|pluralize:"es" }}</small></div>
+            {% if not preview %}<button type="button" class="btn btn-ghost btn-sm btn-icon branch-fold" data-fold="{{ s.key }}" aria-expanded="true" title="Collapse these branches">▾</button>{% endif %}<button class="btn btn-ghost btn-sm btn-icon" data-drawer-url="{% url 'flows:step_settings' wf.pk s.pk %}" {% if request.GET.open == s.pk|to_str %}data-auto-open{% endif %} aria-label="Branch settings" title="Branch settings">{% icon "gear" %}</button>
+            {% include "flows/partials/step_menu.html" %}</div>
+          <div class="nb"><small class="muted">The first branch whose rules match is taken{% if s.branch_view %}; otherwise the workflow continues after the branches{% endif %}.</small></div>
+        </div>
+        {% else %}
+        <div data-step="{{ s.key }}" class="node {% if s.path_state %}path-{{ s.path_state }} {% endif %}{% if s.issue_level and not readonly %}has-{{ s.issue_level }} {% endif %}bot">
+          <div class="nh">{% if s.path_state %}<span class="path-dot" aria-hidden="true"></span>{% elif not readonly %}{% include "flows/partials/node_issue.html" %}{% endif %}<span class="ico">{% icon "bot" 16 %}</span><div class="t"><b title="{{ s.name }}">{{ s.name }}</b><small class="muted">{% for b in s.inline_bots %}{{ b.name }}{% if not forloop.last %}, {% endif %}{% empty %}No bot configured{% endfor %}</small></div>
+            <a class="btn btn-ghost btn-sm btn-icon" href="{% if s.inline_bots %}{% url 'flows:bot_edit' wf.pk s.inline_bots.0.pk %}{% else %}{% url 'flows:bot_catalog' wf.pk %}?trigger=inline&step={{ s.key }}{% endif %}" aria-label="Bot step settings" title="Bot step settings">{% icon "gear" %}</a>
+            {% include "flows/partials/step_menu.html" %}</div>
+        </div>
+        {% endif %}

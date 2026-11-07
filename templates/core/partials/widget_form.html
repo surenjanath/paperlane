@@ -1,0 +1,19 @@
+{% load ui %}
+<form method="post" action="{% if w %}{% url 'core:widget_edit' w.pk %}{% else %}{% url 'core:widget_new' %}{% endif %}">{% csrf_token %}
+<div class="modal-head"><h2>{% if w %}Edit widget{% else %}Add widget{% endif %}</h2><button type="button" class="modal-close" data-close>×</button></div>
+<div class="modal-body">
+  <div class="field"><label>Title</label><input type="text" name="title" value="{{ w.title|default:'New widget' }}" required></div>
+  <div class="field"><label>Metrics (one line per metric)</label>
+    {% for k, l in metrics %}<label class="check"><input type="checkbox" name="metrics" value="{{ k }}" {% if selected|contains:k %}checked{% endif %}> {{ l }}</label>{% endfor %}
+  </div>
+  <div class="grid-3">
+    <div class="field"><label>Date range</label><select name="range_days">{% for d, l in ranges %}<option value="{{ d }}" {% if w.range_days == d %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Aggregation</label><select name="aggregation">{% for k, l in aggregations %}<option value="{{ k }}" {% if w.aggregation == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Chart</label><select name="chart">{% for k, l in charts %}<option value="{{ k }}" {% if w.chart == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="field"><label>Workflows (none selected = all)</label>
+    <select name="workflows" multiple size="5" style="height:auto">{% for wf in workflows %}<option value="{{ wf.pk }}" {% if w and w.workflow_ids|contains:wf.pk %}selected{% endif %}>{{ wf.name }}</option>{% endfor %}</select>
+  </div>
+</div>
+<div class="modal-foot">{% if w %}<button class="btn btn-danger" name="delete" value="1" style="margin-right:auto">Remove widget</button>{% endif %}<button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div>
+</form>

@@ -1,0 +1,10 @@
+<div class="wh-form">
+  <div class="field"><label for="wh-url">Endpoint URL</label><input id="wh-url" type="url" name="url" required maxlength="500" value="{{ ep.url|default:'' }}" placeholder="https://n8n.example.com/webhook/paperlane"></div>
+  <div class="field"><label for="wh-desc">Description</label><input id="wh-desc" name="description" maxlength="120" value="{{ ep.description|default:'' }}" placeholder="CRM sync"></div>
+  <div class="field"><label for="wh-wf">Workflow</label><select id="wh-wf" name="workflow"><option value="">All workflows</option>{% for w in workflows %}<option value="{{ w.pk }}" {% if ep.workflow_id == w.pk %}selected{% endif %}>{{ w.name }}</option>{% endfor %}</select></div>
+  <fieldset class="wh-events"><legend>Events <small class="muted">— none ticked means every event</small></legend>
+    {% for key, label in events %}<label class="check"><input type="checkbox" name="events" value="{{ key }}" {% if key in ep.events %}checked{% endif %}> <span><code>{{ key }}</code> <small class="muted">{{ label }}</small></span></label>{% endfor %}
+  </fieldset>
+  <label class="check"><input type="checkbox" name="include_values" {% if ep.include_values %}checked{% endif %}> <span>Include field values <small class="muted">— the document's answers by field name (signatures are left out)</small></span></label>
+  {% if ep.pk %}<label class="check"><input type="checkbox" name="active" {% if ep.active %}checked{% endif %}> <span>Active</span></label>{% else %}<input type="hidden" name="active" value="on">{% endif %}
+</div>

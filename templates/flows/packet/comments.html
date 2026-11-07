@@ -1,0 +1,6 @@
+{% load ui %}
+<div style="max-width:720px">
+{% for c in comments %}<div class="card card-pad" style="margin-bottom:8px"><div class="row"><span class="avatar">{{ c.author_label|initials }}</span><b class="grow">{{ c.author_label }}</b><small class="muted">{{ c.created_at|date:"M d, Y H:i" }}</small></div><p style="margin:8px 0 0;white-space:pre-wrap">{{ c.text|mentions }}</p></div>
+{% empty %}<p class="muted">No comments yet.</p>{% endfor %}
+<form method="post" action="{% url 'flows:packet_action' packet.pk 'comment' %}" style="margin-top:12px">{% csrf_token %}<div class="mention-wrap"><textarea name="text" rows="3" placeholder="Write a comment for your team… Type @ to mention someone." required data-mentions></textarea><div class="mention-menu" hidden role="listbox"></div></div>{{ mention_people|json_script:"mention-data" }}<button class="btn btn-dark" style="margin-top:8px">Comment</button></form>
+</div>

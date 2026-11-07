@@ -1,0 +1,37 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Connectors{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">Connectors</h1>
+<p class="muted" style="margin-bottom:18px">Connect Paperlane to any HTTP/JSON API — your policy system, a CRM, n8n or Zapier. Define a connector once with its address and credentials, add actions (look up, create, update), then use them in workflows with the <b>Run a custom connector</b> bot or in start forms as a lookup.</p>
+{% if items %}
+<div class="card" style="margin-bottom:16px"><div class="table-wrap" style="border:0"><table class="table">
+  <thead><tr><th>Connector</th><th>Actions</th><th>Last call</th><th></th></tr></thead>
+  <tbody>{% for c in items %}
+  <tr>
+    <td><a class="link" href="{% url 'flows:connector_detail' c.pk %}"><b>{{ c.name }}</b></a>{% if not c.active %} <span class="badge badge-gray">Off</span>{% endif %}<br><small class="muted">{{ c.base_url|truncatechars:60 }} · {{ c.get_auth_type_display }}</small></td>
+    <td><small>{% for a in c.actions %}<code>{{ a.key }}</code>{% if not forloop.last %} {% endif %}{% empty %}—{% endfor %}</small></td>
+    <td><small class="muted">{% if c.last_used_at %}{{ c.last_status }} · {{ c.last_used_at|timesince }} ago{% else %}Never{% endif %}</small></td>
+    <td style="text-align:right"><a class="btn btn-sm" href="{% url 'flows:connector_detail' c.pk %}">Open</a></td>
+  </tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+<div class="card card-pad">
+  <h3 style="margin-bottom:12px">New connector</h3>
+  <form method="post">{% csrf_token %}
+    <div class="grid-2">
+      <div class="field"><label>Name</label><input type="text" name="name" required maxlength="120" placeholder="Policy system"></div>
+      <div class="field"><label>Base URL</label><input type="url" name="base_url" required placeholder="https://api.example.com/v1"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Authentication</label><select name="auth_type">{% for k, l in auths %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Secret / token (optional)</label><input type="password" name="secret" autocomplete="new-password" placeholder="Stored for this workspace only"></div>
+    </div>
+    <div class="field"><label>Description (optional)</label><input type="text" name="description" maxlength="300"></div>
+    <button class="btn btn-dark">{% icon "plus" %} Create connector</button>
+  </form>
+  <div class="help" style="margin-top:14px"><b>Ideas:</b>
+    <ul style="margin:6px 0 0 18px">{% for name, url, auth, hint in examples %}<li><b>{{ name }}</b> — <code>{{ url }}</code> · {{ hint }}</li>{% endfor %}</ul>
+  </div>
+</div>
+{% endblock %}

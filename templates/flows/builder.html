@@ -1,0 +1,335 @@
+{% extends "base_bare.html" %}
+{% load ui %}
+{% block title %}{{ wf.name }} · Builder{% endblock %}
+{% block body %}
+<div class="shell no-sidebar">
+{% include "partials/rail.html" %}
+<div class="builder">
+  <div class="builder-top">
+    <a class="btn btn-ghost btn-sm" href="{{ wf.get_absolute_url }}">{% icon "back" %} Back</a>
+    <div class="t">
+      <h1><span id="wf-name">{{ wf.name }}</span> <button class="btn btn-ghost btn-sm btn-icon" data-modal-template="#rename-wf" title="Rename">{% icon "edit" 14 %}</button></h1>
+      <div class="row" style="gap:8px;font-size:12px">
+        {% if wf.status == 'draft' %}<span class="badge badge-amber">UNPUBLISHED WORKFLOW</span>{% elif wf.has_unpublished_changes %}<span class="badge badge-amber">UNPUBLISHED CHANGES</span>{% else %}<span class="badge badge-green">PUBLISHED</span>{% endif %}
+        <span class="muted">Access: <a class="link" href="#" data-modal-url="{% url 'flows:manage_access' wf.pk %}">{{ wf.get_access_display }}</a></span>
+        <span class="muted">Version {{ wf.version }}</span>
+      </div>
+    </div>
+    <div class="bh-tools">
+      <form method="post" action="{% url 'flows:builder_history' wf.pk 'undo' %}" id="undo-form">{% csrf_token %}<button class="btn btn-sm btn-icon" {% if not history.undo %}disabled{% endif %} title="{% if history.undo %}Undo: {{ history.undo }} (⌘Z){% else %}Nothing to undo{% endif %}" aria-label="Undo">↶</button></form>
+      <form method="post" action="{% url 'flows:builder_history' wf.pk 'redo' %}" id="redo-form">{% csrf_token %}<button class="btn btn-sm btn-icon" {% if not history.redo %}disabled{% endif %} title="{% if history.redo %}Redo: {{ history.redo }} (⇧⌘Z){% else %}Nothing to redo{% endif %}" aria-label="Redo">↷</button></form>
+    </div>
+    <div class="step-find" role="search">
+      {% icon "search" 14 %}<input type="search" id="step-find" placeholder="Find a step  /" aria-label="Find a step" autocomplete="off">
+      <div class="step-find-list" id="step-find-list" hidden></div>
+    </div>
+    <button type="button" class="btn btn-sm chk-btn chk-btn-{% if checks_summary.error %}error{% elif checks_summary.warning %}warning{% else %}ok{% endif %}" data-drawer-url="{% url 'flows:workflow_checks' wf.pk %}" title="Problems the builder found in this workflow">
+      {% if checks_summary.error %}<span class="chk-pill">{{ checks_summary.error }}</span> Must fix{% elif checks_summary.warning %}<span class="chk-pill">{{ checks_summary.warning }}</span> Warning{{ checks_summary.warning|pluralize }}{% else %}{% icon "check" 14 %} Checks{% endif %}
+    </button>
+    {% if ai_enabled %}<button type="button" class="btn btn-sm ai-toggle-btn" data-ai-toggle title="Ask AI to review or change this workflow">✦ AI assistant</button>{% endif %}
+    <a class="btn btn-sm" href="{% url 'flows:bots' wf.pk %}">{% icon "bot" %} All bots ({{ bot_count }})</a>
+    <div class="menu-wrap"><button aria-label="More actions" title="More actions" class="btn btn-sm btn-icon" data-menu>{% icon "dots" %}</button>
+      <div class="menu">
+        <button data-modal-url="{% url 'flows:manage_access' wf.pk %}">{% icon "user" %} Manage access</button>
+        <a href="{% url 'flows:workflow_audit' wf.pk %}">{% icon "audit" %} Audit trail</a>
+        <a href="{{ wf.get_absolute_url }}">{% icon "documents" %} Documents</a>
+        <button data-modal-url="{% url 'flows:key_dates_settings' wf.pk %}?next={{ request.path|urlencode }}">{% icon "calendar" %} Key dates &amp; reminders</button>
+        <button data-modal-url="{% url 'flows:step_templates' wf.pk %}">📌 Step templates</button>
+        <button data-modal-url="{% url 'flows:replace_recipient' wf.pk %}">{% icon "user" %} Replace a recipient…</button>
+        <div class="sep"></div>
+        <a href="{% url 'flows:workflow_export' wf.pk %}?format=blueprint">{% icon "download" %} Export blueprint (JSON)</a>
+        <a href="{% url 'flows:workflow_export' wf.pk %}">{% icon "download" %} Export full copy</a>
+        <div class="sep"></div>
+        <div class="muted" style="font-size:11px;padding:4px 10px">Shortcuts: ⌘Z undo · ⇧⌘Z redo · / find · F fit · ⌘/Ctrl + scroll zoom</div>
+      </div></div>
+  </div>
+  <div class="builder-body{% if ai_open %} ai-open{% endif %}" id="builder-body">
+  <div class="builder-canvas" id="canvas">
+    <div class="ai-compare" role="group" aria-label="Compare with the AI proposal" hidden>
+      <button type="button" data-ai-view="before">Before</button><button type="button" data-ai-view="after" class="on">After ✦</button>
+    </div>
+    <div class="zoom-ctl">
+      <button class="btn btn-sm btn-icon" data-zoom="0.1" title="Zoom in">{% icon "zoom_in" %}</button>
+      <button class="btn btn-sm btn-icon" data-zoom="-0.1" title="Zoom out">{% icon "zoom_out" %}</button>
+      <button class="btn btn-sm btn-icon" data-zoom="0" title="Actual size">1:1</button>
+      <button class="btn btn-sm btn-icon" data-zoom="fit" title="Fit to screen (F)">{% icon "expand" %}</button>
+    </div>
+    <div class="zoomer" id="zoomer">
+    {% include "flows/partials/builder_flow.html" %}
+    </div>
+  </div>
+  {% if ai_enabled %}<aside class="ai-panel" id="ai-panel" data-url="{% url 'flows:ai_workflow' wf.pk %}" data-after="{% url 'flows:ai_workflow_after' wf.pk %}" aria-label="AI assistant"></aside>{% endif %}
+  </div>
+  <div class="builder-foot">
+    <form method="post" action="{% url 'flows:finish_later' wf.pk %}">{% csrf_token %}<button class="btn">Finish later</button></form>
+    <form method="post" action="{% url 'flows:simulate' wf.pk %}" style="display:contents">{% csrf_token %}<button class="btn" title="Run test documents through every branch; nothing is kept or sent">Simulate</button></form>
+    <form method="post" action="{% url 'flows:test_run' wf.pk %}" style="display:contents">{% csrf_token %}<button class="btn">Test</button></form>
+    <button type="button" class="btn btn-dark" data-modal-url="{% url 'flows:publish_review' wf.pk %}" data-wide>Publish</button>
+  </div>
+</div>
+</div>
+
+<div class="docs-panel" id="docs-panel">
+  <div class="ph" data-collapse="#docs-panel-body"><span>Documents and forms: {{ docs|length }}</span>−</div>
+  <div class="pb" id="docs-panel-body">
+    <form method="post" action="{% url 'flows:doc_add' wf.pk %}" enctype="multipart/form-data" class="drop" id="drop-zone">{% csrf_token %}
+      Drop documents here or
+      <div class="row" style="justify-content:center;margin-top:6px;gap:6px">
+        <label class="btn btn-sm">{% icon "upload" %} Upload<input type="file" name="file" hidden onchange="this.form.submit()"></label>
+        <button class="btn btn-sm" name="open" value="1">{% icon "plus" %} New form</button>
+      </div>
+    </form>
+    {% for d in docs %}
+    <div class="doc-item">
+      {% icon "documents" 16 %}
+      <div class="grow" style="flex:1"><b>{{ d.name }}</b><small class="muted">{{ d.input_fields|length }} field{{ d.input_fields|length|pluralize }}{% if d.kind == 'file' %} · uploaded file{% endif %}{% if d.condition.rules %} · conditional{% endif %}</small></div>
+      <a class="btn btn-sm" href="{% url 'flows:editor' wf.pk d.pk %}">Edit</a>
+      <div class="menu-wrap"><button aria-label="More actions" title="More actions" class="btn btn-ghost btn-sm btn-icon" data-menu>{% icon "dots" %}</button>
+        <div class="menu up">
+          <button data-modal-url="{% url 'flows:doc_condition' wf.pk d.pk %}">{% icon "eye" %} Make conditional</button>
+          <button data-modal-template="#rename-doc" data-action="{% url 'flows:doc_action' wf.pk d.pk 'rename' %}" data-set-name="{{ d.name }}">{% icon "edit" %} Rename</button>
+          <a href="{% url 'flows:editor' wf.pk d.pk %}">{% icon "documents" %} Open document</a>
+          {% if d.file %}<a href="{{ d.file.url }}" target="_blank">{% icon "eye" %} View uploaded file</a>{% endif %}
+          <form method="post" action="{% url 'flows:doc_action' wf.pk d.pk 'copy' %}">{% csrf_token %}<button>{% icon "copy" %} Make a copy</button></form>
+          <form method="post" action="{% url 'flows:doc_action' wf.pk d.pk 'up' %}">{% csrf_token %}<button>↑ Move up</button></form>
+          <form method="post" action="{% url 'flows:doc_action' wf.pk d.pk 'down' %}">{% csrf_token %}<button>↓ Move down</button></form>
+          <form method="post" action="{% url 'flows:doc_action' wf.pk d.pk 'remove' %}" data-confirm="Remove “{{ d.name }}” from this workflow?" data-danger data-confirm-ok="Remove">{% csrf_token %}<button class="danger">{% icon "trash" %} Remove</button></form>
+        </div></div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<template id="rename-wf"><form method="post" action="{% url 'flows:workflow_action' wf.pk 'rename' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+  <div class="modal-head"><h2>Rename workflow</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><div class="field"><label>Name</label><input type="text" name="name" value="{{ wf.name }}" required></div><div class="field"><label>Description</label><textarea name="description" rows="3">{{ wf.description }}</textarea></div></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div></form></template>
+<template id="rename-doc"><form method="post">{% csrf_token %}
+  <div class="modal-head"><h2>Rename document</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><input type="text" name="name" required></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div></form></template>
+<template id="rename-step"><form method="post">{% csrf_token %}
+  <div class="modal-head"><h2>Rename step</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><input type="text" name="name" required></div>
+  <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-dark">Save</button></div></form></template>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  let z = 1; const el = document.getElementById("zoomer");
+  // wide diagrams: open centred on the Start node, and keep the scroll position across the reloads that edits cause
+  const canvas = document.getElementById("canvas"), key = "builder-scroll-{{ wf.pk }}";
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(key) || "null");
+    if (saved) { canvas.scrollLeft = saved[0]; canvas.scrollTop = saved[1]; }
+    else {
+      const start = el.querySelector(".node.start");
+      if (start) canvas.scrollLeft = start.offsetLeft + start.offsetWidth / 2 - canvas.clientWidth / 2;
+    }
+  } catch (_) {}
+  let t; canvas.addEventListener("scroll", () => { clearTimeout(t); t = setTimeout(() => {
+    try { sessionStorage.setItem(key, JSON.stringify([canvas.scrollLeft, canvas.scrollTop])); } catch (_) {}
+  }, 150); });
+  /* ---- zoom: buttons, ⌘/Ctrl + scroll, fit to screen; kept across the reloads edits cause ---- */
+  const zkey = "builder-zoom-{{ wf.pk }}";
+  const setZoom = (v) => { z = Math.min(1.6, Math.max(0.3, Math.round(v * 100) / 100)); el.style.transform = `scale(${z})`;
+    try { sessionStorage.setItem(zkey, String(z)); } catch (_) {} };
+  const fit = () => {
+    const flow = el.querySelector(".flow:not([hidden])"); if (!flow) return;
+    const w = flow.scrollWidth + 40, h = flow.scrollHeight + 60;
+    setZoom(Math.min(1, (canvas.clientWidth) / w, (canvas.clientHeight) / h));
+    canvas.scrollTop = 0; canvas.scrollLeft = (canvas.scrollWidth - canvas.clientWidth) / 2;
+  };
+  try { const saved = parseFloat(sessionStorage.getItem(zkey)); if (saved) setZoom(saved); } catch (_) {}
+  document.querySelectorAll("[data-zoom]").forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.zoom === "fit") return fit();
+    const d = parseFloat(b.dataset.zoom); setZoom(d === 0 ? 1 : z + d);
+  }));
+  canvas.addEventListener("wheel", (e) => { if (!(e.ctrlKey || e.metaKey)) return; e.preventDefault(); setZoom(z - e.deltaY * 0.0015); }, { passive: false });
+
+  /* ---- show a step on the canvas (finder, Checks panel) ---- */
+  const flash = (key) => {
+    const node = el.querySelector(`.flow:not([hidden]) [data-step="${key}"]`) || el.querySelector(`[data-step="${key}"]`);
+    if (!node) return false;
+    let up = node.closest(".lanes.folded");  // open any collapsed branches around it
+    while (up) { const b = up.previousElementSibling && up.previousElementSibling.previousElementSibling && up.previousElementSibling.previousElementSibling.querySelector("[data-fold]");
+      if (b) b.click(); else up.classList.remove("folded"); up = node.closest(".lanes.folded"); }
+    node.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    node.classList.remove("ai-flash"); void node.offsetWidth; node.classList.add("ai-flash", "find-hit");
+    setTimeout(() => node.classList.remove("find-hit"), 2200);
+    return true;
+  };
+  const find = document.getElementById("step-find"), list = document.getElementById("step-find-list");
+  let hits = [], pick = 0;
+  const steps = () => [...el.querySelectorAll("[data-ai-before] [data-step]")].map((n) => ({
+    key: n.dataset.step, name: (n.querySelector(".t > b") || {}).textContent || "",
+    kind: n.classList.contains("branch") ? "Branches" : n.classList.contains("bot") ? "Bot"
+      : ((n.querySelector(".recipient-pill span:last-child") || {}).textContent || "Step").trim(),
+    issue: n.classList.contains("has-error") ? "error" : n.classList.contains("has-warning") ? "warning" : "" }));
+  const drawList = () => {
+    const q = find.value.trim().toLowerCase();
+    hits = steps().filter((s) => !q || s.name.toLowerCase().includes(q)).slice(0, 30); pick = Math.min(pick, Math.max(hits.length - 1, 0));
+    list.innerHTML = hits.length ? hits.map((s, i) => `<button type="button" data-find="${s.key}" class="${i === pick ? "on" : ""}">${s.issue ? `<i class="chk-dot chk-${s.issue}"></i>` : ""}<span>${window.SD.escapeHtml(s.name)}</span><small>${window.SD.escapeHtml(s.kind.slice(0, 32))}</small></button>`).join("")
+      : '<div class="none">No step matches.</div>';
+    list.hidden = false;
+  };
+  const go = (key) => { list.hidden = true; find.blur(); flash(key); };
+  find.addEventListener("input", () => { pick = 0; drawList(); });
+  find.addEventListener("focus", drawList);
+  find.addEventListener("blur", () => setTimeout(() => { list.hidden = true; }, 150));
+  find.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); pick = (pick + (e.key === "ArrowDown" ? 1 : -1) + hits.length) % Math.max(hits.length, 1); drawList(); }
+    else if (e.key === "Enter" && hits[pick]) { e.preventDefault(); go(hits[pick].key); }
+    else if (e.key === "Escape") { list.hidden = true; find.blur(); }
+  });
+  list.addEventListener("mousedown", (e) => { const b = e.target.closest("[data-find]"); if (b) { e.preventDefault(); go(b.dataset.find); } });
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest("[data-goto-step]");
+    if (g) { window.SD.closeDrawer(); flash(g.dataset.gotoStep); }
+  });
+
+  /* ---- collapse branch lanes (remembered per workflow) ---- */
+  const fkey = "builder-folds-{{ wf.pk }}";
+  let folds = []; try { folds = JSON.parse(sessionStorage.getItem(fkey) || "[]"); } catch (_) {}
+  const fold = (btn, shut) => {
+    const node = btn.closest(".node"), lanes = node && node.nextElementSibling && node.nextElementSibling.nextElementSibling;
+    if (!lanes || !lanes.classList.contains("lanes")) return;
+    lanes.classList.toggle("folded", shut); btn.setAttribute("aria-expanded", String(!shut));
+    btn.textContent = shut ? "▸" : "▾"; btn.title = shut ? "Show these branches" : "Collapse these branches";
+    if (shut) { const n = lanes.querySelectorAll("[data-step]").length; lanes.dataset.hidden = n ? `${n} step${n === 1 ? "" : "s"} hidden` : "Empty branches"; }
+  };
+  el.querySelectorAll("[data-ai-before] [data-fold]").forEach((b) => { if (folds.includes(b.dataset.fold)) fold(b, true); });
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-fold]"); if (!b) return;
+    const shut = b.getAttribute("aria-expanded") === "true"; fold(b, shut);
+    folds = shut ? [...new Set([...folds, b.dataset.fold])] : folds.filter((k) => k !== b.dataset.fold);
+    try { sessionStorage.setItem(fkey, JSON.stringify(folds)); } catch (_) {}
+  });
+
+  /* ---- keyboard: ⌘Z / ⇧⌘Z undo-redo, / find, F fit ---- */
+  document.addEventListener("keydown", (e) => {
+    const t = e.target, typing = t.closest && t.closest("input, textarea, select, [contenteditable]");
+    const busy = document.querySelector("#modal-backdrop.open, #drawer.open");
+    if (typing || busy) return;
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+      const form = document.getElementById(e.shiftKey ? "redo-form" : "undo-form"), btn = form && form.querySelector("button");
+      if (btn && !btn.disabled) { e.preventDefault(); form.submit(); }
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") { const f = document.getElementById("redo-form"); if (f && !f.querySelector("button").disabled) { e.preventDefault(); f.submit(); } return; }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "/") { e.preventDefault(); find.focus(); }
+    else if (e.key === "f" || e.key === "F") { e.preventDefault(); fit(); }
+  });
+  /* ---- ✦ AI assistant side panel + Before/After compare ---- */
+  const body = document.getElementById("builder-body"), panel = document.getElementById("ai-panel");
+  if (panel) {
+    const compare = canvas.querySelector(".ai-compare");
+    const before = () => el.querySelector("[data-ai-before]"), after = () => el.querySelector("[data-ai-after]");
+    let loaded = false, keymap = {};
+    const show = (side) => {
+      if (!after()) side = "before";
+      before().hidden = side !== "before"; if (after()) after().hidden = side !== "after";
+      compare.querySelectorAll("[data-ai-view]").forEach((b) => b.classList.toggle("on", b.dataset.aiView === side));
+    };
+    const syncAfter = async () => {
+      const has = !!panel.querySelector("[data-ai-plan]");
+      before().querySelectorAll(".ai-mark-removed").forEach((n) => n.classList.remove("ai-mark-removed"));
+      if (after()) after().remove();
+      compare.hidden = !has;
+      if (!has) { show("before"); return; }
+      try {
+        const j = await (await fetch(panel.dataset.after, { headers: { "X-Requested-With": "fetch" } })).json();
+        if (!j.html) throw new Error(j.error || "no preview");
+        before().insertAdjacentHTML("afterend", j.html); keymap = j.keys || {};
+        for (const [k, op] of Object.entries(j.marks || {})) after().querySelectorAll(`[data-step="${k}"]`).forEach((n) => n.classList.add("ai-mark-" + op));
+        (j.removed || []).forEach((k) => before().querySelectorAll(`[data-step="${k}"]`).forEach((n) => n.classList.add("ai-mark-removed")));
+        show("after");
+      } catch (e) { compare.hidden = true; show("before"); }
+    };
+    let pendingAsk = "";
+    const fillAsk = () => {
+      const ta = panel.querySelector("textarea[name=text]");
+      if (pendingAsk && ta) { ta.value = pendingAsk; pendingAsk = ""; ta.focus(); ta.scrollIntoView({ block: "nearest" }); }
+    };
+    const render = (html) => { panel.innerHTML = html; syncAfter(); fillAsk(); };
+    const load = async () => {
+      panel.innerHTML = '<div class="aip-head"><b>✦ AI assistant</b></div><p class="muted" style="padding:16px">Loading…</p>';
+      render(await (await fetch(panel.dataset.url, { headers: { "X-Requested-With": "fetch" } })).text()); loaded = true;
+    };
+    const toggle = (open) => {
+      body.classList.toggle("ai-open", open);
+      try { sessionStorage.setItem("ai-panel-{{ wf.pk }}", open ? "1" : ""); } catch (_) {}
+      if (open && !loaded) load();
+      if (!open) { show("before"); }
+      else if (after()) show("after");
+    };
+    let wantOpen = body.classList.contains("ai-open");
+    try { wantOpen = wantOpen || sessionStorage.getItem("ai-panel-{{ wf.pk }}") === "1"; } catch (_) {}
+    if (wantOpen) toggle(true);
+    document.addEventListener("click", (e) => {
+      if (e.target.closest("[data-ai-toggle]")) { toggle(!body.classList.contains("ai-open")); return; }
+      const ask = e.target.closest("[data-ai-ask]");
+      if (ask) { pendingAsk = ask.dataset.aiAsk; window.SD.closeDrawer(); if (!body.classList.contains("ai-open")) toggle(true); if (loaded) fillAsk(); return; }
+      const v = e.target.closest("[data-ai-view]"); if (v) { show(v.dataset.aiView); return; }
+      const ex = e.target.closest("#ai-panel [data-example]");
+      if (ex) { const t = panel.querySelector("textarea[name=text]"); t.value = ex.dataset.example; t.focus(); return; }
+      const g = e.target.closest("#ai-panel [data-goto]");
+      if (g) {
+        show(g.dataset.gotoSide);
+        const side = g.dataset.gotoSide === "before" ? before() : after();
+        const key = g.dataset.gotoSide === "after" ? (keymap[g.dataset.goto] || g.dataset.goto) : g.dataset.goto;  // the after canvas has its own keys
+        const node = side && side.querySelector(`[data-step="${key}"]`);
+        if (node) { node.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }); node.classList.remove("ai-flash"); void node.offsetWidth; node.classList.add("ai-flash"); }
+      }
+    });
+    /* a request in flight: one progress card with the model, elapsed time and Cancel (local models can take a minute) */
+    let inflight = null;
+    panel.addEventListener("submit", async (e) => {
+      const form = e.target.closest("[data-ai-fetch]");
+      if (!form) return;
+      e.preventDefault();
+      if (inflight) return;
+      const fd = new FormData(form, e.submitter && e.submitter.name ? e.submitter : undefined), what = fd.getAll("do").pop();
+      if (what === "discard") { render(await (await fetch(form.action, { method: "POST", body: fd, headers: { "X-Requested-With": "fetch" } })).text()); return; }
+      const model = (panel.querySelector("[data-engine]") || {}).dataset?.engine || "the AI model";
+      const stages = what === "suggest" ? ["Reading the steps, fields and bots", "Checking routing and approvals", "Writing suggestions"]
+                   : what === "explain" ? ["Reading the workflow", "Writing it in plain English"]
+                   : ["Reading the workflow", what === "refine" ? "Adjusting the proposal" : "Planning the change", "Checking the result"];
+      const card = document.createElement("div");
+      card.className = "aip-progress"; card.setAttribute("role", "status");
+      card.innerHTML = `<div class="aip-spin" aria-hidden="true"></div><div class="grow"><b>${{ suggest: "Reviewing your workflow", explain: "Explaining your workflow", refine: "Refining the proposal" }[what] || "Working on your change"}</b>
+        <div class="muted small" data-stage>${stages[0]}…</div><div class="muted small">${window.SD.escapeHtml(model)} · <span data-secs>0</span> s</div></div>
+        <button type="button" class="btn btn-sm" data-cancel>Cancel</button>`;
+      panel.querySelector(".aip-body").prepend(card);
+      panel.querySelectorAll("button[data-busy], .aip-ask textarea").forEach((b) => { b.disabled = true; });
+      const ctl = new AbortController(); inflight = ctl;
+      let n = 0; const timer = setInterval(() => { n++; card.querySelector("[data-secs]").textContent = n;
+        card.querySelector("[data-stage]").textContent = stages[Math.min(stages.length - 1, Math.floor(n / 8))] + "…";
+        if (n === 45) card.querySelector("[data-stage]").insertAdjacentHTML("afterend", '<div class="muted small">Local models can take a minute or two.</div>'); }, 1000);
+      card.querySelector("[data-cancel]").addEventListener("click", () => ctl.abort());
+      try {
+        const r = await fetch(form.action, { method: "POST", body: fd, headers: { "X-Requested-With": "fetch" }, signal: ctl.signal });
+        render(await r.text());
+        const done = panel.querySelector(".alert-error") || panel.querySelector(
+          { explain: ".aip-explain", suggest: ".aip-sugg" }[what] || "[data-ai-plan]");  // show the result, not the top of the panel
+        if (done) done.scrollIntoView({ block: "start", behavior: "smooth" });
+      } catch (err) {
+        card.remove();
+        panel.querySelectorAll("button[data-busy], .aip-ask textarea").forEach((b) => { b.disabled = false; });
+        if (err.name !== "AbortError") window.SD.toast && window.SD.toast("The AI request failed. Check your connection and try again.");
+      } finally { clearInterval(timer); inflight = null; }
+    });
+    panel.addEventListener("keydown", (e) => {
+      if (!((e.metaKey || e.ctrlKey) && e.key === "Enter" && e.target.name === "text")) return;
+      const refine = e.target.form.querySelector("button[name=do][value=refine]");
+      e.target.form.requestSubmit(refine || undefined);
+    });
+  }
+  const drop = document.getElementById("drop-zone");
+  ["dragover","dragenter"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.style.background = "#f6f6ff"; }));
+  drop.addEventListener("dragleave", () => drop.style.background = "");
+  drop.addEventListener("drop", e => { e.preventDefault(); const input = drop.querySelector("input[type=file]"); input.files = e.dataTransfer.files; drop.submit(); });
+})();
+</script>
+{% endblock %}

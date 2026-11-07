@@ -1,0 +1,12 @@
+{% load ui %}    <div class="flow{% if preview %} is-preview{% endif %}{% if readonly %} is-readonly{% endif %}" {% if preview %}data-ai-after hidden{% elif readonly %}data-path{% else %}data-ai-before{% endif %}>
+      <div class="node start">
+        <h4>Start</h4>
+        {% for sf in start_forms %}<a class="branch-card start-form" href="{% url 'flows:form_settings' sf.pk %}" style="display:block;margin-bottom:6px" title="Start form — opens its settings">📝 {{ sf.name }}{% if not sf.is_live %} · <span class="muted">draft</span>{% endif %}</a>{% endfor %}
+        {% for a in autostarts %}<div class="branch-card {% if not a.enabled %}muted{% endif %}" style="margin-bottom:6px">{{ a.summary }}{% if not a.enabled %} · paused{% endif %}</div>{% endfor %}
+        {% for r in start_routes %}<div class="branch-card" style="margin-bottom:6px">🤖 → {{ r.target }}</div>{% endfor %}
+        <button class="btn btn-sm btn-block" data-drawer-url="{% url 'flows:autostart' wf.pk %}">{% icon "plus" %} {% if autostarts %}Autostart ({{ autostarts|length }}){% else %}Add autostart{% endif %}</button>
+      </div>
+      {% include "flows/partials/adder.html" with after=0 %}
+      {% include "flows/partials/flow_nodes.html" with nodes=nodes lane="" %}
+      <div class="end-mark"><span>✓</span>Completed</div>
+    </div>

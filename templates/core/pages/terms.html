@@ -1,0 +1,57 @@
+{% extends "core/pages/_doc_frame.html" %}
+{% load ui %}
+{% block title %}Terms of Service{% endblock %}
+{% block crumb %}Terms of Service{% endblock %}
+{% block doc %}
+<h1>Terms of Service</h1>
+<p class="hc-lead">The rules for using {{ app_name|default:"Paperlane" }}. Last updated {{ updated }}.</p>
+<div class="dc-note">{% icon "help" 16 %}<span><b>Template.</b> {{ app_name|default:"Paperlane" }} is self-hosted, so these terms are provided by the organisation that runs this installation (the “operator”). Have your legal counsel review and adapt them before relying on them.</span></div>
+<div class="hc-body" data-doc-body>
+<div class="dc-summary"><b>In short</b><ul><li>Your organisation owns its documents and data; the operator only processes them to run the service.</li><li>Use it lawfully, keep your account secure, and don't misuse other people's data.</li><li>E-signatures and AI answers are tools — check that they meet your legal and business requirements.</li></ul></div>
+
+<h2 id="t1">1. Who these terms are between</h2>
+<p>These terms apply between you and the operator of this {{ app_name|default:"Paperlane" }} installation. If you use it on behalf of an organisation, you confirm you may accept these terms for it, and “you” includes that organisation.</p>
+
+<h2 id="t2">2. Accounts and workspaces</h2>
+<ul><li>Keep your sign-in details secret and turn on two-step sign-in where available. You're responsible for activity in your account.</li>
+<li>Workspace owners decide who joins, which role they have, and can block or remove people at any time.</li>
+<li>Recipients who only fill or sign documents through a link don't need an account; the sender is responsible for having the right to send them documents.</li></ul>
+
+<h2 id="t3">3. Acceptable use</h2>
+<p>Don't use the service to:</p>
+<ul><li>break any law, or collect or process personal data without a lawful basis;</li><li>send spam, phishing or misleading requests for signatures or payment;</li><li>upload malware, or try to access accounts, workspaces or systems you aren't authorised to use;</li><li>overload the service, or get around rate limits, roles or permissions.</li></ul>
+
+<h2 id="t4">4. Your content</h2>
+<p>You keep all rights to the forms, workflows, documents, files and data you put in the service (“your content”). You give the operator permission to store, process and display your content only as needed to provide the service to you. You're responsible for your content and for having the rights and consents needed to collect it.</p>
+
+<h2 id="t5">5. Electronic signatures</h2>
+<p>The service records consent to sign electronically, who signed, when and from which IP address, and can attach a certificate of completion and audit trail to the final PDF. Whether an electronic signature is valid for a particular document depends on your jurisdiction and the type of document — you're responsible for checking this.</p>
+
+<h2 id="t6">6. AI features</h2>
+<ul><li>AI features (such as the assistant, Ask AI, AI bots, Fill from text and AI search) are optional and can be turned off by workspace owners.</li>
+<li>Depending on configuration, they run on a local model or on an external provider chosen by the operator. Field values may be sent to that model; signatures and uploaded files are not.</li>
+<li>AI output can be wrong. Review AI suggestions, filled values, summaries and diagnoses before acting on them.</li></ul>
+
+<h2 id="t7">7. Integrations</h2>
+<p>When you connect connectors, webhooks, connected accounts, email gateways or API clients, data is sent to those systems as you configure. Those services are governed by their own terms; the operator isn't responsible for them.</p>
+
+<h2 id="t8">8. Availability and changes</h2>
+<p>The operator aims to keep the service available but doesn't guarantee uninterrupted access — for example during maintenance. Features may change; material changes will be announced in the <a href="{% url 'core:page' 'release-notes' %}">release notes</a> or in the app.</p>
+
+<h2 id="t9">9. Fees</h2>
+<p>If your plan has fees, they're set out in your order or in My workspace › Subscription. Unless stated otherwise, fees are payable in advance and are non-refundable.</p>
+
+<h2 id="t10">10. Suspension and termination</h2>
+<p>You can stop using the service at any time. The operator may suspend access if these terms are breached or to protect the service or other users. After termination you can ask for an export of your content within a reasonable period, after which it may be deleted.</p>
+
+<h2 id="t11">11. Disclaimers and liability</h2>
+<p>To the extent the law allows, the service is provided “as is”, and the operator isn't liable for indirect or consequential losses, or for losses caused by your content, your configuration, third-party services or AI output. Nothing in these terms limits liability that can't be limited by law.</p>
+
+<h2 id="t12">12. Changes to these terms</h2>
+<p>These terms may be updated. The “last updated” date above shows the current version; continuing to use the service after a change means you accept it.</p>
+
+<h2 id="t13">13. Contact</h2>
+<p>{% if platform.support_email %}Questions about these terms: <a href="mailto:{{ platform.support_email }}">{{ platform.support_email }}</a>.{% else %}Questions about these terms: contact the administrator of this installation.{% endif %}</p>
+</div>
+{% endblock %}
+{% block aside %}<div class="dc-meta"><small>Last updated</small><b>{{ updated }}</b><a class="link small" href="{% url 'core:page' 'privacy' %}">Read the Privacy Notice →</a></div>{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block shell_class %}is-wide{% endblock %}
+{% load ui %}
+{% block title %}Team workload{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}Team workload{% endblock %}
+{% block subheading %}<span>{{ total }} open step{{ total|pluralize }}</span>{% if overdue %}<span class="sep"></span><span class="bad">{{ overdue }} overdue</span>{% endif %}{% if unclaimed %}<span class="sep"></span><span>{{ unclaimed }} waiting in group queues</span>{% endif %}{% endblock %}
+{% block content %}
+<div class="ops-card" id="ops-card" data-url="{% url 'flows:workload_summary' %}">
+  <div class="ops-head"><b>✦ This week</b><button type="button" class="btn btn-sm btn-ghost" data-ops-refresh>Rewrite</button></div>
+  <p class="ops-text muted" data-ops-text>Reading the week…</p>
+  <details class="ops-facts"><summary class="muted small">The numbers behind it</summary><ul data-ops-facts></ul></details>
+</div>
+<script>
+(function () {
+  const card = document.getElementById("ops-card"), text = card.querySelector("[data-ops-text]"), facts = card.querySelector("[data-ops-facts]");
+  const load = async (refresh) => {
+    text.textContent = refresh ? "Rewriting…" : "Reading the week…"; text.classList.add("muted");
+    try {
+      const j = await (await fetch(card.dataset.url + (refresh ? "?refresh=1" : ""), { headers: { "X-Requested-With": "fetch" } })).json();
+      text.textContent = j.text || "AI is off or unavailable — the numbers are below."; text.classList.toggle("muted", !j.text);
+      facts.innerHTML = (j.facts || []).map((f) => "<li>" + window.SD.escapeHtml(f) + "</li>").join("");
+      if (!j.text) card.querySelector("details").open = true;
+    } catch (_) { text.textContent = "Couldn't load the weekly note."; }
+  };
+  card.querySelector("[data-ops-refresh]").addEventListener("click", () => load(true));
+  load(false);
+})();
+</script>
+<div class="wl-grid">
+  <div class="card card-pad">
+    <h3 style="margin-bottom:8px">People</h3>
+    <div class="table-wrap" style="border:0"><table class="table">
+      <thead><tr><th>Teammate</th><th class="num">Open</th><th class="num">Overdue</th><th>Oldest</th><th class="num">Done (7 d)</th><th class="num">Avg time</th></tr></thead>
+      <tbody>{% for p in people %}<tr>
+        <td><a class="link" href="?filter=user:{{ p.user.pk }}">{{ p.user.get_full_name|default:p.user.email }}</a>{% if p.user.profile.out_of_office %} <span class="badge badge-amber">Away</span>{% endif %}</td>
+        <td class="num">{% if p.open %}<span class="wl-bar" style="--w:{% widthratio p.open total|default:1 100 %}%"></span>{% endif %}{{ p.open }}</td>
+        <td class="num">{% if p.overdue %}<b class="bad">{{ p.overdue }}</b>{% else %}<span class="muted">0</span>{% endif %}</td>
+        <td><small class="muted">{% if p.oldest %}{{ p.oldest|timesince|upto:"," }}{% else %}—{% endif %}</small></td>
+        <td class="num">{{ p.done_7 }}</td>
+        <td class="num"><small class="muted">{% if p.avg %}{{ p.avg|duration_short|default:"< 1 min" }}{% else %}—{% endif %}</small></td>
+      </tr>{% endfor %}</tbody></table></div>
+  </div>
+  <div class="card card-pad">
+    <h3 style="margin-bottom:8px">Group queues</h3>
+    {% for q in queues %}<a class="wl-queue" href="?filter=group:{{ q.group.pk }}"><b class="grow">{{ q.group.name }}</b><span>{{ q.waiting }} waiting</span>{% if q.overdue %}<span class="bad">{{ q.overdue }} overdue</span>{% endif %}<small class="muted">oldest {{ q.oldest|timesince|upto:"," }}</small></a>
+    {% empty %}<p class="muted">Nothing is waiting in a group queue — every group step has been taken.</p>{% endfor %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <form method="post" id="wl-form">{% csrf_token %}
+  <div class="row wl-tools">
+    <div class="sa-filters" style="margin:0">
+      <a class="{% if not flt %}on{% endif %}" href="?">All open</a>
+      <a class="{% if flt == 'overdue' %}on{% endif %}" href="?filter=overdue">Overdue</a>
+      <a class="{% if flt == 'unclaimed' %}on{% endif %}" href="?filter=unclaimed">Not taken yet</a>
+      {% if flt and flt != 'overdue' and flt != 'unclaimed' %}<a class="on" href="?">Filtered ✕</a>{% endif %}
+    </div>
+    {% if can_manage %}<div class="row grow" style="justify-content:flex-end;gap:8px;flex-wrap:wrap">
+      <select name="target" aria-label="Reassign to" style="width:auto;min-width:200px"><option value="">Reassign selected to…</option>
+        <optgroup label="People">{% for mm in members %}<option value="u:{{ mm.user.pk }}">{{ mm.user.get_full_name|default:mm.user.email }}</option>{% endfor %}</optgroup>
+        <optgroup label="Groups">{% for g in groups %}<option value="g:{{ g.pk }}">{{ g.name }}</option>{% endfor %}</optgroup></select>
+      <button class="btn btn-dark" name="action" value="reassign">Reassign</button>
+      <button class="btn" name="action" value="release">Release to group</button>
+    </div>{% endif %}
+  </div>
+  <div class="table-wrap" style="border:0"><table class="table">
+    <thead><tr>{% if can_manage %}<th style="width:28px"><input type="checkbox" data-check-all aria-label="Select all"></th>{% endif %}<th>Document</th><th>Step</th><th>With</th><th>Waiting</th><th>Due</th></tr></thead>
+    <tbody>{% for r in runs %}<tr>
+      {% if can_manage %}<td><input type="checkbox" name="run" value="{{ r.pk }}" aria-label="Select {{ r.packet.name }}"></td>{% endif %}
+      <td><a class="link" href="{% url 'flows:packet_detail' r.packet.pk %}">{{ r.packet.name|truncatechars:48 }}</a><br><small class="muted">{{ r.packet.workflow.name|truncatechars:50 }}</small></td>
+      <td>{{ r.step_name|truncatechars:40 }}</td>
+      <td>{% if r.holder %}{{ r.holder.get_full_name|default:r.holder.email }}{% if r.claimed_by_id %} <small class="muted">(took it from {{ r.assignee_group.name }})</small>{% endif %}{% elif r.assignee_group %}<span class="badge badge-gray">{{ r.assignee_group.name }} queue</span>{% else %}{{ r.assignee_email|default:"Anyone with the link" }}{% endif %}</td>
+      <td><small>{{ r.age|duration_short }}</small></td>
+      <td>{% if r.due_at %}<small class="{% if r.overdue %}bad{% else %}muted{% endif %}">{% if r.overdue %}overdue {{ r.due_at|timesince|upto:"," }}{% else %}{{ r.due_at|date:"M j, H:i" }}{% endif %}</small>{% else %}<small class="muted">—</small>{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="6" class="muted">Nothing open here. 🎉</td></tr>{% endfor %}</tbody></table></div>
+  </form>
+</div>
+<script>
+document.querySelector("[data-check-all]")?.addEventListener("change", (e) => document.querySelectorAll('#wl-form input[name=run]').forEach((c) => c.checked = e.target.checked));
+</script>
+{% endblock %}

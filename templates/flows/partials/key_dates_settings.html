@@ -1,0 +1,17 @@
+{% load ui %}<form method="post" action="{% url 'flows:key_dates_settings' wf.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ next }}">
+<div class="modal-head"><h2>Key dates &amp; reminders</h2><button type="button" class="modal-close" data-close aria-label="Close">×</button></div>
+<div class="modal-body">
+  <p class="muted small">Pick the dates that matter after a document is finished — a contract end, a renewal, a policy expiry. Paperlane lists them on <b>Key dates</b> and emails whoever started the document (and anyone you add) before each one.</p>
+  {% for r in rows %}
+  <div class="kd-row{% if r.on %} on{% endif %}">
+    <label class="check"><input type="checkbox" name="on_{{ r.id }}" {% if r.on %}checked{% endif %}> <span><b>{{ r.label }}</b>{% if r.suggested and not r.on %} <span class="badge badge-blue">Suggested</span>{% endif %}</span></label>
+    <div class="kd-grid">
+      <div class="field"><label>Name it</label><input type="text" name="label_{{ r.id }}" value="{{ r.cfg.label|default:r.label }}" maxlength="160"></div>
+      <div class="field"><label>Remind (days before)</label><input type="text" name="days_{{ r.id }}" value="{{ r.days }}" placeholder="30, 7, 0"></div>
+      <div class="field kd-wide"><label>Also tell <span class="muted">(emails, comma separated)</span></label><input type="text" name="emails_{{ r.id }}" value="{{ r.cfg.emails|default:'' }}" placeholder="legal@company.com"></div>
+    </div>
+  </div>
+  {% empty %}<p class="muted">This workflow has no date fields yet. Add a date field to one of its forms, then come back.</p>{% endfor %}
+</div>
+<div class="modal-foot"><a class="btn btn-ghost" href="{% url 'flows:key_dates' %}">See key dates</a><span class="grow"></span><button type="button" class="btn" data-close>Cancel</button>{% if rows %}<button class="btn btn-dark">Save</button>{% endif %}</div>
+</form>

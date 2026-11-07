@@ -1,0 +1,9 @@
+{% extends "accounts/_settings_base.html" %}
+{% block title %}{{ sheet.name }}{% endblock %}
+{% block nav %}{% if request.membership.can_manage %}{% include "accounts/_ws_nav.html" %}{% else %}{% include "accounts/_account_nav.html" %}{% endif %}{% endblock %}
+{% block content %}
+<div class="row" style="margin-bottom:14px"><h1 class="grow">{{ sheet.name }}</h1><a class="btn" href="?format=csv">Download CSV</a>
+{% if request.membership.can_manage %}<form method="post" data-confirm="Delete this spreadsheet and all its rows?" data-danger data-confirm-ok="Delete">{% csrf_token %}<button class="btn btn-danger" name="delete" value="1">Delete</button></form>{% endif %}</div>
+<div class="table-wrap"><table class="table"><thead><tr>{% for c in sheet.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead><tbody>
+{% load ui %}{% for r in rows %}<tr>{% for c in sheet.columns %}<td>{{ r.values|get:c }}</td>{% endfor %}</tr>{% empty %}<tr><td class="muted">No rows yet.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

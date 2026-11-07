@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Home{% endblock %}
+{% block main %}
+{% include "core/_dash_head.html" %}
+<div class="page-body dash-home">
+  <h2 class="dash-h">What will you create today?</h2>
+  {% if request.membership.can_create %}
+  <div class="create-cards">
+    <a class="create-card" href="{% url 'flows:document_new' %}"><span class="ico ico-doc">{% include "partials/_create_icon.html" with kind="doc" %}</span><span><b>Document</b><small class="muted">Send a one-time request to fill out or sign a document.</small></span></a>
+    <form method="post" action="{% url 'flows:create' 'template' %}">{% csrf_token %}<button class="create-card"><span class="ico ico-tpl">{% include "partials/_create_icon.html" with kind="tpl" %}</span><span><b>Template</b><small class="muted">Create a reusable template with predefined fields.</small></span></button></form>
+    <form method="post" action="{% url 'flows:create' 'workflow' %}">{% csrf_token %}<button class="create-card"><span class="ico ico-wf">{% include "partials/_create_icon.html" with kind="wf" %}</span><span><b>Workflow</b><small class="muted">Automate document processes, simple or complex.</small></span></button></form>
+  </div>
+  <hr class="dash-sep">
+  <h2 class="dash-h" style="margin-bottom:2px">Popular workflow automations</h2>
+  <p class="muted">Streamline contract signing, document creation, sales handoffs, and more.</p>
+  <div style="margin-top:12px">
+  {% for key, p in presets.items %}
+    <form method="post" action="{% url 'flows:create_preset' key %}">{% csrf_token %}
+      <button class="preset">
+        <span class="icons"><span>{% include "core/partials/_preset_icon.html" with kind=p.icons.0 %}</span><i></i><span>{% include "core/partials/_preset_icon.html" with kind=p.icons.1 %}</span></span>
+        <span><b>{{ p.name }}</b><small class="muted">{{ p.description }}</small></span>
+      </button>
+    </form>
+  {% endfor %}
+  </div>
+  {% else %}
+  <div class="card card-pad">
+    <h3>Your documents</h3>
+    <p class="muted">You can fill out and sign documents sent to you. {% if waiting_count %}<a class="link" href="{% url 'core:inbox' %}?tab=waiting">{{ waiting_count }} waiting for you</a>{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

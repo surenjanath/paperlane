@@ -1,0 +1,28 @@
+{% extends "accounts/_settings_base.html" %}
+{% load ui %}
+{% block title %}Data retention{% endblock %}
+{% block nav %}{% include "accounts/_ws_nav.html" %}{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:6px">Data retention</h1>
+<p class="muted" style="margin-bottom:16px">Delete data you no longer need — automatically, once a day. Every rule is off until you set a period. Documents on <b>legal hold</b> are never deleted. Attached files and sealed PDFs are removed with their document, and each run is recorded in the audit trail.</p>
+<div class="rt-preview">
+  <div><b>{{ preview.documents|default_if_none:"—" }}</b><small>finished documents due</small></div>
+  <div><b>{{ preview.trash|default_if_none:"—" }}</b><small>trashed documents due</small></div>
+  <div><b>{{ preview.audit|default_if_none:"—" }}</b><small>audit events due</small></div>
+  <div><b>{{ held }}</b><small>on legal hold</small></div>
+</div>
+<p class="small muted" style="margin:6px 0 16px">“Due” = what the saved rules would delete if they ran now. “—” = rule off.</p>
+<form method="post" class="card card-pad rt-form">{% csrf_token %}
+  <fieldset {% if not is_owner %}disabled{% endif %}>
+  <div class="rt-rule"><div><b>Finished documents</b><p class="muted small">Delete documents with these statuses this many days after they finished.</p>
+      <div class="row" style="gap:12px;flex-wrap:wrap">{% for s, l in "completed|Completed,declined|Declined,cancelled|Cancelled"|split_pairs %}<label class="check"><input type="checkbox" name="statuses" value="{{ s }}" {% if s in p.statuses %}checked{% endif %}> {{ l }}</label>{% endfor %}</div></div>
+    <label class="rt-days"><input type="number" name="documents_days" min="0" max="36500" value="{{ p.documents_days }}"> days</label></div>
+  <div class="rt-rule"><div><b>Trash</b><p class="muted small">Permanently delete documents this many days after they were moved to Trash.</p></div>
+    <label class="rt-days"><input type="number" name="trash_days" min="0" max="36500" value="{{ p.trash_days }}"> days</label></div>
+  <div class="rt-rule"><div><b>Audit trail</b><p class="muted small">Delete audit events older than this. Many regulations require keeping them for years — check yours.</p></div>
+    <label class="rt-days"><input type="number" name="audit_days" min="0" max="36500" value="{{ p.audit_days }}"> days</label></div>
+  <p class="small muted">0 = keep forever. Common choices: 2555 days ≈ 7 years, 3650 ≈ 10 years.</p>
+  {% if is_owner %}<button class="btn btn-dark" data-confirm="Save these retention rules? Data past the periods will be permanently deleted at the next daily run.">Save rules</button>{% else %}<p class="muted small">Only workspace owners can change these rules.</p>{% endif %}
+  </fieldset>
+</form>
+{% endblock %}

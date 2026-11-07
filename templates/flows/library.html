@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if kind == 'template' %}Templates{% else %}Workflows{% endif %}{% endblock %}
+{% block live %}data-live{% endblock %}
+{% block heading %}{% if kind == 'template' %}Templates{% else %}Workflows{% endif %}{% endblock %}
+{% block subheading %}<span>{{ total }} {{ kind }}{{ total|pluralize }}</span><span class="sep"></span><span>View all {{ kind }}s you have access to in this workspace</span>{% endblock %}
+{% block actions %}
+<form class="input-icon">{% icon "search" %}<input class="search-input" type="search" name="q" value="{{ q }}" placeholder="Search"></form>
+{% if request.membership.can_create %}<a class="btn" href="{% url 'flows:ai_describe' %}">{% icon "sparkle" %} Describe it</a><button class="btn" data-modal-url="{% url 'flows:workflow_import' %}">{% icon "upload" %} Import</button>{% endif %}
+{% if request.membership.can_create %}<form method="post" action="{% url 'flows:create' kind %}">{% csrf_token %}<button class="btn btn-dark">{% icon "plus" %} Create {{ kind }}</button></form>{% endif %}
+{% endblock %}
+{% block content %}
+<form class="lib-toolbar">
+  <input type="hidden" name="q" value="{{ q }}">
+  <label class="row" style="gap:6px;font-weight:400">Show hidden {{ kind }}s <span class="switch"><input type="checkbox" name="hidden" value="1" {% if hidden %}checked{% endif %} data-autosubmit><span></span></span></label>
+  <span>Show: <select name="show" data-autosubmit><option value="all" {% if show == 'all' %}selected{% endif %}>All {{ kind }}s</option><option value="mine" {% if show == 'mine' %}selected{% endif %}>Created by me</option><option value="shared" {% if show == 'shared' %}selected{% endif %}>Shared with me</option></select></span>
+  {% if all_tags %}<span>Tag: <select name="tag" data-autosubmit><option value="">Any</option>{% for t in all_tags %}<option {% if request.GET.tag == t.name %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></span>{% endif %}
+  <span>Sort by <select name="sort" data-autosubmit><option value="updated" {% if sort == 'updated' %}selected{% endif %}>Latest updated</option><option value="created" {% if sort == 'created' %}selected{% endif %}>Latest created</option><option value="name" {% if sort == 'name' %}selected{% endif %}>Name</option><option value="documents" {% if sort == 'documents' %}selected{% endif %}>Most documents</option></select></span>
+</form>
+{% if kind == 'workflow' and request.membership.can_create and groups %}
+<div class="lib-bulk">
+  <label class="pk-selectall"><input type="checkbox" data-select-all=".row-check" aria-label="Select all workflows"> Select all</label>
+  <span data-bulk-bar hidden class="row" style="gap:6px"><b class="small"><span data-bulk-count>0</span> selected</b>
+    <button type="button" class="btn btn-sm" data-bulk-submit="#bulk-lib" data-bulk-action="archive">{% icon "archive" %} Archive</button>
+    <button type="button" class="btn btn-sm" data-bulk-submit="#bulk-lib" data-bulk-action="hide">{% icon "hide" %} Hide</button>
+    <button type="button" class="btn btn-sm" data-bulk-submit="#bulk-lib" data-bulk-action="unhide">{% icon "eye" %} Unhide</button>
+    <button type="button" class="btn btn-sm btn-danger" data-bulk-submit="#bulk-lib" data-bulk-action="trash">{% icon "trash" %} Move to Trash</button>
+  </span>
+</div>
+<form id="bulk-lib" method="post" action="{% url 'flows:workflows_bulk' %}" hidden>{% csrf_token %}<input type="hidden" name="action"></form>
+{% endif %}
+{% for title, items in groups %}
+  {% if title %}<h3 class="section-title">{{ title }}</h3>{% endif %}
+  <div class="wf-grid">
+  {% for wf in items %}
+    <div class="wf-card">
+      <div class="wf-card-top">{% if kind == 'workflow' and request.membership.can_create %}<input type="checkbox" class="row-check" value="{{ wf.pk }}" aria-label="Select {{ wf.name }}">{% endif %}
+      <a href="{{ wf.get_absolute_url }}" class="title" title="{{ wf.name }}">{% if wf.status == 'draft' %}<span title="Unpublished">✎ </span>{% endif %}{{ wf.name }}</a></div>
+      {% if kind == 'workflow' %}<div class="meta wf-triggers" title="{{ wf.trigger_title }}">{% if wf.triggers %}Trigger {% for t in wf.triggers|slice:":4" %}<span class="tag{% if t.off %} off{% endif %}">{{ t.label|truncatechars:36 }}{% if t.off %} · paused{% endif %}</span>{% endfor %}{% if wf.triggers|length > 4 %}<span class="tag">+{{ wf.triggers|length|add:"-4" }}</span>{% endif %}{% else %}No trigger{% endif %}</div>{% endif %}
+      <div class="meta">Last modified: {{ wf.updated_at|date:"M d, Y" }}</div>
+      <div class="meta">Tags: {% for t in wf.tags.all %}<span class="tag">{{ t.name }}</span>{% empty %}<a class="link" href="#" data-modal-template="#tags-modal" data-action="{% url 'flows:workflow_action' wf.pk 'tags' %}">No tags added</a>{% endfor %}</div>
+      <div class="meta">{{ wf.n_packets }} document{{ wf.n_packets|pluralize }}{% if wf.is_hidden %} · <span class="badge badge-gray">Hidden</span>{% endif %}</div>
+      <div class="foot">
+        <span class="access-badge badge {% if wf.access == 'team' %}badge-green{% else %}badge-gray{% endif %}">{{ wf.get_access_display }}</span>
+        <span class="hover-actions"><a class="btn btn-dark btn-sm" href="{{ wf.get_absolute_url }}">Open</a>{% if request.membership.can_create %}<a class="btn btn-sm btn-icon" href="{% if wf.kind == 'template' %}{% url 'flows:editor' wf.pk wf.documents.first.pk %}{% else %}{% url 'flows:builder' wf.pk %}{% endif %}" title="Configure">{% icon "gear" %}</a>{% endif %}</span>
+        <span class="grow"></span>
+        <button class="btn btn-ghost btn-sm btn-icon" data-copy="{% url 'flows:workflow_detail' wf.pk %}" title="Copy link">{% icon "link" %}</button>
+        <div class="menu-wrap"><button aria-label="More actions" title="More actions" class="btn btn-ghost btn-sm btn-icon" data-menu>{% icon "dots" %}</button>
+          <div class="menu">
+            <button data-modal-template="#tags-modal" data-action="{% url 'flows:workflow_action' wf.pk 'tags' %}" data-set-tags="{% for t in wf.tags.all %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">{% icon "tag" %} Add tags</button>
+            {% if request.membership.can_create %}<form method="post" action="{% url 'flows:workflow_action' wf.pk 'duplicate' %}">{% csrf_token %}<button>{% icon "copy" %} Duplicate</button></form>{% endif %}
+            <form method="post" action="{% url 'flows:workflow_action' wf.pk 'archive' %}">{% csrf_token %}<button>{% icon "archive" %} Archive</button></form>
+            <form method="post" action="{% url 'flows:workflow_action' wf.pk 'trash' %}" data-confirm="Move “{{ wf.name }}” to Trash? You can restore it later." data-confirm-ok="Move to Trash" data-danger>{% csrf_token %}<button>{% icon "trash" %} Move to Trash</button></form>
+            {% if wf.is_hidden %}<form method="post" action="{% url 'flows:workflow_action' wf.pk 'unhide' %}">{% csrf_token %}<button>{% icon "eye" %} Unhide</button></form>
+            {% else %}<form method="post" action="{% url 'flows:workflow_action' wf.pk 'hide' %}">{% csrf_token %}<button>{% icon "hide" %} Hide</button></form>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+{% empty %}
+<div class="empty">
+  <div class="ico">{% if kind == 'template' %}🗂{% else %}⚙︎{% endif %}</div>
+  {% if q or show != 'all' %}<h3>Nothing matches your filters</h3><p><a class="link" href="?">Clear filters</a></p>
+  {% elif kind == 'template' %}<h3>Standardize work with reusable templates</h3><p>Reuse the same structure, fields, and roles to save time, reduce errors, and keep work consistent.</p>
+  {% else %}<h3>Automate your document processes</h3><p>Route documents through recipients, approvals and bots.</p>{% endif %}
+  {% if request.membership.can_create and not q %}<form method="post" action="{% url 'flows:create' kind %}">{% csrf_token %}<button class="btn btn-dark">Create {{ kind }}</button></form>{% endif %}
+</div>
+{% endfor %}
+{% include "flows/partials/tags_modal.html" %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% load ui %}<div class="ppl-stats">
+  <a class="ppl-stat" href="{% url 'accounts:team' %}"><span class="ppl-stat-ico">{% icon "team" 18 %}</span><span><b>{{ active_count }}</b><small>active teammate{{ active_count|pluralize }}</small></span></a>
+  {% if open_total is not None %}<div class="ppl-stat"><span class="ppl-stat-ico amber">{% icon "inbox" 18 %}</span><span><b>{{ open_total }}</b><small>open step{{ open_total|pluralize }} held</small></span></div>{% endif %}
+  <a class="ppl-stat" href="{% url 'accounts:groups' %}"><span class="ppl-stat-ico violet">{% icon "workflow" 18 %}</span><span><b>{{ group_count }}</b><small>group{{ group_count|pluralize }}</small></span></a>
+  <div class="ppl-stat"><span class="ppl-stat-ico green">🌴</span><span><b>{{ ooo_count }}</b><small>out of office today</small></span></div>
+  {% if request.membership.can_manage %}<a class="ppl-stat" href="{% url 'accounts:team' %}?tab=invites#invites"><span class="ppl-stat-ico blue">{% icon "mail" 18 %}</span><span><b>{{ invite_count }}</b><small>invitation{{ invite_count|pluralize }} pending</small></span></a>{% endif %}
+  {% if blocked_count %}<a class="ppl-stat" href="{% url 'accounts:team' %}?status=blocked"><span class="ppl-stat-ico red">{% icon "lock" 18 %}</span><span><b>{{ blocked_count }}</b><small>blocked</small></span></a>{% endif %}
+</div>
+<nav class="ppl-tabs" aria-label="Team">
+  <a href="{% url 'accounts:team' %}" class="{% if tab == 'members' %}on{% endif %}">Members <span>{{ active_count }}</span></a>
+  <a href="{% url 'accounts:groups' %}" class="{% if tab == 'groups' %}on{% endif %}">Groups <span>{{ group_count }}</span></a>
+  {% if request.membership.can_manage %}<a href="{% url 'accounts:team' %}#invites" class="{% if tab == 'invites' %}on{% endif %}">Invitations <span>{{ invite_count }}</span></a>{% endif %}
+  <span class="grow"></span>
+  <button type="button" class="ppl-roles-btn" data-modal-template="#roles-tpl">{% icon "help" 16 %} What can each role do?</button>
+</nav>
+<template id="roles-tpl"><div class="modal-head"><h2>Roles</h2><button type="button" class="modal-close" data-close>×</button></div>
+  <div class="modal-body"><div class="ppl-rolelist">{% for k, l in roles %}<div><span class="role-pill role-{{ k }}">{{ l }}</span><p>{{ role_help|get:k }}</p></div>{% endfor %}</div></div></template>

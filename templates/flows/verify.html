@@ -1,0 +1,53 @@
+{% extends "base_bare.html" %}
+{% load ui %}
+{% block title %}Verify a document{% endblock %}
+{% block site_css %}{% include "partials/site_css.html" %}{% endblock %}
+{% block body_class %}vf-body{% endblock %}
+{% block body %}
+<header class="vf-top"><a class="lx-brand dark" href="/"><span class="lx-mark">{% logo_mark 28 %}</span>{{ app_name|default:"Paperlane" }}</a><span class="grow"></span><a class="vf-link" href="{% url 'core:help' %}">Help</a></header>
+<main class="vf">
+  <div class="vf-head"><span class="vf-badge">🔒</span><h1>Verify a document</h1><p>Check that a signed {{ app_name|default:"Paperlane" }} document is authentic and hasn't been changed. Enter the verify code from its certificate of completion, or upload the PDF.</p></div>
+
+  <div class="vf-forms">
+    <form method="post" action="{% url 'verify' %}" class="vf-card">{% csrf_token %}
+      <label for="vf-code">Verify code or fingerprint</label>
+      <div class="vf-row"><input id="vf-code" name="code" value="{{ code }}" placeholder="ABCD-1234-EF56-7890" autocomplete="off" spellcheck="false" required><button class="ax-btn">Check</button></div>
+    </form>
+    <form method="post" action="{% url 'verify' %}" enctype="multipart/form-data" class="vf-card">{% csrf_token %}
+      <label for="vf-pdf">…or upload the PDF</label>
+      <div class="vf-row"><input id="vf-pdf" type="file" name="pdf" accept="application/pdf" required><button class="ax-btn">Check file</button></div>
+      <small class="vf-note">The file is compared by its SHA-256 fingerprint and isn't stored.</small>
+    </form>
+  </div>
+
+  {% if error %}<div class="vf-result bad"><b>{{ error }}</b></div>{% endif %}
+  {% if checked and not error %}
+    {% if seal %}
+      {% with p=seal.packet %}
+      {% if seal.superseded_at %}
+      <div class="vf-result warn"><span class="vf-ico">↻</span><div><b>Authentic — but a newer version exists.</b><p>This was the version sealed on {{ seal.sealed_at|date:"M j, Y H:i" }}. The document was revised and sealed again{% if latest %} (code <code>{{ latest.code }}</code>){% endif %}.</p></div></div>
+      {% elif not integrity.intact %}
+      <div class="vf-result warn"><span class="vf-ico">⚠</span><div><b>The seal is genuine, but the stored record has changed since it was sealed.</b><p>Contact {{ p.workspace.name }} — the document's data no longer matches what was signed on {{ seal.sealed_at|date:"M j, Y" }}.</p></div></div>
+      {% else %}
+      <div class="vf-result ok"><span class="vf-ico">✓</span><div><b>Authentic and unchanged.</b><p>{% if mode == 'pdf' %}This PDF is byte-for-byte the sealed original.{% else %}This code matches a sealed document, and its stored record still matches the seal.{% endif %}</p></div></div>
+      {% endif %}
+      <section class="vf-card vf-details">
+        <dl>
+          <dt>Document</dt><dd>{{ p.name }}</dd>
+          <dt>Issued by</dt><dd>{{ p.workspace.name }}</dd>
+          <dt>Completed</dt><dd>{{ p.completed_at|date:"M j, Y H:i T" }}</dd>
+          <dt>Sealed</dt><dd>{{ seal.sealed_at|date:"M j, Y H:i T" }}{% if seal.number > 1 %} · seal {{ seal.number }}{% endif %}</dd>
+          <dt>Verify code</dt><dd><code>{{ seal.code }}</code></dd>
+          <dt>Fingerprint</dt><dd><code class="vf-hash">{{ seal.content_hash }}</code></dd>
+        </dl>
+        {% if seal.signers %}<h3>Completed by</h3>
+        <ul class="vf-signers">{% for s in seal.signers %}<li><span class="avatar sm">{{ s.name|default:s.email|initials }}</span><div><b>{{ s.name|default:"Recipient" }}</b> <small>{{ s.step }}</small><small>{{ s.at|iso_dt|date:"M j, Y H:i" }}</small></div></li>{% endfor %}</ul>{% endif %}
+      </section>
+      {% endwith %}
+    {% else %}
+      <div class="vf-result bad"><span class="vf-ico">✕</span><div><b>Not recognised.</b><p>{% if mode == 'pdf' %}This file doesn't match any sealed document. It may have been edited, re-saved or printed to a new PDF — even small changes alter the fingerprint. Try the verify code from its certificate instead.{% else %}No sealed document has that code. Check it for typos — it looks like <code>ABCD-1234-EF56-7890</code>.{% endif %}</p></div></div>
+    {% endif %}
+  {% endif %}
+  <p class="vf-how"><b>How it works.</b> When a document is completed, {{ app_name|default:"Paperlane" }} computes a SHA-256 fingerprint of every field value and signature, the contents of every attached file and the signing timeline, prints it on the certificate and stores the final PDF unchanged. Any later change — to the file or to the stored record — produces a different fingerprint.</p>
+</main>
+{% endblock %}

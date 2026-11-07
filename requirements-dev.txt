@@ -1,0 +1,2 @@
+-r requirements-prod.txt
+playwright==1.55.0
