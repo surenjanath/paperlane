@@ -404,3 +404,8 @@ templates/     Django templates (about 150)
 static/        css/app.css, js/ (app, editor, fill, forms, analytics)
 docs/          ARCHITECTURE.md, DEPLOYMENT.md
 ```
+
+## Licence
+
+Paperlane is free software under the [GNU Affero General Public License v3.0](LICENSE). You can use, change and
+self-host it; if you offer a changed version to others over a network, you must share your changes under the same licence.
