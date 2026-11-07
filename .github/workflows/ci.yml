@@ -27,7 +27,8 @@ jobs:
       - run: pip install -r requirements-prod.txt
       - run: python manage.py test --noinput
   browser:
-    runs-on: ubuntu-latest
+    # Playwright 1.55 can't install Chromium on ubuntu-latest (26.04); keep the browser job on 24.04.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
