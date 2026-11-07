@@ -84,6 +84,18 @@ class Command(BaseCommand):
                         vals[doc["key"]] = {fid: _sample(f) for f in doc["fields"] for fid in [f["id"]] if fid in ids and _sample(f) is not None}
                     engine.complete_run(run, vals, user=run.assignee_user)
                     p.refresh_from_db()
+            # documents were back-dated above; keep their last activity in the past too so lists sort naturally
+            from flows.models import Packet
+
+            for pk, created in Packet.objects.filter(workflow=wf).values_list("pk", "created_at"):
+                t = created
+                for r in StepRun.objects.filter(packet_id=pk).order_by("id"):
+                    StepRun.objects.filter(pk=r.pk).update(created_at=t)
+                    if r.completed_at:
+                        t = min(t + timezone.timedelta(hours=rng.randint(1, 20), minutes=rng.randint(0, 59)), timezone.now())
+                        StepRun.objects.filter(pk=r.pk).update(opened_at=t, completed_at=t)
+                Packet.objects.filter(pk=pk).update(last_activity_at=t)
+                Packet.objects.filter(pk=pk, completed_at__isnull=False).update(completed_at=t)
         tpl = services.create_workflow(ws, owner, name="Beneficiary change request", kind="template")
         services.publish(tpl, owner)
         self.stdout.write(self.style.SUCCESS("Demo workspace seeded. Log in as owner@paperlane.test (see README for the password)."))
@@ -97,10 +109,40 @@ def _sample_date():
     return (timezone.localdate() + dt.timedelta(days=12 + 9 * (next(_DATE_STEP) % 12))).isoformat()
 
 
+_PICK = itertools.count()
+PEOPLE = ["Jordan Baptiste", "Alicia Mohammed", "Kevin Ramlal", "Shania Joseph", "Daniel Ali", "Grace Kim", "Tom Reyes"]
+COMPANIES = ["Northwind Supplies Ltd.", "Bluewave IT Services", "Harbour Print Co.", "Brightpath Consulting", "Spotless Cleaning"]
+TEXT_BY_LABEL = [  # (words in the label, sample values)
+    (("campaign",), ["Spring renewal campaign", "Broker newsletter, June", "Life cover explainer video"]),
+    (("project",), ["Branch refurbishment", "New claims portal", "Server room upgrade"]),
+    (("item",), ["Laptop for a new starter", "Office chairs", "Conference room projector"]),
+    (("bank",), ["Harbour Bank", "Island Credit Union", "First Coastal Bank"]),
+    (("company", "supplier", "customer"), COMPANIES),
+    (("name", "employee", "requester", "claimant", "contact"), PEOPLE),
+    (("account",), ["012-448812-7", "093-117245-1", "045-902381-6"]),
+    (("po number",), ["PO-4412", "PO-4419", "PO-4425"]),
+    (("policy",), ["POL-100002", "POL-100004", "POL-100005"]),
+    (("tax",), ["TX-583920", "TX-210447", "TX-771305"]),
+    (("reference",), ["INV-2291", "INV-2304", "INV-2317"]),
+    (("what happened", "findings", "investigation"), ["Water came through the ceiling after heavy rain.", "Photos and the repair quote match the reported damage.", "Neighbour confirmed the date and time of the incident."]),
+    (("business case", "brief", "reason"), ["Replaces equipment that is out of warranty and failing.", "Supports the renewal season with a short, focused message.", "Needed to meet the new service-level targets."]),
+    (("terms",), ["Net 30 payment terms.", "Prices fixed for twelve months.", "Includes on-site support."]),
+    (("notes",), ["Checked and agreed.", "Looks good, approved within budget.", "All documents received."]),
+]
+
+
+def _text_for(f):
+    label = f"{f.get('label') or ''} {f.get('name') or ''}".lower()
+    for words, values in TEXT_BY_LABEL:
+        if any(w in label for w in words):
+            return values[next(_PICK) % len(values)]
+    return "Checked and agreed."
+
+
 def _sample(f):
     t = f.get("type")
     return {
-        "text": "Sample text", "textarea": "Longer sample answer.", "email": "person@example.com", "date": _sample_date(),
+        "text": _text_for(f), "textarea": _text_for(f), "email": "person@example.com", "date": _sample_date(),
         "number": "3", "currency": "1250", "phone": "+1 868 555 0100", "radio": (f.get("options") or ["Yes"])[0],
         "dropdown": (f.get("options") or ["Yes"])[0], "checkbox": (f.get("options") or [])[:1] or True,
         "rating": "4", "clickwrap": True,

@@ -44,3 +44,12 @@ class LoginLandingTests(TestCase):
             self.assertEqual(self.client.post("/accounts/login/demo/", {"email": "owner@paperlane.test"}).status_code, 404)
         with mock.patch.dict("os.environ", {"PAPERLANE_DEMO_LOGIN": "1"}):
             self.assertContains(self.client.get("/accounts/login/"), "Demo accounts")
+
+
+class PublicHeaderTests(TestCase):
+    """Logged-out docs and help pages show one header, not the public top bar plus their own."""
+
+    def test_single_header(self):
+        for url in ["/pages/privacy/", "/pages/terms/", "/help/"]:
+            html = self.client.get(url).content.decode()
+            self.assertEqual(html.count('class="public-top"') + html.count('class="hc-top"'), 1, url)

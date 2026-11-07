@@ -55,3 +55,13 @@ class ApprovalTests(TestCase):
         self.assertEqual(self.p.runs.get(pk=card["run"].pk).status, "pending")
         self.client.force_login(User.objects.get(username="fay"))  # not the assignee
         self.assertEqual(self.client.post(f"/approvals/{card['run'].token}/", {"decision": "Approve"}).status_code, 403)
+
+
+class DecisionToneTests(TestCase):
+    def test_negatives_win(self):
+        from flows.views.approvals import _tone
+
+        for opt, tone in [("Approve", "good"), ("Approved", "good"), ("Yes", "good"), ("Accept", "good"),
+                          ("Not approved", "bad"), ("Disapprove", "bad"), ("No", "bad"), ("Reject", "bad"),
+                          ("Declined", "bad"), ("Do not authorise", "bad"), ("Send back", "neutral"), ("Reduce", "neutral")]:
+            self.assertEqual(_tone(opt), tone, opt)

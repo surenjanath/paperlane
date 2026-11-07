@@ -51,9 +51,14 @@ def plan(run):
     return {"decision": decision, "comment": comment, "blocking": blocking, "facts": facts}
 
 
+NEGATIVE = re.compile(r"\b(not|no|don'?t|do not|never)\b|\b(dis|un)(approv|authori)|reject|declin|deny|refus", re.I)
+POSITIVE = re.compile(r"approv|accept|authori|\byes\b", re.I)
+
+
 def _tone(option):
-    o = str(option).lower()
-    return "good" if re.search(r"approv|accept|authori|yes", o) else "bad" if re.search(r"reject|declin|deny|refus|no\b", o) else "neutral"
+    """good / bad / neutral for a decision option; negatives win, so "Not approved" is bad, not good."""
+    o = str(option)
+    return "bad" if NEGATIVE.search(o) else "good" if POSITIVE.search(o) else "neutral"
 
 
 @login_required

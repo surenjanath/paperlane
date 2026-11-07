@@ -343,3 +343,56 @@ class NewBotTests(TestCase):
                   "add_comment", "notify_team"):
             r = self.client.get(f"/workflows/{self.wf.pk}/bots/new/?type={t}")
             self.assertEqual(r.status_code, 200, t)
+
+
+class SeedStoriesTests(TestCase):
+    """The story seed builds five clean workflows with documents at every stage and never in the future."""
+
+    def test_stories(self):
+        import io
+
+        from django.core.management import call_command
+        from django.utils import timezone
+
+        from flows import checks
+        from flows.models import Packet, Workflow
+
+        call_command("seed_demo", verbosity=0, stdout=io.StringIO())
+        call_command("seed_stories", stdout=io.StringIO())
+        names = ["Expense claim", "Leave request", "Vendor onboarding", "Insurance claim", "Purchase request"]
+        wfs = Workflow.objects.live().filter(name__in=names)
+        self.assertEqual(wfs.count(), 5)
+        for wf in wfs:
+            self.assertFalse([i for i in checks.run(wf) if i["level"] == "error"], wf.name)
+        docs = Packet.objects.filter(workflow__in=wfs)
+        statuses = set(docs.values_list("status", flat=True))
+        self.assertTrue({"completed", "in_progress", "declined"} <= statuses)
+        self.assertFalse(docs.filter(created_at__gt=timezone.now()).exists())
+        call_command("seed_stories", stdout=io.StringIO())  # idempotent without --replace
+        self.assertEqual(Packet.objects.filter(workflow__in=wfs).count(), docs.count())
+
+
+class AssigneeNameTests(TestCase):
+    """A step sent to a teammate's address shows their name; an outsider (even a user of another workspace) keeps the address."""
+
+    def test_member_named_outsider_not(self):
+        import io
+
+        from django.contrib.auth import get_user_model
+        from django.core.management import call_command
+
+        from accounts.models import Workspace
+        from flows import engine
+        from flows.blueprint import build_workflow
+
+        call_command("seed_demo", verbosity=0, stdout=io.StringIO())
+        ws = Workspace.objects.get(slug="demo")
+        owner = get_user_model().objects.get(username="owner")
+        get_user_model().objects.create_user("stranger", "stranger@elsewhere.test", "x", first_name="Secret", last_name="Name")
+        spec = {"name": "Names", "documents": [{"key": "d", "name": "D", "fields": [{"id": "a", "type": "text", "label": "A", "filled_by": ["one"]}]}],
+                "steps": [{"key": "one", "name": "One", "recipient": {"type": "email", "email": "sam@paperlane.test, stranger@elsewhere.test"}}]}
+        wf, _ = build_workflow(ws, owner, spec, publish=True, strict=False)
+        p = engine.start_packet(wf, user=owner)
+        names = {r.assignee_email: r.assignee_name for r in p.runs.all()}
+        self.assertEqual(names["sam@paperlane.test"], "Sam Supervisor")
+        self.assertEqual(names["stranger@elsewhere.test"], "stranger@elsewhere.test")

@@ -23,7 +23,7 @@
     </div>
     <figure class="lx-frame">
       <div class="lx-frame-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-      <img src="{% static 'img/landing/documents.webp' %}" width="1800" height="1125" fetchpriority="high"
+      <img src="{% static 'img/landing/documents.webp' %}?v={{ asset_v }}" width="1800" height="1125" fetchpriority="high"
            alt="The Documents list in Paperlane: expense claims, campaigns and invoices, each with its status, current step and progress.">
     </figure>
   </div>
@@ -43,8 +43,8 @@
     </div>
     <figure class="lx-frame lx-reveal">
       <div class="lx-frame-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-      <img src="{% static 'img/landing/builder.webp' %}" width="1800" height="1182" loading="lazy"
-           alt="The workflow builder showing an employee onboarding process: a new employee step, then an HR manager step.">
+      <img src="{% static 'img/landing/builder.webp' %}?v={{ asset_v }}" width="1800" height="1182" loading="lazy"
+           alt="The workflow builder showing an insurance claim: the claimant, a claims assessment, a branch for claims over 5,000 and payment.">
     </figure>
   </div>
 </section>
@@ -56,7 +56,7 @@
     <div class="lx-bento">
       <article class="lx-cell shot lx-reveal">
         <div><h3>Build a form from a description</h3><p>Or start from an existing PDF, Word file or photo. Edit with plain instructions, undo anything.</p></div>
-        <img src="{% static 'img/landing/ai-builder.webp' %}" width="838" height="1050" loading="lazy"
+        <img src="{% static 'img/landing/ai-builder.webp' %}?v={{ asset_v }}" width="838" height="1050" loading="lazy"
              alt="The AI document builder panel in the form editor, with example prompts and a Design the document button.">
       </article>
       <article class="lx-cell lx-reveal" style="--i:1">
@@ -94,11 +94,21 @@
   <div class="lx-wrap">
     <h2 class="lx-h2 lx-reveal">Start from a template.</h2>
     <p class="lx-p lx-reveal">Publish one as it is, or change it to match your paperwork.</p>
-  </div>
-  <div class="lx-rail" role="list">
-    {% for key, t in form_templates.items %}
-    <a class="lx-tpl" role="listitem" href="{% url 'accounts:signup' %}"><small>{{ t.category }}</small><b>{{ t.name }}</b><p>{{ t.description }}</p></a>
-    {% endfor %}
+    <div class="lx-tpls" role="list">
+      {% for key, t in form_templates.items %}
+      <a class="lx-tpl lx-reveal" style="--i:{{ forloop.counter0 }}" role="listitem" href="{% url 'accounts:signup' %}">
+        <div class="lx-tpl-prev" aria-hidden="true">
+          <div class="lx-tpl-sheet"><span class="t"></span><i class="half"></i><i class="half"></i><i></i>{% if forloop.counter|divisibleby:2 %}<i class="area"></i>{% else %}<i></i><i class="half"></i>{% endif %}<em></em></div>
+        </div>
+        <div class="lx-tpl-body">
+          <small class="lx-chip">{{ t.category }}</small>
+          <b>{{ t.name }}</b>
+          <p>{{ t.description }}</p>
+          <span class="lx-tpl-foot"><span>{{ t.fields|length }} fields</span><span class="go">Use this template <span aria-hidden="true">→</span></span></span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
   </div>
 </section>
 

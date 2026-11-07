@@ -252,8 +252,10 @@ def _resolve_assignees(packet, step, first_assignee=None):
             email = str(packet.flat_values().get(email.strip("{}").replace("field:", "").strip(), "")).strip()
             if not email:
                 continue
-        out.append({"email": email, "name": step.get("recipient_name") or email,
-                    "user": User.objects.filter(email__iexact=email).first()})
+        user = User.objects.filter(email__iexact=email).first()
+        # a teammate is shown by name; anyone outside the workspace keeps their address (no cross-workspace name leak)
+        member_name = actor_label(user) if user and user.memberships.filter(workspace=packet.workspace).exists() else ""
+        out.append({"email": email, "name": step.get("recipient_name") or member_name or email, "user": user})
     if not out and packet.created_by:  # nobody configured → fall back to the sender
         u = packet.created_by
         out.append({"email": u.email, "name": actor_label(u), "user": u})

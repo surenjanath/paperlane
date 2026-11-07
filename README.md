@@ -37,6 +37,7 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python manage.py migrate
 .venv/bin/python manage.py seed_demo          # optional demo workspace
+.venv/bin/python manage.py seed_stories       # optional: five workflows with documents at every stage
 .venv/bin/python manage.py runserver
 ```
 
@@ -51,6 +52,13 @@ Open http://127.0.0.1:8000. Demo login (local test data created by `seed_demo`):
 | fay | fay@paperlane.test | Filler |
 
 Password for all demo users: `paperlane-demo-2026` (override with `PAPERLANE_DEMO_PASSWORD` before seeding).
+
+`seed_stories` adds five workflows (Expense claim, Leave request, Vendor onboarding, Insurance claim, Purchase
+request) and 27 documents filled step by step by named teammates over the last three weeks: Priya Patel (Finance),
+Marcus Lee (HR), Dana Cruz (Claims), Leo Brooks (Procurement), Tom Reyes and Grace Kim, plus outside clients and
+vendors. Some are finished, some wait on a person or a group queue, one is sent back and one is declined. To see a
+request move, sign in as **Fay**, complete *Purchase – Ergonomic chair*, then sign in as **Sam** and approve it under
+**Approvals**; it lands in the Procurement queue. Rebuild with `seed_stories --replace`.
 
 Run the scheduler (reminders, access expirations, scheduled autostarts) alongside the server:
 
@@ -381,7 +389,7 @@ flows/         the product core
   mcp.py           MCP server (stdio and HTTP)          exports.py     PDF / CSV / ZIP
   checks.py        builder checks (lint before publish) undo.py        builder undo / redo stacks
   views/           library, builder, editor, fill, packets, forms, workload, integrations, webhooks, api, ai
-  management/commands/  seed_demo, paperlane_tick, paperlane_mcp, import_workflow, build_claims_workflow
+  management/commands/  seed_demo, seed_stories, paperlane_tick, paperlane_mcp, import_workflow, build_claims_workflow
 core/          dashboard and analytics, inbox, search, notifications, archive and trash, the `ui` template tags,
                HTML sanitizer, shared queries and helpers; test_deep.py (end-to-end and route-sweep tests)
 superadmin/    platform console (/platform/), platform settings and feature switches, sign-in log, broadcasts,
