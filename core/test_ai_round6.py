@@ -58,14 +58,15 @@ class AIRound6Tests(TestCase):
 
     def test_meaning_search_uses_vectors_when_an_embedding_model_exists(self):
         label = self.text_field()
-        a = self.packet({label: "Employee onboarding forms for a new hire"})
+        a = self.packet({label: "Employee onboarding forms for a new hire at Zebracorp"})
         b = self.packet({label: "Quarterly sales invoice"})
         self.ws.settings["ai"]["embed_engine"] = "ollama:emb"
         self.ws.save()
         from flows import semantic
 
         def fake_embed(engine, texts):
-            return [[1.0, 0.0] if ("hire" in t or "staff" in t) else [0.0, 1.0] for t in texts]
+            # only document a and the question point the same way (seeded documents may also mention "hire")
+            return [[1.0, 0.0] if ("Zebracorp" in t or "staff" in t) else [0.0, 1.0] for t in texts]
 
         with mock.patch("flows.ai_providers.embedding_engines", return_value=[{"id": "ollama:emb", "label": "emb"}]), \
                 mock.patch("flows.ai_providers.embed", side_effect=fake_embed):

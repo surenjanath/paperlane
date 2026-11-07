@@ -150,7 +150,7 @@ def search(membership, query, limit=8, packets=None):
         if score > 0.05 and (lx > 0 or vc > 0.35):
             ranked.append({"packet": r.packet, "score": round(score, 3), "snippet": _snippet(r.text, terms),
                            "why": "meaning and words" if vc > 0.35 and lx else ("meaning" if vc > 0.35 else "words")})
-    ranked.sort(key=lambda x: -x["score"])
+    ranked.sort(key=lambda x: (-x["score"], -x["packet"].pk))  # ties: newest first, the same on every database
     if ranked:  # keep the clear matches: a long tail of weak ones only adds noise
         cut = ranked[0]["score"] * 0.6
         ranked = [r for r in ranked if r["score"] >= cut]
