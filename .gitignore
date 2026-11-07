@@ -25,3 +25,6 @@ backups/
 
 # walkthrough video/PDF workspace (node_modules, venv, renders)
 walkthrough/
+
+# the bank example ships its fictional sample database
+!examples/**/*.sqlite3

@@ -21,9 +21,11 @@
   <form method="post">{% csrf_token %}<input type="hidden" name="form" value="general">
     <div class="grid-2">
       <div class="field"><label>Name</label><input type="text" name="name" value="{{ c.name }}" required maxlength="120"></div>
-      <div class="field"><label>Base URL</label><input type="url" name="base_url" value="{{ c.base_url }}" required></div>
+      {% if c.kind == 'sqlite' %}<div class="field"><label>Database file</label><input type="text" name="database" value="{{ c.database }}" required>
+        <div class="help">Relative to an allowed data folder; opened read-only.</div></div>{% else %}
+      <div class="field"><label>Base URL</label><input type="url" name="base_url" value="{{ c.base_url }}" required></div>{% endif %}
     </div>
-    <div class="grid-2">
+    {% if c.kind != 'sqlite' %}<div class="grid-2">
       <div class="field"><label>Authentication</label><select name="auth_type">{% for k, l in auths %}<option value="{{ k }}" {% if c.auth_type == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
       <div class="field"><label>Header / query parameter name</label><input type="text" name="auth_name" value="{{ c.auth_name }}" placeholder="X-API-Key or api_key"></div>
     </div>
@@ -33,7 +35,7 @@
         <div class="help">Basic auth: <code>user:password</code>.</div></div>
       <div class="field"><label>Timeout (seconds)</label><input type="number" name="timeout" min="1" max="60" value="{{ c.timeout }}"></div>
     </div>
-    <div class="field"><label>Extra headers (one per line: <code>Name = value</code>)</label><textarea name="headers" rows="3" placeholder="X-Tenant = acme">{{ headers_text }}</textarea></div>
+    <div class="field"><label>Extra headers (one per line: <code>Name = value</code>)</label><textarea name="headers" rows="3" placeholder="X-Tenant = acme">{{ headers_text }}</textarea></div>{% endif %}
     <div class="field"><label>Description</label><input type="text" name="description" value="{{ c.description }}" maxlength="300"></div>
     <label class="check"><input type="checkbox" name="active" {% if c.active %}checked{% endif %}> Active</label>
     <div style="margin-top:12px"><button class="btn btn-dark">Save connection</button></div>
@@ -41,10 +43,10 @@
 </div>
 
 <h2 style="margin:18px 0 8px">Actions</h2>
-<p class="muted small" style="margin-bottom:10px">Tokens: <code>{field:Policy Number}</code> — a value from the document or form · <code>{value}</code> — what was typed in a form lookup. Mapping lines: <code>Field name = json.path</code> (e.g. <code>Payee = data.holder.name</code>, <code>First = items.0.name</code>).</p>
+{% if c.kind == "sqlite" %}<p class="muted small" style="margin-bottom:10px">Tokens: <code>{field:Customer ID}</code> — a value from the document or form · <code>{value}</code> — what was typed in a form lookup. They are sent as query parameters, so they can never change the SQL. Mapping lines: <code>Field name = column</code>.</p>{% else %}<p class="muted small" style="margin-bottom:10px">Tokens: <code>{field:Policy Number}</code> — a value from the document or form · <code>{value}</code> — what was typed in a form lookup. Mapping lines: <code>Field name = json.path</code> (e.g. <code>Payee = data.holder.name</code>, <code>First = items.0.name</code>).</p>{% endif %}
 {% for a in actions %}
 <details class="card card-pad" style="margin-bottom:12px" {% if result and result.key == a.key %}open{% endif %}>
-  <summary style="cursor:pointer"><b>{{ a.name }}</b> <code>{{ a.key }}</code> <span class="muted small">{{ a.method }} /{{ a.path }}</span></summary>
+  <summary style="cursor:pointer"><b>{{ a.name }}</b> <code>{{ a.key }}</code> <span class="muted small">{% if c.kind == "sqlite" %}{{ a.sql|truncatechars:70 }}{% else %}{{ a.method }} /{{ a.path }}{% endif %}</span></summary>
   <form method="post" style="margin-top:12px">{% csrf_token %}<input type="hidden" name="form" value="action"><input type="hidden" name="orig_key" value="{{ a.key }}">
     {% include "flows/_connector_action_fields.html" %}
     <button class="btn btn-dark">Save action</button>
@@ -56,7 +58,7 @@
       <div class="field"><label>…or values of document #</label><input type="text" name="document" inputmode="numeric" placeholder="33"></div>
     </div>
     <div class="field"><label>Field values (<code>Name = value</code> per line)</label><textarea name="values" rows="2" placeholder="Policy Number = POL-200101"></textarea></div>
-    <button class="btn">{% icon "bolt" %} Send test request</button>
+    <button class="btn">{% icon "bolt" %} {% if c.kind == "sqlite" %}Run test query{% else %}Send test request{% endif %}</button>
   </form>
   <form method="post" action="{% url 'flows:connector_action' c.pk 'remove_action' %}" style="margin-top:8px" data-confirm="Remove the action “{{ a.name }}”? Bots that use it will fail.">{% csrf_token %}<input type="hidden" name="key" value="{{ a.key }}"><button class="btn btn-sm btn-danger">Remove action</button></form>
 </details>

@@ -560,6 +560,20 @@ art("integrations", "connectors", "Custom connectors (any HTTP/JSON API)",
 <p>Use connectors in the <b>Run a custom connector</b> bot, in start-form lookups, and from MCP.</p>
 """, "connector api http json integration crm lookup external system")
 
+art("integrations", "sqlite-connectors", "Database connectors (read-only SQLite)",
+    "Look up customers, accounts or products straight from a database file.",
+    """
+<p>Choose <b>SQLite database (read-only)</b> as the connector type and name a file inside an allowed data folder
+(<code>PAPERLANE_DATA_DIRS</code>, by default <code>data/</code> and <code>examples/</code>). Each action is one
+<code>SELECT</code> query; <code>{value}</code> and <code>{field:Name}</code> are sent as query parameters, so typed
+text can never change the query. Map the first row onto fields with <code>Field name = column</code> lines.</p>
+<p>The database is opened read-only, writes, <code>ATTACH</code>, <code>PRAGMA</code> and extensions are refused, and
+queries stop after 3 seconds. On a public form, ask for two things only the customer knows (for example a customer
+number and a date of birth) before a lookup returns anything.</p>
+<p>See the bank example (<code>python manage.py seed_bank_demo</code>): a personal-loan process where the application
+form and the officer's credit check read from a sample core-banking database.</p>
+""", "connector sqlite database sql select lookup core banking customers read only")
+
 art("integrations", "webhooks", "Webhooks",
     "Send signed events to your systems when documents change.",
     """

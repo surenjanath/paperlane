@@ -159,6 +159,9 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 
 # In-process scheduler (reminders, deadlines, autostarts, webhook retries) for single-server setups.
 # Turn off with PAPERLANE_SCHEDULER=0 when running `manage.py paperlane_tick --loop 30` separately.
+# Read-only SQLite connectors may only open files inside these folders (colon-separated in the env var).
+PAPERLANE_DATA_DIRS = [Path(p).expanduser() for p in os.environ.get("PAPERLANE_DATA_DIRS", "").split(":") if p.strip()] or [
+    BASE_DIR / "data", BASE_DIR / "examples"]
 PAPERLANE_SCHEDULER = os.environ.get("PAPERLANE_SCHEDULER", "1") == "1"
 PAPERLANE_SCHEDULER_SECONDS = int(os.environ.get("PAPERLANE_SCHEDULER_SECONDS", "30"))
 

@@ -441,8 +441,9 @@ class Server:
     def t_list_connectors(self):
         from flows.models import Connector
 
-        return [{"id": c.pk, "name": c.name, "base_url": c.base_url, "active": c.active, "auth": c.auth_type,
-                 "actions": [{"key": a.get("key"), "name": a.get("name"), "method": a.get("method"), "path": a.get("path"),
+        return [{"id": c.pk, "name": c.name, "kind": c.kind, "base_url": c.base_url, "database": c.database, "active": c.active,
+                 "auth": c.auth_type,
+                 "actions": [{"key": a.get("key"), "name": a.get("name"), "method": a.get("method"), "path": a.get("path"), "sql": a.get("sql"),
                               "maps_to": [m.get("field") for m in a.get("map") or []]} for a in c.actions or []]}
                 for c in Connector.objects.filter(workspace=self.ws)]
 

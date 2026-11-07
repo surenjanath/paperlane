@@ -876,10 +876,15 @@ class Connector(models.Model):
     AUTH_NONE, AUTH_BEARER, AUTH_HEADER, AUTH_BASIC, AUTH_QUERY = "none", "bearer", "header", "basic", "query"
     AUTHS = [(AUTH_NONE, "No authentication"), (AUTH_BEARER, "Bearer token"), (AUTH_HEADER, "API key in a header"),
              (AUTH_BASIC, "Basic (user:password)"), (AUTH_QUERY, "API key in the URL query")]
+    KIND_HTTP, KIND_SQLITE = "http", "sqlite"
+    KINDS = [(KIND_HTTP, "HTTP / JSON API"), (KIND_SQLITE, "SQLite database (read-only)")]
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="connectors")
     name = models.CharField(max_length=120)
     description = models.CharField(max_length=300, blank=True)
-    base_url = models.URLField(max_length=500)
+    kind = models.CharField(max_length=10, choices=KINDS, default=KIND_HTTP)
+    # SQLite: a file inside one of settings.PAPERLANE_DATA_DIRS, opened read-only; actions hold {"sql": ...}
+    database = models.CharField(max_length=255, blank=True)
+    base_url = models.URLField(max_length=500, blank=True)
     auth_type = models.CharField(max_length=10, choices=AUTHS, default=AUTH_NONE)
     auth_name = models.CharField(max_length=80, blank=True, help_text="Header or query parameter name")
     secret = models.CharField(max_length=500, blank=True)

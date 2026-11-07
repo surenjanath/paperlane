@@ -6,6 +6,7 @@ import time
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.conf import settings
 from django.core.validators import URLValidator
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -45,8 +46,15 @@ def _dict_lines(d):
 
 def _apply_general(request, c):
     p = request.POST
-    url = p.get("base_url", "").strip()
-    URLValidator(schemes=["http", "https"])(url)
+    if not c.pk:
+        c.kind = Connector.KIND_SQLITE if p.get("kind") == Connector.KIND_SQLITE else Connector.KIND_HTTP
+    if c.kind == Connector.KIND_SQLITE:
+        connectors.database_path(p.get("database", ""))  # must exist inside an allowed data folder
+        c.database = p.get("database", "").strip()[:255]
+        url = ""
+    else:
+        url = p.get("base_url", "").strip()
+        URLValidator(schemes=["http", "https"])(url)
     c.name = p.get("name", "").strip()[:120] or "Connector"
     c.description = p.get("description", "").strip()[:300]
     c.base_url = url
@@ -73,20 +81,24 @@ def connector_list(request):
         c = Connector(workspace=request.workspace, created_by=request.user)
         try:
             _apply_general(request, c)
+        except connectors.ConnectorError as exc:
+            messages.error(request, str(exc))
+            return redirect("flows:connectors")
         except Exception:
             messages.error(request, "Enter a name and a valid http(s) base URL.")
             return redirect("flows:connectors")
         if Connector.objects.filter(workspace=request.workspace, name=c.name).exists():
             messages.error(request, f"A connector named “{c.name}” already exists.")
             return redirect("flows:connectors")
-        c.actions = [{"key": "get", "name": "Get", "method": "GET", "path": "", "query": {}, "body": "", "map": []}]
+        c.actions = ([{"key": "lookup", "name": "Look up", "sql": "", "map": []}] if c.kind == Connector.KIND_SQLITE
+                     else [{"key": "get", "name": "Get", "method": "GET", "path": "", "query": {}, "body": "", "map": []}])
         c.save()
         engine.audit(request.workspace, "connector.created", c.name, actor=request.user, request=request)
         messages.success(request, "Connector created. Define its actions, then test them.")
         return redirect("flows:connector_detail", c.pk)
     return render(request, "flows/connectors.html", {
         "section": "connectors", "items": Connector.objects.filter(workspace=request.workspace), "auths": Connector.AUTHS,
-        "examples": EXAMPLES})
+        "examples": EXAMPLES, "kinds": Connector.KINDS, "data_dirs": [p.name for p in settings.PAPERLANE_DATA_DIRS]})
 
 
 EXAMPLES = [
@@ -108,6 +120,9 @@ def connector_detail(request, pk):
         if what == "general":
             try:
                 _apply_general(request, c)
+            except connectors.ConnectorError as exc:
+                messages.error(request, str(exc))
+                return redirect("flows:connector_detail", c.pk)
             except Exception:
                 messages.error(request, "Enter a valid http(s) base URL.")
                 return redirect("flows:connector_detail", c.pk)
@@ -119,11 +134,20 @@ def connector_detail(request, pk):
             if not key:
                 messages.error(request, "Give the action a key (letters, numbers and _).")
                 return redirect("flows:connector_detail", c.pk)
-            action = {"key": key, "name": p.get("name", "").strip()[:80] or key,
-                      "method": p.get("method") if p.get("method") in METHODS else "GET",
-                      "path": p.get("path", "").strip()[:500], "query": _lines(p.get("query")),
-                      "body": p.get("body", "").strip()[:8000], "map": connectors.parse_map(p.get("map"))}
-            if action["body"]:
+            if c.kind == Connector.KIND_SQLITE:
+                action = {"key": key, "name": p.get("name", "").strip()[:80] or key, "sql": p.get("sql", "").strip()[:8000],
+                          "map": connectors.parse_map(p.get("map"))}
+                try:
+                    connectors.check_sql(action["sql"])
+                except connectors.ConnectorError as exc:
+                    messages.error(request, str(exc))
+                    return redirect("flows:connector_detail", c.pk)
+            else:
+                action = {"key": key, "name": p.get("name", "").strip()[:80] or key,
+                          "method": p.get("method") if p.get("method") in METHODS else "GET",
+                          "path": p.get("path", "").strip()[:500], "query": _lines(p.get("query")),
+                          "body": p.get("body", "").strip()[:8000], "map": connectors.parse_map(p.get("map"))}
+            if action.get("body"):
                 try:
                     json.loads(connectors.render(action["body"], {}, mode="json"))
                 except ValueError as exc:
@@ -140,7 +164,7 @@ def connector_detail(request, pk):
         "section": "connectors", "c": c, "auths": Connector.AUTHS, "methods": METHODS, "headers_text": _dict_lines(c.headers),
         "actions": [{**a, "query_text": _dict_lines(a.get("query")), "map_text": connectors.map_text(a.get("map"))}
                     for a in c.actions or []],
-        "result": result, "result_json": json.dumps(result.get("data"), indent=2, default=str)[:6000] if result else "",
+        "result": result, "result_json": json.dumps(result.get("rows") or result.get("data"), indent=2, default=str)[:6000] if result else "",
     })
 
 

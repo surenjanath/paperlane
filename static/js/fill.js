@@ -177,16 +177,22 @@ const ft = (k, fallback, n) => (FILL_T[k] || fallback).replace("%(n)s", n);
   function computeFormula(expr, vals) {
     if (!expr) return "";
     const src = expr.replace(/\{([^}]+)\}/g, (_, k) => { const n = num(vals[k.trim()]); return n === null ? "0" : String(n); });
-    const toks = src.match(/\d+(\.\d+)?|[a-z]+|[-+*/%(),]/gi) || [];
+    const toks = src.match(/\d+(\.\d+)?(e[-+]?\d+)?|[a-z]+|\*\*|[-+*/%(),]/gi) || [];
     let i = 0;
     const FN = { min: Math.min, max: Math.max, abs: Math.abs, round: (v, d = 0) => +Number(v).toFixed(d), sum: (...a) => a.reduce((s, x) => s + x, 0) };
     const peek = () => toks[i], eat = () => toks[i++];
     function expr_() { let v = term(); while (peek() === "+" || peek() === "-") v = eat() === "+" ? v + term() : v - term(); return v; }
     function term() { let v = factor(); while (["*", "/", "%"].includes(peek())) { const op = eat(), r = factor(); v = op === "*" ? v * r : op === "/" ? v / r : v % r; } return v; }
+    // same rules as the server (Python): ** binds tighter than a leading minus and groups right to left
     function factor() {
+      if (peek() === "-") { eat(); return -factor(); }
+      if (peek() === "+") { eat(); return factor(); }
+      const b = atom();
+      if (peek() === "**") { eat(); const e = factor(); if (Math.abs(e) > 1000) throw 0; return Math.pow(b, e); }
+      return b;
+    }
+    function atom() {
       const t = eat();
-      if (t === "-") return -factor();
-      if (t === "+") return factor();
       if (t === "(") { const v = expr_(); if (eat() !== ")") throw 0; return v; }
       if (t && FN[t.toLowerCase()]) {
         if (eat() !== "(") throw 0;

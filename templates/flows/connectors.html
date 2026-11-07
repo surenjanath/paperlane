@@ -10,7 +10,7 @@
   <thead><tr><th>Connector</th><th>Actions</th><th>Last call</th><th></th></tr></thead>
   <tbody>{% for c in items %}
   <tr>
-    <td><a class="link" href="{% url 'flows:connector_detail' c.pk %}"><b>{{ c.name }}</b></a>{% if not c.active %} <span class="badge badge-gray">Off</span>{% endif %}<br><small class="muted">{{ c.base_url|truncatechars:60 }} · {{ c.get_auth_type_display }}</small></td>
+    <td><a class="link" href="{% url 'flows:connector_detail' c.pk %}"><b>{{ c.name }}</b></a>{% if not c.active %} <span class="badge badge-gray">Off</span>{% endif %}<br><small class="muted">{% if c.kind == "sqlite" %}SQLite · {{ c.database|truncatechars:60 }} · read-only{% else %}{{ c.base_url|truncatechars:60 }} · {{ c.get_auth_type_display }}{% endif %}</small></td>
     <td><small>{% for a in c.actions %}<code>{{ a.key }}</code>{% if not forloop.last %} {% endif %}{% empty %}—{% endfor %}</small></td>
     <td><small class="muted">{% if c.last_used_at %}{{ c.last_status }} · {{ c.last_used_at|timesince }} ago{% else %}Never{% endif %}</small></td>
     <td style="text-align:right"><a class="btn btn-sm" href="{% url 'flows:connector_detail' c.pk %}">Open</a></td>
@@ -21,7 +21,12 @@
   <form method="post">{% csrf_token %}
     <div class="grid-2">
       <div class="field"><label>Name</label><input type="text" name="name" required maxlength="120" placeholder="Policy system"></div>
-      <div class="field"><label>Base URL</label><input type="url" name="base_url" required placeholder="https://api.example.com/v1"></div>
+      <div class="field"><label>Type</label><select name="kind">{% for k, l in kinds %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Base URL (APIs)</label><input type="url" name="base_url" placeholder="https://api.example.com/v1"></div>
+      <div class="field"><label>Database file (SQLite)</label><input type="text" name="database" placeholder="bank-loan/bank.sqlite3">
+        <div class="help">Inside an allowed data folder ({{ data_dirs|join:", " }}). Opened read-only.</div></div>
     </div>
     <div class="grid-2">
       <div class="field"><label>Authentication</label><select name="auth_type">{% for k, l in auths %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>

@@ -169,8 +169,15 @@ def referenced_fields(condition):
 # ---- safe formula evaluation ---------------------------------------------------
 _OPS = {
     ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
-    ast.Mod: operator.mod, ast.Pow: operator.pow, ast.USub: operator.neg, ast.UAdd: operator.pos,
+    ast.Mod: operator.mod, ast.Pow: lambda a, b: _pow(a, b), ast.USub: operator.neg, ast.UAdd: operator.pos,
 }
+
+
+def _pow(base, exp):
+    """Powers for formulas such as loan payments; huge exponents are refused so a formula can't hang a worker."""
+    if abs(exp) > 1000 or abs(base) > 1e12:
+        raise ValueError("Exponent too large")
+    return float(base) ** exp
 _FUNCS = {"min": min, "max": max, "round": round, "abs": abs, "sum": lambda *a: sum(a)}
 
 

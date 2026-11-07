@@ -7,6 +7,11 @@ with server-rendered templates and no front-end build step.
 Paperlane also has group work queues, duplicate detection, custom API connectors, AI bots, an MCP server for AI
 agents, and platform administration.
 
+**See it on a real process:** [examples/bank-loan](examples/bank-loan/) is a complete personal-loan workflow connected
+to a sample core-banking database: customer lookup on the public form, an automatic credit check, officer review,
+compliance and credit committee for larger or riskier loans, an offer letter the client signs after an email code,
+and disbursement. Run `python manage.py seed_bank_demo` after `seed_demo`.
+
 | | |
 |---|---|
 | **Stack** | Python 3.12+ · Django 6 · SQLite (any Django database) · vanilla JS · xhtml2pdf · openpyxl · segno |
@@ -38,6 +43,7 @@ python3 -m venv .venv
 .venv/bin/python manage.py migrate
 .venv/bin/python manage.py seed_demo          # optional demo workspace
 .venv/bin/python manage.py seed_stories       # optional: five workflows with documents at every stage
+.venv/bin/python manage.py seed_bank_demo     # optional: the bank loan example (examples/bank-loan)
 .venv/bin/python manage.py runserver
 ```
 
@@ -389,7 +395,7 @@ flows/         the product core
   mcp.py           MCP server (stdio and HTTP)          exports.py     PDF / CSV / ZIP
   checks.py        builder checks (lint before publish) undo.py        builder undo / redo stacks
   views/           library, builder, editor, fill, packets, forms, workload, integrations, webhooks, api, ai
-  management/commands/  seed_demo, seed_stories, paperlane_tick, paperlane_mcp, import_workflow, build_claims_workflow
+  management/commands/  seed_demo, seed_stories, seed_bank_demo, paperlane_tick, paperlane_mcp, import_workflow, build_claims_workflow
 core/          dashboard and analytics, inbox, search, notifications, archive and trash, the `ui` template tags,
                HTML sanitizer, shared queries and helpers; test_deep.py (end-to-end and route-sweep tests)
 superadmin/    platform console (/platform/), platform settings and feature switches, sign-in log, broadcasts,

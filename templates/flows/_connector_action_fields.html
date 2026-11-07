@@ -2,10 +2,13 @@
   <div class="field"><label>Name</label><input type="text" name="name" value="{{ a.name|default:'' }}" placeholder="Look up policy" required></div>
   <div class="field"><label>Key (used by bots)</label><input type="text" name="key" value="{{ a.key|default:'' }}" placeholder="lookup_policy" pattern="[A-Za-z0-9_ ]+" required></div>
 </div>
-<div class="grid-2">
+{% if c.kind == 'sqlite' %}<div class="field"><label>SQL query (one SELECT; <code>{value}</code> and <code>{field:Name}</code> are passed as parameters)</label>
+  <textarea name="sql" rows="5" placeholder="SELECT first_name, last_name, email FROM customers WHERE customer_id = {value}" style="font-family:ui-monospace,monospace">{{ a.sql|default:'' }}</textarea>
+  <div class="help">The database is opened read-only. The first row is mapped below by column name; up to 200 rows are returned to the API.</div></div>
+{% else %}<div class="grid-2">
   <div class="field"><label>Method</label><select name="method">{% for m in methods %}<option {% if a.method == m %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
   <div class="field"><label>Path (after the base URL)</label><input type="text" name="path" value="{{ a.path|default:'' }}" placeholder="policies/{value}"></div>
 </div>
 <div class="field"><label>Query parameters (<code>name = value</code> per line)</label><textarea name="query" rows="2" placeholder="branch = {field:Request Branch}">{{ a.query_text|default:'' }}</textarea></div>
 <div class="field"><label>JSON body (POST / PUT / PATCH)</label><textarea name="body" rows="4" placeholder='{"policy": "{field:Policy Number}", "amount": "{field:Payout}"}' style="font-family:ui-monospace,monospace">{{ a.body|default:'' }}</textarea></div>
-<div class="field"><label>Map the response onto fields (<code>Field name = json.path</code> per line)</label><textarea name="map" rows="3" placeholder="Fund Value = policy.fund_value">{{ a.map_text|default:'' }}</textarea></div>
+{% endif %}<div class="field"><label>Map the answer onto fields (<code>Field name = {% if c.kind == 'sqlite' %}column{% else %}json.path{% endif %}</code> per line)</label><textarea name="map" rows="3" placeholder="Fund Value = policy.fund_value">{{ a.map_text|default:'' }}</textarea></div>

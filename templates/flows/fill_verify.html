@@ -20,7 +20,8 @@
       {% endif %}
       {% if method != 'code' %}
         <form method="post" style="margin-top:10px">{% csrf_token %}<input type="hidden" name="idv" value="send">
-          <button class="btn {% if sent %}btn-ghost{% else %}btn-dark{% endif %} btn-block">{% if sent %}Send a new code{% else %}Send a code {% if method == 'email' %}by email{% else %}by text{% endif %}{% if dest %} to {{ dest }}{% endif %}{% endif %}</button>
+          {% if dest and not sent %}<p class="muted small" style="margin:0 0 8px">We'll send a 6-digit code to <b style="word-break:break-all">{{ dest }}</b>.</p>{% endif %}
+          <button class="btn {% if sent %}btn-ghost{% else %}btn-dark{% endif %} btn-block">{% if sent %}Send a new code{% else %}Send a code {% if method == 'email' %}by email{% else %}by text{% endif %}{% endif %}</button>
         </form>
       {% endif %}
     {% endif %}
