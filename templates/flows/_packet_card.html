@@ -1,6 +1,7 @@
 {% load ui %}
-{% with cur=p.current_step nxt=p.next_recipient_step run=p.latest_run prog=p.progress manage=p|can_manage_doc:request tags=p.tags.all %}
+{% with cur=p.current_step nxt=p.next_recipient_step run=p.latest_run prog=p.progress manage=p|can_manage_doc:request tags=p.tags.all mine=p|my_run:request %}
 <article class="pk-card {% if p.is_overdue %}is-overdue{% endif %}">
+  {% if mine %}<a class="dl-fill" href="{{ mine.fill_url }}" title="Open your step: {{ mine.step_name }}">{% icon "edit" 14 %} Fill out</a>{% endif %}
   <header class="pk-head">
     {% if selectable %}<input type="checkbox" class="row-check" value="{{ p.pk }}" aria-label="Select {{ p.name }}">{% endif %}
     <div class="pk-title">

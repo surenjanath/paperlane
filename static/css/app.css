@@ -2172,3 +2172,60 @@ body:has(.portal-wrap) { background: var(--bg-soft); }
 .fn-stop { display: flex; gap: 4px; flex-wrap: wrap; }
 .badge-gray { background: var(--bg-soft); color: var(--muted); }
 @media (max-width: 700px) { .fn-row { grid-template-columns: 1fr 48px; } .fn-bar, .fn-stop { grid-column: 1 / -1; } }
+
+/* ---------- fill page: header, document tabs, action bar, calmer fields ---------- */
+.fx-head { max-width: 760px; margin: 0 auto; padding: 28px 16px 6px; }
+.fx-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.fx-kicker b { color: var(--text); font-weight: 600; }
+.fx-dot { color: var(--faint); }
+.fx-pill { margin-left: 4px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
+.fx-pill.amber { background: var(--amber-soft); color: var(--amber); } .fx-pill.red { background: var(--red-soft); color: var(--red); }
+.fx-head h1 { font-size: 26px; line-height: 1.2; letter-spacing: -.02em; margin: 8px 0 2px; color: var(--heading); }
+.fx-sub { color: var(--muted); margin: 0 0 14px; font-size: 14.5px; }
+.fx-progress { height: 4px; border-radius: 4px; background: rgba(0,0,0,.07); overflow: hidden; }
+.fx-progress span { display: block; height: 100%; border-radius: 4px; background: var(--fill-accent, var(--accent)); }
+.fx-todo { margin: 12px 0 0; font-size: 14px; color: var(--text); }
+.fx-tabs { position: sticky; top: 49px; z-index: 15; max-width: 760px; margin: 14px auto 0; padding: 6px 16px; display: flex; gap: 6px; overflow-x: auto;
+  background: var(--fill-bg, #f3f3f6); scrollbar-width: none; }
+.fx-tabs::-webkit-scrollbar { display: none; }
+.fx-tab { display: inline-flex; align-items: center; gap: 8px; flex: none; height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: #fff; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.fx-tab:hover { border-color: var(--line-strong); }
+.fx-tab.on { border-color: var(--fill-accent, var(--accent)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill-accent, var(--accent)) 16%, transparent); }
+.fx-tab-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-badge { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.fx-badge.todo { background: var(--amber-soft); color: var(--amber); } .fx-badge.todo.done { background: var(--green-soft); color: var(--green); }
+.fx-badge.ro { background: var(--bg-soft); color: var(--muted); }
+.fill-wrap { padding-top: 14px; }
+.fill-doc { border-radius: 14px; border: 1px solid rgba(0,0,0,.06); box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.12); }
+.fill-doc .doc-head { border-radius: 14px 14px 0 0; }
+.fill-doc .ff input:not([type=checkbox]):not([type=radio]):not([type=file]), .fill-doc .ff select, .fill-doc .ff textarea {
+  min-height: 42px; border-radius: 9px; font-size: 15px; transition: border-color .15s, box-shadow .15s; }
+.fill-doc .ff input:focus, .fill-doc .ff select:focus, .fill-doc .ff textarea:focus {
+  outline: none; border-color: var(--fill-accent, var(--accent)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill-accent, var(--accent)) 18%, transparent); }
+.fill-doc .ff .ro { background: transparent; padding: 2px 0 6px; min-height: 0; font-size: 15px; color: var(--heading); border-bottom: 1px dashed var(--line); border-radius: 0; }
+.fill-doc .ff > .lbl { font-size: 13.5px; color: var(--text); }
+.ff.ff-ok > .lbl::after { content: "✓"; margin-left: 6px; color: var(--green); font-weight: 700; }
+.fill-bar { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 20px -14px rgba(0,0,0,.3); }
+.fx-bar-in { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 8px; width: 100%; }
+.fx-grow { flex: 1; }
+.fill-bar .fill-progress { margin-right: 0; }
+.fill-bar .fill-btn { padding: 0 22px; font-weight: 700; }
+.menu.up { top: auto; bottom: calc(100% + 6px); }
+.menu .danger { color: var(--red); }
+@media (max-width: 640px) {
+  .fx-head { padding-top: 18px; } .fx-head h1 { font-size: 22px; }
+  .fx-bar-in { flex-wrap: wrap; } .fill-bar .fill-progress { order: -1; width: 100%; justify-content: center; }
+  .fx-grow { display: none; } .fill-bar .fill-btn { flex: 1; }
+}
+
+/* ---------- “Fill out” on hover: open your own step straight from a list ---------- */
+.dl-row, .pk-card { position: relative; }
+.dl-fill { position: absolute; right: 52px; top: 50%; transform: translateY(-50%); z-index: 3; display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 14px; border-radius: 8px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600;
+  box-shadow: 0 6px 18px -8px rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; }
+.pk-card > .dl-fill { top: 16px; right: 56px; transform: none; }
+.dl-row:hover .dl-fill, .dl-row:focus-within .dl-fill, .pk-card:hover > .dl-fill, .pk-card:focus-within > .dl-fill { opacity: 1; pointer-events: auto; }
+.dl-fill:hover { background: var(--accent); }
+.dl-fill:focus-visible { opacity: 1; pointer-events: auto; outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (hover: none) { .dl-fill { opacity: 1; pointer-events: auto; } }

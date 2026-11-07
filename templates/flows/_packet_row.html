@@ -1,5 +1,5 @@
 {% load ui %}
-{% with cur=p.current_step run=p.latest_run prog=p.progress manage=p|can_manage_doc:request tags=p.tags.all %}
+{% with cur=p.current_step run=p.latest_run prog=p.progress manage=p|can_manage_doc:request tags=p.tags.all mine=p|my_run:request %}
 <article class="dl-row {% if p.is_overdue %}is-overdue{% endif %} st-{{ p.status }}">
   {% if selectable %}<input type="checkbox" class="row-check" value="{{ p.pk }}" aria-label="Select {{ p.name }}">{% else %}<span></span>{% endif %}
 
@@ -41,6 +41,7 @@
     <small title="{{ p.last_activity_at|date:'M j, Y H:i' }}">{% if p.status == 'completed' %}{{ p.completed_at|timesince|upto:"," }}{% else %}{{ p.last_activity_at|timesince|upto:"," }}{% endif %} ago</small>
   </div>
 
+  {% if mine %}<a class="dl-fill" href="{{ mine.fill_url }}" title="Open your step: {{ mine.step_name }}">{% icon "edit" 14 %} Fill out</a>{% endif %}
   {% include "flows/_packet_menu.html" with kebab="dl-kebab" %}
 </article>
 {% endwith %}

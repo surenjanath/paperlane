@@ -22,9 +22,35 @@
       <button class="btn btn-sm btn-dark" name="action" value="claim">Take this task</button>{% endif %}
   </form>
   {% endif %}
+  {% if not preview %}
+  {% with staff=request.membership.workspace_id|default:0 %}
+  <section class="fx-head" aria-labelledby="fx-title">
+    <div class="fx-kicker">
+      <span>{% blocktranslate with n=step_no t=step_total %}Step {{ n }} of {{ t }}{% endblocktranslate %}</span>
+      <span class="fx-dot" aria-hidden="true">·</span>
+      <span>{% translate "From" %} <b>{% if staff == packet.workspace_id %}{{ handed_by }}{% else %}{{ workspace.name }}{% endif %}</b></span>
+      <span class="fx-dot" aria-hidden="true">·</span>
+      <span title="{{ run.created_at|date:'M j, Y H:i' }}">{% blocktranslate with t=run.created_at|timesince|upto:"," %}{{ t }} ago{% endblocktranslate %}</span>
+      {% if run.due_at %}<span class="fx-pill {% if run.is_overdue %}red{% else %}amber{% endif %}">{% if run.is_overdue %}{% translate "Overdue" %}{% else %}{% translate "Due" %} {{ run.due_at|date:"M j" }}{% endif %}</span>{% endif %}
+    </div>
+    <h1 id="fx-title">{{ step.name }}</h1>
+    <p class="fx-sub">{{ packet.name }}</p>
+    <div class="fx-progress" aria-hidden="true"><span style="width:{% widthratio step_no step_total 100 %}%"></span></div>
+    <p class="fx-todo" data-todo-line>{% if n_left %}{% blocktranslate count n=n_left %}{{ n }} required field left to fill{% plural %}{{ n }} required fields left to fill{% endblocktranslate %}{% if n_fill_docs > 1 %} {% blocktranslate with d=n_fill_docs %}across {{ d }} documents{% endblocktranslate %}{% endif %}.{% elif n_req %}{% translate "Everything required is filled in. Check it, then complete this step." %}{% else %}{% translate "Review the documents below, then complete this step." %}{% endif %}</p>
+  </section>
+  {% endwith %}
+  {% if docs|length > 1 %}
+  <nav class="fx-tabs" role="tablist" aria-label="{% translate "Documents" %}">
+    {% for d in docs %}<button type="button" role="tab" class="fx-tab {% if forloop.counter0 == start_doc %}on{% endif %}" data-doc-tab="{{ forloop.counter0 }}" aria-selected="{% if forloop.counter0 == start_doc %}true{% else %}false{% endif %}">
+      <span class="fx-tab-name">{{ d.name }}</span>
+      {% if d.n_edit %}<span class="fx-badge todo" data-doc-left="{{ forloop.counter0 }}">{% translate "Fill in" %}</span>{% else %}<span class="fx-badge ro">{% translate "For reference" %}</span>{% endif %}
+    </button>{% endfor %}
+  </nav>
+  {% endif %}
+  {% endif %}
   <form method="post" enctype="multipart/form-data" id="fill-form" {% if preview %}onsubmit="return false"{% endif %}>{% csrf_token %}
   {% for d in docs %}
-    <div class="fill-wrap {% if d.design.width == 'wide' %}wide{% endif %}" data-doc-wrap {% if docs|length > 1 and not forloop.first %}hidden{% endif %} {% if d.design.width == 'custom' and d.design.custom_width %}style="max-width:{{ d.design.custom_width }}px"{% endif %}>
+    <div class="fill-wrap {% if d.design.width == 'wide' %}wide{% endif %}" data-doc-wrap {% if docs|length > 1 and forloop.counter0 != start_doc %}hidden{% endif %} data-doc-index="{{ forloop.counter0 }}" {% if d.design.width == 'custom' and d.design.custom_width %}style="max-width:{{ d.design.custom_width }}px"{% endif %}>
       <div class="fill-doc" data-doc style="{% if d.design.background %}background:{{ d.design.background }};{% endif %}{% if d.design.font %}font-family:'{{ d.design.font }}',Inter,sans-serif;{% endif %}{% if d.design.accent %}--fill-accent:{{ d.design.accent }};{% endif %}">
         <div class="doc-head" style="{% if d.design.header_color %}background:{{ d.design.header_color }}{% endif %}">
           {% if d.design.logo_url %}<img src="{{ d.design.logo_url }}" alt="" style="height:36px;margin-bottom:6px;display:block">{% elif d.design.use_workspace_logo and workspace.logo %}<img src="{{ workspace.logo.url }}" alt="" style="height:48px;margin:0 0 6px auto;display:block">{% endif %}
@@ -48,12 +74,22 @@
     {% endif %}
   </div>
   <div class="fill-bar">
-    <button type="button" class="fill-progress" data-next-field hidden aria-live="polite"></button>
-    {% if ai_assist %}<button type="button" class="btn" data-modal-template="#ai-fill-tpl" title="{% translate "Paste an email, letter or notes and let AI fill this form" %}">✦ {% translate "Fill from text" %}</button>{% endif %}
-    {% if not settings.forbid_decline %}<button type="button" class="btn btn-danger" data-modal-template="#decline-tpl">{% translate "Decline" %}</button>{% endif %}
-    {% if not settings.forbid_discard and run.draft %}<button class="btn" name="action" value="discard" data-confirm="{% translate "Discard your saved draft?" %}">{% translate "Discard" %}</button>{% endif %}
-    {% if not settings.forbid_draft %}<button class="btn" name="action" value="draft">{% translate "Save as draft" %}</button>{% endif %}
-    <button class="btn btn-lg fill-btn" name="action" value="submit">{% translate "Complete" %}</button>
+    <div class="fx-bar-in">
+      <button type="button" class="fill-progress" data-next-field hidden aria-live="polite"></button>
+      <span class="fx-grow"></span>
+      {% if ai_assist or not settings.forbid_decline or not settings.forbid_discard and run.draft %}
+      <div class="menu-wrap fx-more">
+        <button type="button" class="btn" data-menu aria-haspopup="true">{% translate "More" %} <span aria-hidden="true">▾</span></button>
+        <div class="menu up">
+          {% if ai_assist %}<button type="button" data-modal-template="#ai-fill-tpl">✦ {% translate "Fill from text" %}</button>{% endif %}
+          {% if not settings.forbid_discard and run.draft %}<button name="action" value="discard" data-confirm="{% translate "Discard your saved draft?" %}">{% translate "Discard draft" %}</button>{% endif %}
+          {% if not settings.forbid_decline %}<div class="sep"></div><button type="button" class="danger" data-modal-template="#decline-tpl">{% translate "Decline" %}…</button>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if not settings.forbid_draft %}<button class="btn" name="action" value="draft">{% translate "Save as draft" %}</button>{% endif %}
+      <button class="btn btn-lg fill-btn" name="action" value="submit">{% translate "Complete" %} <span aria-hidden="true">→</span></button>
+    </div>
   </div>
   {% endif %}
   </form>
@@ -70,5 +106,5 @@
   <div class="modal-foot"><button type="button" class="btn" data-close>{% translate "Cancel" %}</button><button class="btn btn-dark">✦ {% translate "Fill fields" %}</button></div></form></template>{% endif %}
 {% endif %}
 {% endblock %}
-{% block scripts %}<script type="application/json" id="fill-i18n">{"left_one": "{% translate "1 required field left · Next ↓" %}", "left_many": "{% translate "%(n)s required fields left · Next ↓" %}", "all_done": "{% translate "✓ All required fields filled" %}", "reading": "{% translate "Reading…" %}", "filled_one": "{% translate "AI filled 1 field — please check it." %}", "filled_many": "{% translate "AI filled %(n)s fields — please check them." %}", "nothing": "{% translate "AI found nothing to fill in that text." %}", "unreachable": "{% translate "The AI model could not be reached." %}", "fill_fields": "{% translate "Fill fields" %}"}</script>
+{% block scripts %}<script type="application/json" id="fill-i18n">{"left_one": "{% translate "1 required field left · Next ↓" %}", "tab_left": "{% translate "%(n)s left" %}", "todo_one": "{% translate "1 required field left to fill." %}", "todo_many": "{% translate "%(n)s required fields left to fill." %}", "todo_done": "{% translate "Everything required is filled in. Check it, then complete this step." %}", "tab_done": "{% translate "✓ Done" %}", "left_many": "{% translate "%(n)s required fields left · Next ↓" %}", "all_done": "{% translate "✓ All required fields filled" %}", "reading": "{% translate "Reading…" %}", "filled_one": "{% translate "AI filled 1 field — please check it." %}", "filled_many": "{% translate "AI filled %(n)s fields — please check them." %}", "nothing": "{% translate "AI found nothing to fill in that text." %}", "unreachable": "{% translate "The AI model could not be reached." %}", "fill_fields": "{% translate "Fill fields" %}"}</script>
 <script src="{% static 'js/fill.js' %}?v={{ asset_v }}"></script>{% endblock %}

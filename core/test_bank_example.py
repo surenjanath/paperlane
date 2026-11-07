@@ -226,3 +226,43 @@ class BankDuplicateTests(TestCase):
                              "amount": "5000", "term": "12", "rate": "11.5", "purpose": "Again", "consent": True}, {})
         p = Packet.objects.filter(workflow__name="Personal loan").order_by("-pk").first()
         self.assertIn("#Possible duplicate", set(p.tags.values_list("name", flat=True)))
+
+
+class BankPrivacyTests(TestCase):
+    def test_customer_steps_never_show_the_credit_assessment(self):
+        from flows import engine
+
+        call_command("seed_demo", verbosity=0, stdout=io.StringIO())
+        call_command("seed_bank_demo", stdout=io.StringIO())
+        p = Packet.objects.get(workflow__name="Personal loan", name__contains="Sofia Persaud")  # waiting for more information
+        run = p.runs.exclude(status="completed").get()
+        names = [d["name"] for d in engine.visible_documents(p, run.step_key)]
+        self.assertIn("Loan application", names)
+        self.assertNotIn("Credit assessment", names)
+        page = self.client.get(run.fill_url()).content.decode()
+        self.assertIn("Message from your loan officer", page)
+        self.assertNotIn("Credit score", page)
+
+
+class FillPageTests(TestCase):
+    def test_opens_on_the_document_with_work_and_shows_step_context(self):
+        call_command("seed_demo", verbosity=0, stdout=io.StringIO())
+        call_command("seed_bank_demo", stdout=io.StringIO())
+        p = Packet.objects.get(workflow__name="Personal loan", name__contains="Priyanka Mendes")  # loan officer review
+        run = p.runs.exclude(status="completed").get()
+        self.client.force_login(User.objects.get(username="fay"))
+        page = self.client.get(run.fill_url())
+        self.assertEqual(page.context["docs"][page.context["start_doc"]]["name"], "Credit assessment")
+        html = page.content.decode()
+        self.assertIn("Loan officer review", html)
+        self.assertIn('data-doc-tab="1"', html)
+        self.assertIn("Step 2 of", html)
+
+    def test_inbox_offers_fill_out_only_for_your_own_steps(self):
+        call_command("seed_demo", verbosity=0, stdout=io.StringIO())
+        call_command("seed_bank_demo", stdout=io.StringIO())
+        self.client.force_login(User.objects.get(username="fay"))  # a loan officer: Priyanka's review is hers to do
+        html = self.client.get("/documents/?q=Priyanka").content.decode()
+        self.assertIn('class="dl-fill"', html)
+        html = self.client.get("/documents/?q=Hugo").content.decode()  # with the credit committee, not Fay
+        self.assertNotIn('class="dl-fill"', html)

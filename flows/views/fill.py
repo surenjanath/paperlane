@@ -261,7 +261,20 @@ def _context(run, values_override=None, errors=None):
                            errors=(errors or {}).get(d["key"], {}), all_values=flat)
             for d in engine.visible_documents(packet, run.step_key)]
     ws = packet.workspace
+    for d in docs:  # what this person has to do in each document (drives the tabs and where the page opens)
+        fields = [fv for pg in d["pages"] for fv in pg]
+        d["n_edit"] = sum(1 for fv in fields if fv["editable"])
+        d["n_req"] = sum(1 for fv in fields if fv["editable"] and fv.get("required"))
+        d["n_left"] = sum(1 for fv in fields if fv["editable"] and fv.get("required") and fv.get("value") in ("", None, [], {}))
+    # open on the first document that still needs required input, else the first one this person can edit
+    start_doc = next((i for i, d in enumerate(docs) if d["n_left"]), next((i for i, d in enumerate(docs) if d["n_edit"]), 0))
+    done, total = packet.progress()
+    prev = packet.runs.filter(status=StepRun.COMPLETED).exclude(pk=run.pk).order_by("-completed_at").first()
     return {
+        "start_doc": start_doc, "n_req": sum(d["n_req"] for d in docs), "n_left": sum(d["n_left"] for d in docs), "n_fill_docs": sum(1 for d in docs if d["n_edit"]),
+        "step_no": min(done + 1, total), "step_total": total,
+        # staff see who handed it over; outside recipients see the organisation, never internal names
+        "handed_by": (prev.assignee_name or prev.assignee_email) if prev else engine.actor_label(packet.created_by, ws.name),
         "run": run, "packet": packet, "step": step, "docs": docs, "workspace": ws, "wf": packet.workflow,
         "settings": step.get("settings") or {},
         "consent_required": packet.definition.get("esign_consent") or ws.setting("esign_consent"),

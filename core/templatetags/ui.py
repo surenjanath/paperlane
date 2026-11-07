@@ -304,3 +304,16 @@ def duration(ms):
     if s < 60:
         return f"{s:.1f} s"
     return f"{int(s // 60)} min {int(s % 60)} s"
+
+
+@register.filter
+def my_run(packet, request):
+    """The open step of ``packet`` that the person viewing can fill now (their own, their group's, or a colleague's
+    they cover), or None. Uses the prefetched runs; claims by teammates are respected."""
+    user = getattr(request, "user", None)
+    if not getattr(user, "is_authenticated", False):
+        return None
+    for r in packet.runs.all():
+        if r.is_open and r.can_act(user):
+            return r
+    return None

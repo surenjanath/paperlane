@@ -84,6 +84,11 @@ const ft = (k, fallback, n) => (FILL_T[k] || fallback).replace("%(n)s", n);
     const i = wraps.indexOf(wrap);
     if (i < 0) return;
     wraps.forEach((w, j) => { w.hidden = j !== i; });
+    $$("[data-doc-tab]").forEach((t) => {  // document tabs follow whichever document is on screen
+      const on = Number(t.dataset.docTab) === i;
+      t.classList.toggle("on", on);
+      t.setAttribute("aria-selected", on ? "true" : "false");
+    });
     wraps.forEach((w) => {
       const prev = w.querySelector("[data-doc-prev]"), next = w.querySelector("[data-doc-next]");
       if (prev) prev.disabled = i === 0;
@@ -98,6 +103,7 @@ const ft = (k, fallback, n) => (FILL_T[k] || fallback).replace("%(n)s", n);
     if (doc && pg) $$(".fill-pg", doc).forEach((p) => { p.hidden = p !== pg; });
     showDoc(ff, false);
   };
+  $$("[data-doc-tab]").forEach((t) => t.addEventListener("click", () => showDoc(wraps[Number(t.dataset.docTab)], false)));
   wraps.forEach((w, idx) => {
     const prev = w.querySelector("[data-doc-prev]"), next = w.querySelector("[data-doc-next]");
     if (prev) prev.addEventListener("click", () => showDoc(wraps[idx - 1], true));
@@ -272,6 +278,16 @@ const ft = (k, fallback, n) => (FILL_T[k] || fallback).replace("%(n)s", n);
   const update = () => {
     const left = todo();
     const total = [...document.querySelectorAll(".ff:not(.locked)")].filter(counts).length;
+    document.querySelectorAll(".ff:not(.locked)").forEach((ff) => ff.classList.toggle("ff-ok", counts(ff) && filled(ff)));
+    const wraps = [...document.querySelectorAll("[data-doc-wrap]")];
+    const line = document.querySelector("[data-todo-line]");
+    if (line && total) line.textContent = left.length ? (left.length > 1 ? ft("todo_many", "%(n)s required fields left to fill.", left.length) : ft("todo_one", "1 required field left to fill.")) : ft("todo_done", "Everything required is filled in. Check it, then complete this step.");
+    document.querySelectorAll("[data-doc-left]").forEach((b) => {  // per-document “N left” on the tabs
+      const w = wraps[Number(b.dataset.docLeft)];
+      const n = w ? left.filter((ff) => w.contains(ff)).length : 0;
+      b.textContent = n ? ft("tab_left", "%(n)s left", n) : ft("tab_done", "✓ Done");
+      b.classList.toggle("done", !n);
+    });
     if (!total) { btn.hidden = true; return; }
     btn.hidden = false;
     btn.classList.toggle("done", !left.length);

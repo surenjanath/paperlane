@@ -110,9 +110,12 @@ BLUEPRINT = {
                    "loans, a signed offer letter and disbursement.",
     "documents": [
         {"key": "application", "name": "Loan application", "fields": [
-            {"id": "h_customer", "type": "heading", "label": "Your details", "text": "Your details", "filled_by": ["applicant"]},
+            # the officer's request is part of the application, so the customer never sees the credit assessment
+            F("info_request", "textarea", "Message from your loan officer", ["officer"], required=False,
+              condition=when("Officer recommendation", "eq", "Need more information")),
+            {"id": "h_customer", "type": "heading", "label": "Your details", "text": "Filled in from your account.", "filled_by": ["applicant"]},
             *CUSTOMER_FIELDS,
-            {"id": "h_loan", "type": "heading", "label": "Your loan", "text": "Your loan", "filled_by": ["applicant"]},
+            {"id": "h_loan", "type": "heading", "label": "Your loan", "text": "Tell us what you need.", "filled_by": ["applicant"]},
             *LOAN_FIELDS]},
         {"key": "assessment", "name": "Credit assessment", "fields": [
             F("score", "number", "Credit score", ["officer"], width="half"),
@@ -129,8 +132,6 @@ BLUEPRINT = {
               condition=when("Officer recommendation", "eq", "Approve")),
             F("offer_rate", "number", "Offered rate (%)", ["officer"], width="half",
               condition=when("Officer recommendation", "eq", "Approve")),
-            F("info_request", "textarea", "Information needed from the customer", ["officer"],
-              condition=when("Officer recommendation", "eq", "Need more information")),
             F("officer_notes", "textarea", "Officer notes", ["officer"], required=False)]},
         {"key": "compliance", "name": "Compliance screening", "fields": [
             F("screening", "radio", "Sanctions and PEP screening", ["aml"], options=["Clear", "Escalate"]),
@@ -175,7 +176,7 @@ BLUEPRINT = {
                        "offer": "hidden", "disbursement": "hidden"},
          "settings": {"sla": {"amount": 1, "unit": "business_days", "escalate": "notify"}}},
         {"key": "officer", "name": "Loan officer review", "recipient": {"type": "group", "group": "Loan officers"},
-         "documents": {"application": "view", "assessment": "fill", "compliance": "hidden", "committee": "hidden",
+         "documents": {"application": "fill", "assessment": "fill", "compliance": "hidden", "committee": "hidden",
                        "offer": "hidden", "disbursement": "hidden"},
          "settings": {"recurrence": True, "sla": {"amount": 2, "unit": "business_days", "escalate": "notify"}}},
         {"key": "officer_route", "type": "branch", "name": "Officer recommendation", "lanes": [
@@ -185,7 +186,7 @@ BLUEPRINT = {
              "when": when("Officer recommendation", "eq", "Need more information"), "then": "officer",
              "steps": [{"key": "info", "name": "Customer: more information",
                         "recipient": {"type": "email", "email": "{field:Email}"},
-                        "documents": {"application": "fill", "assessment": "view", "compliance": "hidden",
+                        "documents": {"application": "fill", "assessment": "hidden", "compliance": "hidden",
                                       "committee": "hidden", "offer": "hidden", "disbursement": "hidden"}}]}]},
         {"key": "risk_route", "type": "branch", "name": "Risk route", "lanes": [
             {"id": "committee", "label": "Large or higher-risk loan",
