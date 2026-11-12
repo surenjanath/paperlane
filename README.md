@@ -1,4 +1,4 @@
-# paperlane.insightfusion.com
+# paperlane.insightfusiontech.com
 
 The website for [Paperlane](https://github.com/surenjanath/paperlane). This branch holds only the static site:
 plain HTML, CSS and a little JavaScript, with no build step.
@@ -24,4 +24,4 @@ Workers & Pages → Create → Pages → Connect to Git → `surenjanath/paperla
 - Production branch: `website`
 - Framework preset: None · Build command: *(empty)* · Build output directory: `/`
 
-Then Custom domains → `paperlane.insightfusion.com`. Every push to `website` redeploys.
+Then Custom domains → `paperlane.insightfusiontech.com`. Every push to `website` redeploys.

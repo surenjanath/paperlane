@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://paperlane.insightfusion.com/sitemap.xml
+Sitemap: https://paperlane.insightfusiontech.com/sitemap.xml
