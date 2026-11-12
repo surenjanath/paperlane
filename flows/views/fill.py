@@ -310,7 +310,7 @@ def fill(request, token):
             return render(request, "flows/fill_taken.html", {"run": run, "packet": packet, "workspace": packet.workspace,
                                                              "manager": manager}, status=409)
         previous = run.claimed_by
-        run.claim(user)
+        run.claim(user, force=True)
         engine.notify(previous, packet.workspace, f"{engine.actor_label(user)} took over {packet.name}", run.step_name,
                       f"/documents/{packet.pk}/", kind="assigned")
         engine.audit(packet.workspace, "step.taken_over", f"{run.step_name}: {previous.email} → {user.email}", actor=user,
@@ -352,12 +352,21 @@ def _verify(request, run, v):
     return render(request, "flows/fill_verify.html", ctx, status=200)
 
 
+def _closed(request, run, exc):
+    """Someone else finished (or took) this step while this person was submitting: say who, change nothing."""
+    run.refresh_from_db()
+    return render(request, "flows/fill_closed.html", {"run": run, "packet": run.packet, "workspace": run.packet.workspace,
+                                                      "closed_note": str(exc)}, status=409)
+
+
 def _claim_action(request, run, user, action):
     packet = run.packet
     if user is None or not run.assignee_group_id:
         return redirect("flows:fill", run.token)
     if action == "claim" and run.can_act(user):
-        run.claim(user)
+        if not run.claim(user):
+            messages.info(request, f"{engine.actor_label(run.claimed_by)} took this task first.")
+            return redirect("core:inbox")
         engine.audit(packet.workspace, "step.claimed", f"{run.step_name} taken by {user.email}", actor=user, packet=packet,
                      request=request)
         messages.success(request, "You took this task — your teammates won't see it in their inbox while you work on it.")
@@ -378,9 +387,14 @@ def _handle_post(request, run, user):
     if action in ("claim", "release"):
         return _claim_action(request, run, user, action)
     if user is not None and run.assignee_group_id and not run.claimed_by_id and action in ("submit", "draft"):
-        run.claim(user)  # working on a group step takes it
+        if not run.claim(user):  # working on a group step takes it — unless a teammate just did
+            return render(request, "flows/fill_taken.html", {"run": run, "packet": packet, "workspace": packet.workspace,
+                                                             "manager": False}, status=409)
     if action == "decline" and not s.get("forbid_decline"):
-        engine.decline_run(run, request.POST.get("reason", "").strip(), user=user, request=request)
+        try:
+            engine.decline_run(run, request.POST.get("reason", "").strip(), user=user, request=request)
+        except engine.StepClosed as exc:
+            return _closed(request, run, exc)
         return redirect("flows:fill_done", run.token)
     if action == "discard" and not s.get("forbid_discard"):
         run.draft = {}
@@ -445,7 +459,10 @@ def _handle_post(request, run, user):
             run.save(update_fields=["draft"])
         ctx["has_errors"] = True
         return render(request, "flows/fill.html", ctx, status=400)
-    engine.complete_run(run, values_by_doc, user=user, request=request)
+    try:
+        engine.complete_run(run, values_by_doc, user=user, request=request)
+    except engine.StepClosed as exc:
+        return _closed(request, run, exc)
     if s.get("redirect_url"):
         return redirect(s["redirect_url"])
     return redirect("flows:fill_done", run.token)

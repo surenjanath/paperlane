@@ -710,32 +710,46 @@ def h_docx_template(packet, cfg, ctx):
     from . import docgen
     from .models import PacketFile, WorkflowDocument
 
+    from django.core.files.storage import default_storage
+
     want = (cfg.get("template") or "").strip().lower()
-    tpl = None
-    for d in packet.workflow.documents.filter(kind=WorkflowDocument.FILE):
-        names = {d.name.lower(), os.path.basename(d.file.name or "").lower()}
-        if d.file and (want in names or want.removesuffix(".docx") in {n.removesuffix(".docx") for n in names}):
-            tpl = d
+
+    def matches(name, file_name):
+        names = {name.lower(), os.path.basename(file_name or "").lower()}
+        return want in names or want.removesuffix(".docx") in {n.removesuffix(".docx") for n in names}
+
+    # the template this packet's version shipped with; packets started before file_name was snapshotted use the live one
+    tpl_name = data = None
+    for d in packet.documents:
+        if d.get("kind") == WorkflowDocument.FILE and d.get("file_name") and matches(d["name"], d["file_name"]):
+            tpl_name = d["name"]
+            with default_storage.open(d["file_name"], "rb") as fh:
+                data = fh.read()
             break
-    if tpl is None:
+    if data is None and not any(d.get("file_name") for d in packet.documents):
+        for d in packet.workflow.documents.filter(kind=WorkflowDocument.FILE):
+            if d.file and matches(d.name, d.file.name):
+                tpl_name = d.name
+                with d.file.open("rb") as fh:
+                    data = fh.read()
+                break
+    if data is None:
         raise RuntimeError(f"No uploaded Word template called “{cfg.get('template')}” in this workflow")
-    with tpl.file.open("rb") as fh:
-        data = fh.read()
     filled, missing = docgen.render(data, docgen.values_for(packet, include_sensitive=bool(cfg.get("include_sensitive"))))
     base = slugify(token_render(cfg.get("filename") or "{document_name}", packet))[:80] or f"document-{packet.pk}"
     saved = [base + ".docx"]
-    PacketFile.objects.create(packet=packet, doc_key="generated", field_id=tpl.name[:128], original_name=base + ".docx",
+    PacketFile.objects.create(packet=packet, doc_key="generated", field_id=tpl_name[:128], original_name=base + ".docx",
                               file=ContentFile(filled, name=base + ".docx"))
     note = ""
     if cfg.get("pdf"):
         pdf = docgen.to_pdf(filled)
         if pdf:
-            PacketFile.objects.create(packet=packet, doc_key="generated", field_id=tpl.name[:128], original_name=base + ".pdf",
+            PacketFile.objects.create(packet=packet, doc_key="generated", field_id=tpl_name[:128], original_name=base + ".pdf",
                                       file=ContentFile(pdf, name=base + ".pdf"))
             saved.append(base + ".pdf")
         else:
             note = " (no PDF: LibreOffice isn't installed on the server)"
-    return f"Generated {', '.join(saved)} from {tpl.name}{note}" + (f" · no field for: {', '.join(missing[:5])}" if missing else "")
+    return f"Generated {', '.join(saved)} from {tpl_name}{note}" + (f" · no field for: {', '.join(missing[:5])}" if missing else "")
 
 
 def h_ai_agent(packet, cfg, ctx):
@@ -852,8 +866,10 @@ def h_assign_round_robin(packet, cfg, ctx):
                 .filter(models.Q(claimed_by=u) | models.Q(assignee_user=u)).count() for u in members}
         user = min(members, key=lambda u: (load[u.pk], u.pk))
     for run in runs:
-        run.assignee_group = run.assignee_group or group
-        run.claim(user)
+        if run.assignee_group_id is None:  # a person's step handed to a group: save it, or the holder couldn't act on it
+            run.assignee_group = group
+            run.save(update_fields=["assignee_group"])
+        run.claim(user, force=True)
         engine.notify(user, packet.workspace, f"{packet.name} was assigned to you", run.step_name, run.fill_url(), kind="assigned")
     engine.audit(packet.workspace, "step.auto_assigned", f"{runs[0].step_name} → {user.email} ({group.name})", packet=packet)
     return f"Assigned to {user.get_full_name() or user.email} from {group.name}"

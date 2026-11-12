@@ -52,6 +52,7 @@ def capture(wf):
     snap = wf.export_snapshot()
     for d in snap.get("documents", []):
         d.pop("file_url", None)
+        d.pop("file_name", None)
     snap.pop("version", None)
     return {"snapshot": snap, "name": wf.name, "description": wf.description, "autostart": wf.autostart or {}}
 

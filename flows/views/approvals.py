@@ -5,6 +5,7 @@ import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -101,9 +102,11 @@ def decide(request, token):
     values = {pl["decision"]["doc"]: {pl["decision"]["field"]["id"]: choice}}
     if pl["comment"] and comment:
         values.setdefault(pl["comment"]["doc"], {})[pl["comment"]["field"]["id"]] = comment
-    if run.assignee_group_id and not run.claimed_by_id:
-        run.claim(request.user)
-    engine.complete_run(run, values, user=request.user, request=request)
+    try:  # the engine takes a group step for this user and refuses if a teammate got there first
+        engine.complete_run(run, values, user=request.user, request=request)
+    except engine.StepClosed as exc:
+        messages.info(request, str(exc))
+        return redirect("flows:approvals")
     messages.success(request, f"{choice}: {run.packet.name}")
     return redirect("flows:approvals")
 
@@ -133,9 +136,16 @@ def decide_by_link(request, token, idx):
         values = {pl["decision"]["doc"]: {pl["decision"]["field"]["id"]: choice}}
         if pl["comment"] and comment:
             values.setdefault(pl["comment"]["doc"], {})[pl["comment"]["field"]["id"]] = comment
-        engine.mark_opened(run, request=request)
-        engine.audit(packet.workspace, "step.one_tap", f"{run.step_name}: {choice} from the email", packet=packet, request=request)
-        engine.complete_run(run, values, request=request, label=run.assignee_name or run.assignee_email)
+        try:
+            with transaction.atomic():  # lock first, so a double-clicked email link leaves one one-tap entry, not two
+                engine.lock_open_run(run)
+                engine.mark_opened(run, request=request)
+                engine.audit(packet.workspace, "step.one_tap", f"{run.step_name}: {choice} from the email", packet=packet, request=request)
+                engine.complete_run(run, values, request=request, label=run.assignee_name or run.assignee_email)
+        except engine.StepClosed as exc:
+            run.refresh_from_db()
+            return render(request, "flows/fill_closed.html", {"run": run, "packet": packet, "workspace": packet.workspace,
+                                                              "closed_note": str(exc)}, status=409)
         return render(request, "flows/fill_decided.html", {"packet": packet, "workspace": packet.workspace, "choice": choice})
     return render(request, "flows/fill_decide.html", {
         "run": run, "packet": packet, "workspace": packet.workspace, "choice": choice, "tone": _tone(choice), "plan": pl,

@@ -50,6 +50,8 @@ def publish(workflow, user):
 def _strip(snap):
     snap = dict(snap or {})
     snap.pop("version", None)
+    # file_name mirrors file_url; ignore it so snapshots published before it existed don't look changed
+    snap["documents"] = [{k: v for k, v in d.items() if k != "file_name"} for d in snap.get("documents", [])]
     return snap
 
 
