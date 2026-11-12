@@ -1,5 +1,9 @@
 # Paperlane
 
+<p align="center">
+  <img src="docs/images/builder.webp" alt="The Paperlane workflow builder: a personal loan workflow with a start form, applicant, ID check and loan officer review steps, and the six documents it uses" width="900">
+</p>
+
 **Document-workflow automation**: visual workflow builder, drag-and-drop forms, e-signatures, bots, start forms,
 team work queues, SLAs, AI (local Ollama or cloud) and a super admin console. It is built with Python and Django,
 with server-rendered templates and no front-end build step.
@@ -15,11 +19,26 @@ and disbursement. Run `python manage.py seed_bank_demo` after `seed_demo`.
 | | |
 |---|---|
 | **Stack** | Python 3.12+ · Django 6 · SQLite (any Django database) · vanilla JS · xhtml2pdf · openpyxl · segno |
+| **Website** | [paperlane.insightfusiontech.com](https://paperlane.insightfusiontech.com) |
 | **Docs** | [Architecture](docs/ARCHITECTURE.md) · [Deployment](docs/DEPLOYMENT.md) |
-| **Tests** | `python manage.py test` (about 150 tests, including a sweep of every route for every role) |
+| **Tests** | `python manage.py test` (about 350 tests, including a sweep of every route for every role) |
+
+## Screenshots
+
+| | |
+|---|---|
+| <img src="docs/images/documents.webp" alt="The Documents list: every case with its status, current step and progress"> | <img src="docs/images/document.webp" alt="One loan application: each step, who completed it and what is still upcoming"> |
+| **Documents** – every case, where it is and who has it | **One document** – its path, revisions, history and audit trail |
+| <img src="docs/images/fill.webp" alt="A recipient filling the claim payment step, with a signature already on the document"> | <img src="docs/images/start-form.webp" alt="A public start form for a personal loan that fills in customer details from core banking"> |
+| **Filling a step** – no account needed, drafts, e-signatures | **Public start forms** – look-ups fill the rest as people type |
+| <img src="docs/images/insights.webp" alt="Workflow insights: completion rate, time per step, and where documents wait"> | <img src="docs/images/approvals-phone.webp" alt="Approvals on a phone: each request with its key facts and one-tap decision buttons" width="300"> |
+| **Insights** – the slowest step and who holds the most work | **Approvals on a phone** – one tap per decision |
+
+The screenshots use the demo data from `seed_demo`, `seed_stories` and `seed_bank_demo`.
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Quick start](#quick-start)
 - [Configuration](#configuration-environment-variables)
 - [Feature map](#feature-map)
