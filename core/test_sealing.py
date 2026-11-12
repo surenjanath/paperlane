@@ -89,3 +89,26 @@ class SealingTests(TestCase):
             self.client.get("/verify/AAAA-BBBB-CCCC-DDDD/")
         self.assertEqual(self.client.get("/verify/AAAA-BBBB-CCCC-DDDD/").status_code, 429)
         cache.clear()
+
+
+@override_settings(MEDIA_ROOT="/tmp/paperlane-test-media")
+class DemoSealTests(TestCase):
+    """The seed commands back-date finished documents; their seals must still verify, or every demo document says
+    "the stored record has changed since it was sealed" on the verify page."""
+
+    def test_every_seeded_seal_verifies(self):
+        from flows import sealing
+        from flows.models import DocumentSeal, Packet
+
+        for cmd in ("seed_demo", "seed_stories", "seed_bank_demo"):
+            call_command(cmd, verbosity=0)
+        done = Packet.objects.filter(status=Packet.COMPLETED)
+        self.assertGreater(done.count(), 5)
+        for p in done:
+            seals = list(p.seals.filter(superseded_at__isnull=True))
+            self.assertEqual(len(seals), 1, p.name)
+            self.assertTrue(sealing.check(seals[0])["intact"], p.name)
+            self.assertEqual(seals[0].sealed_at, p.completed_at)
+        self.assertEqual(DocumentSeal.objects.filter(superseded_at__isnull=False).count(), 0)
+        r = self.client.get(f"/verify/{DocumentSeal.objects.first().code}/")
+        self.assertNotContains(r, "has changed since it was sealed")

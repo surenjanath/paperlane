@@ -82,6 +82,25 @@ def seal(packet):
     return s
 
 
+def reseal_backdated(packet):
+    """Demo seeds back-date a finished document after completion sealed it, which changes what the seal covers, so
+    every demo document would verify as "changed since sealed". Replace that seal with one taken as of the new
+    completion time. Only for seed data: a real document's seal history must never be rewritten."""
+    from .models import AuditEvent, DocumentSeal, Packet
+
+    packet = Packet.objects.get(pk=packet.pk)
+    if not packet.completed_at:
+        return None
+    for old in packet.seals.all():
+        if old.pdf:
+            old.pdf.delete(save=False)
+        old.delete()
+    s = seal(packet)
+    DocumentSeal.objects.filter(pk=s.pk).update(sealed_at=packet.completed_at)
+    AuditEvent.objects.filter(packet=packet, action="packet.sealed").update(detail=f"Sealed · code {s.code}")
+    return s
+
+
 def check(s):
     """Re-hash the stored record: {"intact": bool, "current": hash} — False means data changed after sealing."""
     from .models import Packet
