@@ -25,3 +25,5 @@ Workers & Pages → Create → Pages → Connect to Git → `surenjanath/paperla
 - Framework preset: None · Build command: *(empty)* · Build output directory: `/`
 
 Then Custom domains → `paperlane.insightfusiontech.com`. Every push to `website` redeploys.
+
+When you change `assets/site.css` or `assets/site.js`, bump the `?v=` number where `index.html` and `404.html` load them; assets are cached for a day.
