@@ -86,5 +86,18 @@
       }).catch(() => {});
   } catch {}
 
+  // video: load YouTube (privacy-enhanced domain) only when someone presses play
+  $$(".video-facade").forEach((btn) => btn.addEventListener("click", () => {
+    const id = btn.dataset.yt;
+    if (!id) return;
+    const f = document.createElement("iframe");
+    f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0`;
+    f.title = "Paperlane walkthrough video";
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    f.allowFullscreen = true;
+    f.referrerPolicy = "strict-origin-when-cross-origin";
+    btn.replaceWith(f);
+  }));
+
   const yr = $("#yr"); if (yr) yr.textContent = new Date().getFullYear();
 })();

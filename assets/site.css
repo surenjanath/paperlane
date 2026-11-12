@@ -308,3 +308,42 @@ footer { border-top: 1px solid var(--line); padding: 54px 0 40px; color: var(--m
 @media print { .js .reveal { opacity: 1; transform: none; } .nav, .phone, .float-chip { display: none; } }
 .pill b { white-space: nowrap; }
 @media (max-width: 560px) { .pill { font-size: 13px; text-align: left; } }
+
+/* ---------- tour: video + PDF guide ---------- */
+.tour .sec-head { margin-bottom: 44px; }
+.tour-grid { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: stretch; }
+.video { position: relative; border-radius: var(--radius-lg); overflow: hidden; background: var(--ink);
+  box-shadow: 0 40px 80px -30px rgba(18, 21, 20, .45); border: 1px solid var(--line); aspect-ratio: 16 / 9; }
+.video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-facade { all: unset; position: absolute; inset: 0; cursor: pointer; display: block; }
+.video-facade img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease, filter .3s ease; }
+.video-facade:hover img { transform: scale(1.02); filter: brightness(.92); }
+.video-facade:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.play { position: absolute; left: 50%; top: 50%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
+  background: var(--accent); color: #fff; display: grid; place-items: center;
+  box-shadow: 0 14px 40px -8px rgba(228, 87, 46, .7), 0 0 0 10px rgba(255, 255, 255, .14); transition: transform .2s ease; }
+.play svg { width: 34px; height: 34px; margin-left: 4px; }
+.video-facade:hover .play { transform: scale(1.07); }
+.video-meta { position: absolute; left: 18px; bottom: 16px; padding: 6px 12px; border-radius: 999px; background: rgba(18, 21, 20, .72);
+  color: #fff; font-size: 13.5px; font-weight: 700; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.guide { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px;
+  display: flex; flex-direction: column; gap: 18px; box-shadow: var(--shadow); }
+.guide-cover { display: block; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); max-width: 170px;
+  box-shadow: 0 18px 40px -20px rgba(18, 21, 20, .5); transition: transform .25s ease; transform: rotate(-1.2deg); }
+.guide-cover:hover { transform: rotate(0) translateY(-2px); }
+.guide h3 { font-size: 20px; font-weight: 800; }
+.guide p { color: var(--muted); font-size: 15px; margin-top: 6px; }
+.guide-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 16px; }
+.guide-actions .btn { min-height: 42px; padding: 0 16px; font-size: 14.5px; }
+.guide-link { font-size: 14.5px; font-weight: 700; color: var(--accent-deep); text-underline-offset: 3px; }
+.guide-meta { display: block; margin-top: 12px; font-size: 13px; color: var(--muted); font-family: var(--mono); }
+@media (max-width: 1060px) {
+  .tour-grid { grid-template-columns: 1fr; }
+  .guide { flex-direction: row; align-items: center; }
+  .guide-cover { flex: none; width: 130px; }
+}
+@media (max-width: 560px) {
+  .guide { flex-direction: column; align-items: flex-start; }
+  .play { width: 64px; height: 64px; margin: -32px 0 0 -32px; }
+  .play svg { width: 26px; height: 26px; }
+}
