@@ -19,7 +19,7 @@ and disbursement. Run `python manage.py seed_bank_demo` after `seed_demo`.
 | | |
 |---|---|
 | **Stack** | Python 3.12+ · Django 6 · SQLite (any Django database) · vanilla JS · xhtml2pdf · openpyxl · segno |
-| **Website** | [paperlane.insightfusion.com](https://paperlane.insightfusion.com) |
+| **Website** | [paperlane.insightfusiontech.com](https://paperlane.insightfusiontech.com) |
 | **Docs** | [Architecture](docs/ARCHITECTURE.md) · [Deployment](docs/DEPLOYMENT.md) |
 | **Tests** | `python manage.py test` (about 350 tests, including a sweep of every route for every role) |
 
