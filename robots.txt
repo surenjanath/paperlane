@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://paperlane.insightfusion.com/sitemap.xml
