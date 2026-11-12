@@ -298,6 +298,20 @@ class NewBotTests(TestCase):
         q = self.start()
         self.assertNotEqual(q.runs.get(step_name="Processing").claimed_by, first)  # the other one has less work now
 
+    def test_round_robin_on_a_person_step_hands_it_to_the_group(self):
+        """With an explicit group on a step sent to a person, the chosen member must be able to act on it."""
+        from accounts.models import Group
+        from flows import engine
+
+        group = Group.objects.get(workspace=self.ws, name="Processing")
+        self.bot("assign_round_robin", {"strategy": "rotate", "group": group.pk}, trigger="step_start", step="Requester")
+        p = engine.start_packet(self.wf, user=self.owner, source="api",
+                                first_assignee={"email": "owner@paperlane.test", "name": "Owner", "user": self.owner})
+        run = p.runs.get(step_name="Requester")
+        self.assertIn(run.claimed_by.username, ("sam", "cal"))
+        self.assertEqual(run.assignee_group, group)  # saved, not just set in memory
+        self.assertTrue(run.can_act(run.claimed_by))
+
     def test_round_robin_rotates(self):
         self.bot("assign_round_robin", {"strategy": "rotate"}, trigger="step_start", step="Processing")
         holders = [self.start().runs.get(step_name="Processing").claimed_by.username for _ in range(3)]

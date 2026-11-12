@@ -531,10 +531,45 @@ def save_revision(packet, *, run=None, user=None, note=""):
     )
 
 
+class StepClosed(Exception):
+    """The step was finished, declined, revoked or taken by someone else before this action reached it."""
+
+
+def lock_open_run(run, user=None):
+    """Lock ``run``'s packet and re-read ``run`` so only one action can finish a step.
+
+    Two people approving the same group task at once both pass the "is it still open?" check in their views; the
+    packet row lock (PostgreSQL) or the IMMEDIATE write transaction (SQLite) makes the second wait for the first to
+    commit, and the re-read then shows the step closed. Call inside a transaction. Updates ``run`` in place, takes an
+    unclaimed group step for ``user``, and raises :class:`StepClosed` with a message fit for the person."""
+    if not transaction.get_connection().in_atomic_block:
+        raise RuntimeError("lock_open_run must be called inside transaction.atomic")
+    packet = Packet.objects.select_for_update().get(pk=run.packet_id)
+    run.refresh_from_db()
+    run.packet = packet
+    acting = user if getattr(user, "is_authenticated", False) else None
+    if not run.is_open:
+        if run.status == StepRun.COMPLETED:
+            raise StepClosed(f"{actor_label(run.assignee_user, run.assignee_email or run.assignee_name)} "
+                             f"already completed {run.step_name}.")
+        if run.status == StepRun.SKIPPED:
+            raise StepClosed(f"Another recipient already completed {run.step_name}.")
+        raise StepClosed(f"{run.step_name} is no longer open ({run.get_status_display().lower()}).")
+    if packet.status != Packet.IN_PROGRESS:
+        raise StepClosed(f"{packet.name} is {packet.get_status_display().lower()}.")
+    if acting is not None and run.assignee_group_id:
+        if run.claimed_by_id and run.claimed_by_id != acting.id:
+            raise StepClosed(f"{actor_label(run.claimed_by)} is already working on {run.step_name}.")
+        if not run.claimed_by_id:
+            run.claim(acting)
+    return run
+
+
 @transaction.atomic
 def complete_run(run, values_by_doc, *, user=None, request=None, label=None):
     from .bots import run_bots
 
+    lock_open_run(run, user)
     if run.status == StepRun.PENDING and not label:
         mark_opened(run, user=user, request=request)  # submissions that skip the fill page still pre-fill first
         run.refresh_from_db()
@@ -593,7 +628,9 @@ def complete_run(run, values_by_doc, *, user=None, request=None, label=None):
     return packet
 
 
+@transaction.atomic
 def decline_run(run, reason, *, user=None, request=None):
+    lock_open_run(run, user)
     packet = run.packet
     run.status = StepRun.DECLINED
     run.decline_reason = reason

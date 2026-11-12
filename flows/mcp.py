@@ -330,7 +330,10 @@ class Server:
         if errors:
             return {"completed": False, "step": run.step_name, "errors": errors,
                     "ignored_values": sorted(unknown) or None}
-        engine.complete_run(run, values_by_doc, user=self.user)
+        try:
+            engine.complete_run(run, values_by_doc, user=self.user)
+        except engine.StepClosed as exc:
+            raise ToolError(str(exc))
         out = self._doc_summary(p)
         out["completed_step"] = run.step_name
         if unknown:

@@ -4,7 +4,8 @@
 {% block body %}
 <div class="center-screen">
   <div class="art">{% if packet.status == 'completed' or run.status == 'completed' %}✅{% else %}🔒{% endif %}</div>
-  {% if link_disabled %}<h2>{% translate "This link is not active" %}</h2><p class="muted">{% blocktranslate with org=workspace.name %}Ask {{ org }} for a new link.{% endblocktranslate %}</p>
+  {% if closed_note %}<h2>{% translate "This step was already handled" %}</h2><p class="muted">{{ closed_note }}</p><p class="muted">{% translate "Your answers were not applied to the document." %}</p>
+  {% elif link_disabled %}<h2>{% translate "This link is not active" %}</h2><p class="muted">{% blocktranslate with org=workspace.name %}Ask {{ org }} for a new link.{% endblocktranslate %}</p>
   {% elif run.status == 'completed' %}<h2>{% translate "You already completed these documents" %}</h2><p class="muted">{{ packet.name }}</p>
   {% elif run.status == 'expired' %}<h2>{% translate "Your access has expired" %}</h2><p class="muted">{% translate "Contact the sender to receive a new link." %}</p>
   {% elif run.status == 'declined' or packet.status == 'declined' %}<h2>{% translate "These documents were declined" %}</h2>

@@ -223,6 +223,8 @@ class WorkflowDocument(models.Model):
             "roles": (self.schema or {}).get("roles", []),
             "design": self.design or {},
             "file_url": self.file.url if self.file else "",
+            # storage name, so a packet keeps using the file its version shipped with after the file is replaced
+            "file_name": self.file.name if self.file else "",
             "condition": self.condition or {},
         }
 
@@ -569,9 +571,18 @@ class StepRun(models.Model):
     def absolute_fill_url(self):
         return settings.SITE_URL.rstrip("/") + self.fill_url()
 
-    def claim(self, user):
-        self.claimed_by, self.claimed_at = user, timezone.now()
-        self.save(update_fields=["claimed_by", "claimed_at"])
+    def claim(self, user, *, force=False):
+        """Take this step for ``user``. Returns False when a teammate holds it (a single conditional UPDATE, so two
+        people clicking at once can't both take it). ``force`` is for takeovers and assignment bots."""
+        now = timezone.now()
+        rows = StepRun.objects.filter(pk=self.pk)
+        if not force:
+            rows = rows.filter(models.Q(claimed_by__isnull=True) | models.Q(claimed_by=user))
+        if rows.update(claimed_by=user, claimed_at=now):
+            self.claimed_by, self.claimed_at = user, now
+            return True
+        self.refresh_from_db(fields=["claimed_by", "claimed_at"])
+        return False
 
     def release(self):
         self.claimed_by, self.claimed_at = None, None
