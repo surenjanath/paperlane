@@ -311,8 +311,8 @@ footer { border-top: 1px solid var(--line); padding: 54px 0 40px; color: var(--m
 
 /* ---------- tour: video + PDF guide ---------- */
 .tour .sec-head { margin-bottom: 44px; }
-.tour-grid { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: stretch; }
-.video { position: relative; border-radius: var(--radius-lg); overflow: hidden; background: var(--ink);
+.tour-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; }
+.video { width: 100%; align-self: start; position: relative; border-radius: var(--radius-lg); overflow: hidden; background: var(--ink);
   box-shadow: 0 40px 80px -30px rgba(18, 21, 20, .45); border: 1px solid var(--line); aspect-ratio: 16 / 9; }
 .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video-facade { all: unset; position: absolute; inset: 0; cursor: pointer; display: block; }
