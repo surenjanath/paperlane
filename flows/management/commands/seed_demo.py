@@ -95,7 +95,10 @@ class Command(BaseCommand):
                         t = min(t + timezone.timedelta(hours=rng.randint(1, 20), minutes=rng.randint(0, 59)), timezone.now())
                         StepRun.objects.filter(pk=r.pk).update(opened_at=t, completed_at=t)
                 Packet.objects.filter(pk=pk).update(last_activity_at=t)
-                Packet.objects.filter(pk=pk, completed_at__isnull=False).update(completed_at=t)
+                if Packet.objects.filter(pk=pk, completed_at__isnull=False).update(completed_at=t):
+                    from flows.sealing import reseal_backdated
+
+                    reseal_backdated(Packet(pk=pk))  # the seal covers completion times; re-take it after back-dating
         tpl = services.create_workflow(ws, owner, name="Beneficiary change request", kind="template")
         services.publish(tpl, owner)
         self.stdout.write(self.style.SUCCESS("Demo workspace seeded. Log in as owner@paperlane.test (see README for the password)."))

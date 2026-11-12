@@ -379,6 +379,10 @@ class Command(BaseCommand):
         last = timeline[-1][1]
         p.refresh_from_db()
         Packet.objects.filter(pk=p.pk).update(last_activity_at=last, **({"completed_at": last} if p.completed_at else {}))
+        if p.completed_at:
+            from flows.sealing import reseal_backdated
+
+            reseal_backdated(p)  # the seal covers completion times; re-take it after back-dating
 
     @staticmethod
     def _names(wf):
